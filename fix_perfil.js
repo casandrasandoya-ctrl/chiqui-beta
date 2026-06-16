@@ -1,4 +1,6 @@
-'use client'
+const fs = require('fs');
+
+const content = `'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
@@ -229,3 +231,7 @@ export default function PerfilPage() {
     </div>
   )
 }
+`;
+
+fs.writeFileSync('app/perfil/page.tsx', content, 'utf8');
+console.log('✓ app/perfil/page.tsx corregido');
