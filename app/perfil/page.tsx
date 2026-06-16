@@ -113,6 +113,7 @@ export default function PerfilPage() {
     <div className="min-h-screen pb-24 fade-in">
 
       <div className="relative bg-gradient-to-b from-[#1B2340] to-[#0B1020] pt-8 pb-6 text-center">
+        <button onClick={() => router.back()} className="absolute left-4 top-4 w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-lg">←</button>
         <div className="w-20 h-20 rounded-full bg-[#1E2848] border-2 border-[#4CCB7F] flex items-center justify-center text-4xl mx-auto mb-3">
           🐶
         </div>
