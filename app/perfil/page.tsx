@@ -18,7 +18,7 @@ export default function PerfilPage() {
   const supabase = createClient()
   const [mascota, setMascota] = useState(null)
   const [editando, setEditando] = useState(false)
-  const [form, setForm] = useState({})
+  const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
   const [loading, setLoading] = useState(true)
