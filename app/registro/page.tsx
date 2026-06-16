@@ -66,7 +66,7 @@ export default function RegistroPage() {
       if (!m) { router.push('/mascota/nueva'); return }
       setMascotaId(m.id)
       setMascotaNombre(m.nombre)
-      const hoy = new Date().toISOString().split('T')[0]
+      const hoy = new Date(new Date().toLocaleString('en-US', {timeZone:'America/Santiago'})).toISOString().split('T')[0]
       const { data: r } = await supabase.from('registros_diarios').select('id').eq('mascota_id', m.id).eq('fecha', hoy).single()
       if (r) setYaRegistro(true)
       setCargando(false)
@@ -79,7 +79,7 @@ export default function RegistroPage() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const hoy = new Date().toISOString().split('T')[0]
+    const hoy = new Date(new Date().toLocaleString('en-US', {timeZone:'America/Santiago'})).toISOString().split('T')[0]
     await supabase.from('registros_diarios').upsert({
       mascota_id: mascotaId, user_id: user.id, fecha: hoy,
       estado_dia: calcEstado(sel), nota: nota || null,
