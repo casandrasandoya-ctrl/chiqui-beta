@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 
-function calcEdad(f) {
+function calcEdad(f: string) {
   const h = new Date(), n = new Date(f)
   const m = (h.getFullYear() - n.getFullYear()) * 12 + (h.getMonth() - n.getMonth())
   return m < 12 ? m + 'm' : m % 12 > 0 ? Math.floor(m/12) + 'a ' + (m%12) + 'm' : Math.floor(m/12) + 'a'
