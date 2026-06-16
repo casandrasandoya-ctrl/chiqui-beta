@@ -41,7 +41,7 @@ export default function PerfilPage() {
       <div className="relative bg-gradient-to-b from-[#1B2340] to-[#0B1020] pt-8 pb-6 text-center">
         <div className="w-20 h-20 rounded-full bg-[#1E2848] border-2 border-[#4CCB7F] flex items-center justify-center text-4xl mx-auto mb-3">🐶</div>
         <h1 className="text-xl font-bold">{mascota?.nombre}</h1>
-        <p className="text-sm text-[#8A8FA8] mt-1">{mascota?.especie}{mascota?.raza?` · ${mascota.raza}`:''}{mascota?.fecha_nacimiento?` · ${calcEdad(mascota.fecha_nacimiento)}":''}</p>
+        <p className="text-sm text-[#8A8FA8] mt-1">{mascota?.especie}{mascota?.raza?` · ${mascota.raza}`:''}{mascota?.fecha_nacimiento?` · ${calcEdad(mascota.fecha_nacimiento)}:''}</p>
         {mascota?.alergias&&<div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-bold bg-[#E25D5D]/15 text-[#E25D5D]">⚠️ Alergia: {mascota.alergias}</div>}
       </div>
       <div className="grid grid-cols-3 gap-3 mx-4 mt-4 mb-4">
