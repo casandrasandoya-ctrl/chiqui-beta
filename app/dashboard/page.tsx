@@ -83,7 +83,7 @@ export default async function Dashboard() {
           </div>
         </div>
         {!regHoy && (
-          <Link href="/registro" className="flex items-center justify-between px-4 py-3.5 bg-[#E3A84A] text-[#1A1200]">
+          <Link href="/registro-diario" className="flex items-center justify-between px-4 py-3.5 bg-[#E3A84A] text-[#1A1200]">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-base">✏️</div>
               <div>
