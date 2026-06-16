@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import BottomNav from '@/components/BottomNav'\nimport LinkVet from '@/components/LinkVet'
+import BottomNav from '@/components/BottomNav'
+import LinkVet from '@/components/LinkVet'
 
 const IC = "w-full bg-[#1B2340] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E3A84A]/60"
 const SC = "w-full bg-[#1B2340] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm focus:outline-none appearance-none"
