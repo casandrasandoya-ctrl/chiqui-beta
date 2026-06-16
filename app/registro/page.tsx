@@ -45,7 +45,7 @@ function calcEstado(sel: Record<string,string>): string {
   return 'verde'
 }
 
-export default function RegistroPage() {
+export default function RegistroPage({ searchParams }: { searchParams: { fecha?: string } }) {
   const router = useRouter()
   const supabase = createClient()
   const [mascotaId, setMascotaId] = useState('')
@@ -54,7 +54,7 @@ export default function RegistroPage() {
   const [det, setDet] = useState<Record<string,string>>({})
   const [nota, setNota] = useState('')
   const [abierto, setAbierto] = useState('energia')
-  const [fechaRegistro, setFechaRegistro] = useState(new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0])
+  const [fechaRegistro, setFechaRegistro] = useState(searchParams?.fecha || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0])
   const [loading, setLoading] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [yaRegistro, setYaRegistro] = useState(false)

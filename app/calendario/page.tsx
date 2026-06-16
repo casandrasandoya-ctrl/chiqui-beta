@@ -104,7 +104,7 @@ export default function CalendarioPage() {
           ):(
             <div className="p-6 text-center">
               <p className="text-sm text-[#8A8FA8] mb-3">Sin registro para este día</p>
-              {isHoy(dia)&&<Link href="/registro" className="bg-[#E3A84A] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm inline-block">Registrar hoy →</Link>}
+              <Link href={`/registro?fecha=${fkey(dia)}`} className="bg-[#E3A84A] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm inline-block">Registrar este día →</Link>
             </div>
           )}
         </div>
