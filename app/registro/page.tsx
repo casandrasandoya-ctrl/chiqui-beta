@@ -54,6 +54,7 @@ export default function RegistroPage() {
   const [det, setDet] = useState<Record<string,string>>({})
   const [nota, setNota] = useState('')
   const [abierto, setAbierto] = useState('energia')
+  const [fechaRegistro, setFechaRegistro] = useState(new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0])
   const [loading, setLoading] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [yaRegistro, setYaRegistro] = useState(false)
@@ -81,7 +82,7 @@ export default function RegistroPage() {
     if (!user) return
     const hoy = new Date(new Date().toLocaleString('en-US', {timeZone:'America/Santiago'})).toISOString().split('T')[0]
     await supabase.from('registros_diarios').upsert({
-      mascota_id: mascotaId, user_id: user.id, fecha: hoy,
+      mascota_id: mascotaId, user_id: user.id, fecha: fechaRegistro,
       estado_dia: calcEstado(sel), nota: nota || null,
       energia: sel.energia || null, animo: sel.animo || null,
       apetito: sel.apetito || null, apetito_detalle: det.apetito || null,
@@ -118,6 +119,7 @@ export default function RegistroPage() {
           <div>
             <p className="text-xs text-[#8A8FA8]">{new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'})}</p>
             <h1 className="text-base font-bold">¿Cómo estuvo {mascotaNombre}?</h1>
+              <input type="date" value={fechaRegistro} onChange={e => setFechaRegistro(e.target.value)} className="text-xs bg-[#1E2848] border border-white/10 rounded-lg px-2 py-1 text-[#E3A84A] mt-1"/>
           </div>
           <button onClick={guardar} disabled={loading || !completadas}
             className="bg-[#E3A84A] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40">
