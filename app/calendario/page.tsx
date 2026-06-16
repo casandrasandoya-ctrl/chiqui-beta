@@ -29,6 +29,7 @@ export default function CalendarioPage() {
   async function load(id:string,m:number,a:number){
     const ini=`${a}-${String(m+1).padStart(2,'0')}-01`
     const fin=`${a}-${String(m+1).padStart(2,'0')}-31`
+    console.log('Buscando registros entre', ini, 'y', fin)
     const{data}=await supabase.from('registros_diarios').select('fecha,estado_dia,nota,energia,animo,apetito,agua,digestion,pelaje,conducta,movilidad').eq('mascota_id',id).gte('fecha',ini).lte('fecha',fin)
     const map:Record<string,any>={}
     data?.forEach(r=>{map[r.fecha]=r})
