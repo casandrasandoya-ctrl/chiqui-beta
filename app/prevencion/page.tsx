@@ -30,9 +30,11 @@ export default function PrevencionPage() {
   const [vacunas, setVacunas] = useState<any[]>([])
   const [antis, setAntis] = useState<any[]>([])
   const [obs, setObs] = useState<any[]>([])
+  const [medicamentos, setMedicamentos] = useState<any[]>([])
+  const [enfermedades, setEnfermedades] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'peso' | 'vacunas' | 'anti' | 'obs'>('peso')
-  const [modal, setModal] = useState<'vacuna' | 'anti' | 'obs' | null>(null)
+  const [tab, setTab] = useState<'peso' | 'vacunas' | 'anti' | 'medicamentos' | 'enfermedades' | 'obs'>('peso')
+  const [modal, setModal] = useState<'vacuna' | 'anti' | 'obs' | 'medicamento' | 'enfermedad' | null>(null)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
 
@@ -50,14 +52,18 @@ export default function PrevencionPage() {
   }, [])
 
   async function cargarDatos(id: string) {
-    const [v, a, o] = await Promise.all([
+    const [v, a, o, med, enf] = await Promise.all([
       supabase.from('vacunas').select('*').eq('mascota_id', id).order('fecha_aplicacion', { ascending: false }),
       supabase.from('antiparasitarios').select('*').eq('mascota_id', id).order('fecha_aplicacion', { ascending: false }),
       supabase.from('observaciones').select('*').eq('mascota_id', id).order('created_at', { ascending: false }),
+      supabase.from('medicamentos').select('*').eq('mascota_id', id).order('fecha_inicio', { ascending: false }),
+      supabase.from('enfermedades').select('*').eq('mascota_id', id).order('fecha_diagnostico', { ascending: false }),
     ])
     setVacunas(v.data || [])
     setAntis(a.data || [])
     setObs(o.data || [])
+    setMedicamentos(med.data || [])
+    setEnfermedades(enf.data || [])
   }
 
   async function guardar() {
@@ -71,6 +77,10 @@ export default function PrevencionPage() {
       await supabase.from('antiparasitarios').insert({ ...base, ...form })
     } else if (modal === 'obs') {
       await supabase.from('observaciones').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0] })
+    } else if (modal === 'medicamento') {
+      await supabase.from('medicamentos').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0], indicado_por_vet: !!form.indicado_por_vet })
+    } else if (modal === 'enfermedad') {
+      await supabase.from('enfermedades').insert({ ...base, ...form, fecha_diagnostico: form.fecha_diagnostico || new Date().toISOString().split('T')[0] })
     }
     await cargarDatos(mascota.id)
     setModal(null); setForm({}); setSaving(false)
@@ -93,7 +103,10 @@ export default function PrevencionPage() {
         </div>
         {tab !== 'peso' && (
           <button
-            onClick={() => { setModal(tab === 'vacunas' ? 'vacuna' : tab === 'anti' ? 'anti' : 'obs'); setForm({}) }}
+            onClick={() => {
+              const modalMap: Record<string, any> = { vacunas:'vacuna', anti:'anti', medicamentos:'medicamento', enfermedades:'enfermedad', obs:'obs' }
+              setModal(modalMap[tab]); setForm({})
+            }}
             className="bg-[#E8A84C] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl"
           >
             + Agregar
@@ -103,7 +116,7 @@ export default function PrevencionPage() {
 
       {/* Tabs */}
       <div className="flex px-4 gap-2 mb-4 overflow-x-auto">
-        {[['peso','⚖️ Peso'],['vacunas','💉 Vacunas'],['anti','💊 Antipar.'],['obs','👁️ Obs.']].map(([t, l]) => (
+        {[['peso','⚖️ Peso'],['vacunas','💉 Vacunas'],['anti','💊 Antipar.'],['medicamentos','🩹 Medicamentos'],['enfermedades','🏥 Enfermedades'],['obs','👁️ Obs.']].map(([t, l]) => (
           <button key={t} onClick={() => setTab(t as any)}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${tab === t ? 'bg-[#E8A84C] text-[#1A1200]' : 'bg-[#232840] text-[#8A8FA8]'}`}>
             {l}
@@ -193,6 +206,86 @@ export default function PrevencionPage() {
         </div>
       )}
 
+      {/* MEDICAMENTOS */}
+      {tab === 'medicamentos' && (
+        <div className="mx-4 space-y-3">
+          {medicamentos.length === 0 && (
+            <div className="bg-[#232840] rounded-2xl border border-white/8 p-8 text-center">
+              <div className="text-4xl mb-3">🩹</div>
+              <p className="text-sm text-[#8A8FA8]">Sin medicamentos registrados</p>
+              <button onClick={() => { setModal('medicamento'); setForm({}) }} className="mt-4 bg-[#E8A84C] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+                + Agregar medicamento
+              </button>
+            </div>
+          )}
+          {medicamentos.map(med => (
+            <div key={med.id} className="bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
+              <div className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#4AABDB]/15 flex items-center justify-center text-xl">🩹</div>
+                    <div>
+                      <p className="font-bold text-sm">{med.nombre}</p>
+                      {med.dosis && <p className="text-xs text-[#8A8FA8] mt-0.5">{med.dosis}{med.frecuencia ? ` · ${med.frecuencia}` : ''}</p>}
+                      <p className="text-xs text-[#8A8FA8]">Desde: {fmt(med.fecha_inicio)}{med.fecha_fin ? ` hasta ${fmt(med.fecha_fin)}` : ''}</p>
+                    </div>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-white/10 text-[#8A8FA8]'}`}>
+                    {med.estado === 'activo' ? 'Activo' : 'Finalizado'}
+                  </span>
+                </div>
+                {med.motivo && <p className="text-xs text-[#8A8FA8] mt-2">Motivo: {med.motivo}</p>}
+                <div className="flex items-center gap-1.5 mt-2">
+                  <span className="text-xs">{med.indicado_por_vet ? '🩺' : '💡'}</span>
+                  <span className="text-xs text-[#8A8FA8]">{med.indicado_por_vet ? 'Indicado por veterinario' : 'Sin indicación veterinaria'}</span>
+                </div>
+                {med.nota && <p className="text-xs text-[#8A8FA8] mt-2 italic bg-[#1E2333] rounded-xl p-2">📝 {med.nota}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ENFERMEDADES */}
+      {tab === 'enfermedades' && (
+        <div className="mx-4 space-y-3">
+          {enfermedades.length === 0 && (
+            <div className="bg-[#232840] rounded-2xl border border-white/8 p-8 text-center">
+              <div className="text-4xl mb-3">🏥</div>
+              <p className="text-sm text-[#8A8FA8]">Sin enfermedades registradas</p>
+              <button onClick={() => { setModal('enfermedad'); setForm({}) }} className="mt-4 bg-[#E8A84C] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+                + Agregar diagnóstico
+              </button>
+            </div>
+          )}
+          {enfermedades.map(enf => {
+            const estadoColor: Record<string,string> = { activa: '#F07A30', cronica: '#E05252', resuelta: '#4CAF7D' }
+            const estadoLabel: Record<string,string> = { activa: 'Activa', cronica: 'Crónica', resuelta: 'Resuelta' }
+            return (
+              <div key={enf.id} className="bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
+                <div className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: `${estadoColor[enf.estado]}20` }}>🏥</div>
+                      <div>
+                        <p className="font-bold text-sm">{enf.diagnostico}</p>
+                        <p className="text-xs text-[#8A8FA8] mt-0.5">Diagnosticada: {fmt(enf.fecha_diagnostico)}</p>
+                        {enf.veterinario && <p className="text-xs text-[#8A8FA8]">Por: {enf.veterinario}</p>}
+                      </div>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: `${estadoColor[enf.estado]}20`, color: estadoColor[enf.estado] }}>
+                      {estadoLabel[enf.estado] || enf.estado}
+                    </span>
+                  </div>
+                  {enf.nota && <p className="text-xs text-[#8A8FA8] mt-2 italic bg-[#1E2333] rounded-xl p-2">📝 {enf.nota}</p>}
+                  {enf.fecha_resolucion && <p className="text-xs text-[#4CAF7D] mt-2">Resuelta: {fmt(enf.fecha_resolucion)}</p>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* OBSERVACIONES */}
       {tab === 'obs' && (
         <div className="mx-4 space-y-3">
@@ -233,7 +326,7 @@ export default function PrevencionPage() {
           <div className="w-full max-w-[480px] bg-[#232840] rounded-t-2xl p-5 space-y-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-bold text-base">
-                {modal === 'vacuna' ? '💉 Nueva vacuna' : modal === 'anti' ? '💊 Nuevo antiparasitario' : '👁️ Nueva observación'}
+                {modal === 'vacuna' ? '💉 Nueva vacuna' : modal === 'anti' ? '💊 Nuevo antiparasitario' : modal === 'medicamento' ? '🩹 Nuevo medicamento' : modal === 'enfermedad' ? '🏥 Nuevo diagnóstico' : '👁️ Nueva observación'}
               </h2>
               <button onClick={() => setModal(null)} className="text-[#8A8FA8] text-xl">✕</button>
             </div>
@@ -272,6 +365,50 @@ export default function PrevencionPage() {
                 <input className={IC} placeholder="Observación opcional" value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
             </>}
 
+            {modal === 'medicamento' && <>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nombre del medicamento *</label>
+                <input className={IC} placeholder="ej. Amoxicilina" value={form.nombre || ''} onChange={e => u('nombre', e.target.value)}/></div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Dosis</label>
+                <input className={IC} placeholder="ej. 250mg, media pastilla" value={form.dosis || ''} onChange={e => u('dosis', e.target.value)}/></div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Frecuencia</label>
+                <input className={IC} placeholder="ej. cada 12 horas, 1 vez al día" value={form.frecuencia || ''} onChange={e => u('frecuencia', e.target.value)}/></div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Motivo</label>
+                <input className={IC} placeholder="ej. Infección de oído" value={form.motivo || ''} onChange={e => u('motivo', e.target.value)}/></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha de inicio *</label>
+                  <input type="date" className={IC} value={form.fecha_inicio || ''} onChange={e => u('fecha_inicio', e.target.value)}/></div>
+                <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha de término</label>
+                  <input type="date" className={IC} value={form.fecha_fin || ''} onChange={e => u('fecha_fin', e.target.value)}/></div>
+              </div>
+              <button type="button" onClick={() => u('indicado_por_vet', form.indicado_por_vet ? '' : 'true')}
+                className="w-full flex items-center gap-3 bg-[#1E2333] rounded-xl px-4 py-3 border border-white/10">
+                <div className="w-5 h-5 rounded-md flex items-center justify-center text-xs flex-shrink-0" style={{ background: form.indicado_por_vet ? '#4AABDB' : 'transparent', border: form.indicado_por_vet ? 'none' : '1.5px solid #8A8FA8' }}>
+                  {form.indicado_por_vet ? '✓' : ''}
+                </div>
+                <span className="text-sm">Indicado por veterinario</span>
+              </button>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nota</label>
+                <input className={IC} placeholder="Observación opcional" value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
+            </>}
+
+            {modal === 'enfermedad' && <>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Diagnóstico *</label>
+                <input className={IC} placeholder="ej. Displasia de cadera, Gastritis" value={form.diagnostico || ''} onChange={e => u('diagnostico', e.target.value)}/></div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha de diagnóstico *</label>
+                <input type="date" className={IC} value={form.fecha_diagnostico || ''} onChange={e => u('fecha_diagnostico', e.target.value)}/></div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Estado *</label>
+                <select className={SC} value={form.estado || ''} onChange={e => u('estado', e.target.value)}>
+                  <option value="">Seleccionar...</option>
+                  <option value="activa">Activa</option>
+                  <option value="cronica">Crónica</option>
+                  <option value="resuelta">Resuelta</option>
+                </select></div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Veterinario tratante</label>
+                <input className={IC} placeholder="ej. Dr. González, Clínica X" value={form.veterinario || ''} onChange={e => u('veterinario', e.target.value)}/></div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Notas</label>
+                <textarea className={IC} rows={3} placeholder="Detalles del diagnóstico, tratamiento indicado..." value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
+            </>}
+
             {modal === 'obs' && <>
               <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Título *</label>
                 <input className={IC} placeholder="ej. Grano en oreja derecha" value={form.titulo || ''} onChange={e => u('titulo', e.target.value)}/></div>
@@ -286,7 +423,7 @@ export default function PrevencionPage() {
                 <input type="date" className={IC} value={form.fecha_inicio || ''} onChange={e => u('fecha_inicio', e.target.value)}/></div>
             </>}
 
-            <button onClick={guardar} disabled={saving || !form.nombre && !form.titulo}
+            <button onClick={guardar} disabled={saving || (!form.nombre && !form.titulo && !form.diagnostico)}
               className="w-full bg-[#E8A84C] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
