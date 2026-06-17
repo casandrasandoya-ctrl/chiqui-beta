@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
+import LinkVet from '@/components/LinkVet'
 
 const IC = "w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
 const SC = "w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm focus:outline-none appearance-none"
@@ -204,6 +205,8 @@ export default function PerfilPage() {
           </div>
         )}
       </div>
+
+      {mascota && <LinkVet mascotaId={mascota.id} />}
 
       <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
         <div className="px-4 py-3 border-b border-white/5">
