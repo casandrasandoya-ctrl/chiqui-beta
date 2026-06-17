@@ -136,7 +136,7 @@ export default function PerfilPage() {
           <div className="text-[10px] text-[#8A8FA8] uppercase tracking-wider mt-0.5">Peso</div>
         </div>
         <div className="bg-[#232840] rounded-2xl border border-white/8 p-3 text-center">
-          <div className="font-bold text-sm text-[#4AABDB]">{mascota?.sexo || '-'}</div>
+          <div className="font-bold text-sm text-[#E8A84C]">{mascota?.sexo || '-'}</div>
           <div className="text-[10px] text-[#8A8FA8] uppercase tracking-wider mt-0.5">Sexo</div>
         </div>
         <div className="bg-[#232840] rounded-2xl border border-white/8 p-3 text-center">
@@ -148,7 +148,7 @@ export default function PerfilPage() {
       <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
           <h2 className="font-bold text-sm">Datos del perfil</h2>
-          <button onClick={() => { setEditando(!editando); setForm(mascota || {}) }} className="text-xs font-bold text-[#4AABDB]">
+          <button onClick={() => { setEditando(!editando); setForm(mascota || {}) }} className="text-xs font-bold text-[#E8A84C]">
             {editando ? 'Cancelar' : '✏️ Editar'}
           </button>
         </div>

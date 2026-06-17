@@ -142,7 +142,7 @@ export default async function Dashboard() {
         <>
           <div className="flex items-center justify-between px-5 pb-2.5">
             <span className="font-heading text-[13px] font-bold text-[#8A8FA8] uppercase tracking-wider">Próximos</span>
-            <Link href="/prevencion" className="text-xs text-[#4AABDB]">Ver todo</Link>
+            <Link href="/prevencion" className="text-xs text-[#E8A84C] font-semibold">Ver todo</Link>
           </div>
           <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/[0.07] overflow-hidden">
             {proximaVacuna && (
@@ -201,7 +201,9 @@ export default async function Dashboard() {
           { href: '/perfil', icon: '🐾', label: 'Perfil' },
         ].map(item => (
           <Link key={item.href} href={item.href} className="bg-[#232840] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-3">
-            <span className="text-2xl">{item.icon}</span>
+            <div className="w-9 h-9 rounded-full bg-[#E8A84C]/15 flex items-center justify-center text-lg flex-shrink-0">
+              {item.icon}
+            </div>
             <span className="text-sm font-semibold">{item.label}</span>
           </Link>
         ))}
