@@ -5,8 +5,20 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
 const ESPECIES = ['Perro', 'Gato', 'Conejo', 'Ave', 'Otro']
-const RAZAS_PERRO = ['Mestizo', 'Labrador', 'Golden Retriever', 'French Bulldog', 'Beagle', 'Poodle', 'Schnauzer', 'Yorkshire Terrier', 'Otro']
-const RAZAS_GATO = ['Mestizo', 'Siamés', 'Persa', 'Maine Coon', 'Ragdoll', 'Bengalí', 'Otro']
+
+const RAZAS_PERRO = [
+  'Mestizo', 'Poodle', 'Pastor Alemán', 'Yorkshire Terrier', 'Dachshund',
+  'Fox Terrier', 'Beagle', 'Labrador Retriever', 'Golden Retriever',
+  'Chihuahua', 'Boxer', 'Galgo', 'Pug', 'Maltés', 'French Bulldog',
+  'Bulldog Inglés', 'Border Collie', 'Schnauzer', 'Husky Siberiano',
+  'Rottweiler', 'Otro',
+]
+
+const RAZAS_GATO = [
+  'Mestizo', 'Doméstico pelo corto', 'Doméstico pelo largo', 'Siamés',
+  'Persa', 'Maine Coon', 'Ragdoll', 'Bengalí', 'Esfinge (Sphynx)',
+  'Británico de pelo corto', 'Angora', 'Otro',
+]
 
 export default function NuevaMascotaPage() {
   const router = useRouter()
@@ -33,7 +45,14 @@ export default function NuevaMascotaPage() {
   })
 
   const update = (key: string, value: string | boolean) =>
-    setForm(prev => ({ ...prev, [key]: value }))
+    setForm(prev => {
+      // Si cambia la especie, limpiamos la raza para que nunca quede
+      // guardada una raza de la especie anterior (ej. raza de perro en un gato)
+      if (key === 'especie' && value !== prev.especie) {
+        return { ...prev, especie: value as string, raza: '' }
+      }
+      return { ...prev, [key]: value }
+    })
 
   async function handleSubmit() {
     setLoading(true)
@@ -58,7 +77,12 @@ export default function NuevaMascotaPage() {
     router.refresh()
   }
 
+  const mostrarSelectorRaza = form.especie === 'Perro' || form.especie === 'Gato'
   const razas = form.especie === 'Perro' ? RAZAS_PERRO : form.especie === 'Gato' ? RAZAS_GATO : []
+
+  // El botón "Siguiente" del paso 1 solo se habilita si, cuando la especie
+  // tiene lista de razas (perro o gato), también se eligió una raza explícita.
+  const paso1Completo = !!form.nombre && !!form.especie && !!form.sexo && (!mostrarSelectorRaza || !!form.raza)
 
   return (
     <div className="min-h-screen pb-8 fade-in">
@@ -109,12 +133,15 @@ export default function NuevaMascotaPage() {
               </div>
             </Field>
 
-            {razas.length > 0 && (
+            {mostrarSelectorRaza && (
               <Field label="Raza">
                 <select className={selectClass} value={form.raza} onChange={e => update('raza', e.target.value)}>
                   <option value="">Seleccionar...</option>
                   {razas.map(r => <option key={r}>{r}</option>)}
                 </select>
+                {!form.raza && (
+                  <p className="text-[11px] text-[#8A8FA8] mt-1.5">Elige una raza para continuar. Si no sabes cuál, selecciona "Mestizo" u "Otro".</p>
+                )}
               </Field>
             )}
 
@@ -130,7 +157,7 @@ export default function NuevaMascotaPage() {
             </Field>
 
             <button
-              disabled={!form.nombre || !form.especie || !form.sexo}
+              disabled={!paso1Completo}
               onClick={() => setStep(2)}
               className="w-full bg-[#E8A84C] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40 mt-2">
               Siguiente →
