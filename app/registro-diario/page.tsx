@@ -11,8 +11,14 @@ interface Categoria {
   opciones: Opcion[]
 }
 
-const CATS: Categoria[] = [
-  { id:'energia', nombre:'Energía', icon:'⚡', color:'#F5C842',
+// Construye las categorías de registro diario según la especie de la mascota.
+// 'Perro' es el set base; cuando especie === 'Gato' se ajustan ciertas
+// categorías (Pelaje, Conducta, Digestion) para reflejar señales felinas
+// reales, y se agrega siempre (para ambas especies) la categoría Arenero.
+function getCategorias(especie: string): Categoria[] {
+  const esGato = especie === 'Gato'
+
+  const energia: Categoria = { id:'energia', nombre:'Energía', icon:'⚡', color:'#F5C842',
     opciones:[
       {value:'muy_alta',emoji:'⚡⚡',label:'Muy alta'},
       {value:'alta',emoji:'⚡',label:'Alta'},
@@ -20,8 +26,9 @@ const CATS: Categoria[] = [
       {value:'baja',emoji:'😴',label:'Baja'},
       {value:'muy_baja',emoji:'🛌',label:'Muy baja'},
       {value:'decaido',emoji:'😟',label:'Decaído'},
-    ]},
-  { id:'animo', nombre:'Ánimo', icon:'😄', color:'#E8A84C',
+    ]}
+
+  const animo: Categoria = { id:'animo', nombre:'Ánimo', icon:'😄', color:'#E8A84C',
     opciones:[
       {value:'muy_feliz',emoji:'🥳',label:'Muy feliz'},
       {value:'feliz',emoji:'😄',label:'Feliz'},
@@ -29,8 +36,9 @@ const CATS: Categoria[] = [
       {value:'ansioso',emoji:'😰',label:'Ansioso'},
       {value:'triste',emoji:'😢',label:'Triste'},
       {value:'irritable',emoji:'😤',label:'Irritable'},
-    ]},
-  { id:'apetito', nombre:'Apetito', icon:'🍽️', color:'#3DD6B5',
+    ]}
+
+  const apetito: Categoria = { id:'apetito', nombre:'Apetito', icon:'🍽️', color:'#3DD6B5',
     opciones:[
       {value:'mas',emoji:'😋',label:'Comió más'},
       {value:'normal',emoji:'✅',label:'Normal'},
@@ -38,8 +46,9 @@ const CATS: Categoria[] = [
       {value:'nada',emoji:'❌',label:'No comió',detalle:[
         {titulo:'¿Cuántas comidas saltó?',opciones:[{value:'una',emoji:'1️⃣',label:'Una'},{value:'dos',emoji:'2️⃣',label:'Dos'},{value:'todo',emoji:'🚫',label:'Todo el día'}]}
       ]},
-    ]},
-  { id:'agua', nombre:'Agua', icon:'💧', color:'#4AABDB',
+    ]}
+
+  const agua: Categoria = { id:'agua', nombre:'Agua', icon:'💧', color:'#4AABDB',
     opciones:[
       {value:'mas',emoji:'💧💧',label:'Más de lo normal',detalle:[
         {titulo:'¿Cuándo notaste el cambio?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓️',label:'Hace semanas'}]}
@@ -49,21 +58,29 @@ const CATS: Categoria[] = [
       {value:'nada',emoji:'⚠️',label:'No tomó',detalle:[
         {titulo:'¿Cuándo notaste el cambio?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓️',label:'Hace semanas'}]}
       ]},
-    ]},
-  { id:'digestion', nombre:'Digestión', icon:'🫃', color:'#F07A30',
+    ]}
+
+  // Digestión: el único cambio por especie es agregar "Bola de pelo" como
+  // tipo de vómito en gato, ya que es un tipo de vómito normal/frecuente
+  // en felinos que no existe en perro.
+  const tiposVomito = [
+    {value:'espuma',emoji:'🫧',label:'Espuma'},
+    {value:'bilis',emoji:'🟡',label:'Bilis'},
+    {value:'comida',emoji:'🍖',label:'Comida'},
+    ...(esGato
+      ? [{value:'bola_pelo',emoji:'🧶',label:'Bola de pelo'}]
+      : [{value:'pasto',emoji:'🌿',label:'Pasto'}]),
+    {value:'sangre_vomito',emoji:'🔴',label:'Con sangre'},
+    {value:'otro_vomito',emoji:'❓',label:'Otro'},
+  ]
+
+  const digestion: Categoria = { id:'digestion', nombre:'Digestión', icon:'🫃', color:'#F07A30',
     opciones:[
       {value:'normal',emoji:'✅',label:'Normal'},
       {value:'gases',emoji:'💨',label:'Gases'},
       {value:'nauseas',emoji:'🤢',label:'Náuseas'},
       {value:'vomito',emoji:'🤮',label:'Vómito',detalle:[
-        {titulo:'¿Qué tipo de vómito?',opciones:[
-          {value:'espuma',emoji:'🫧',label:'Espuma'},
-          {value:'bilis',emoji:'🟡',label:'Bilis'},
-          {value:'comida',emoji:'🍖',label:'Comida'},
-          {value:'pasto',emoji:'🌿',label:'Pasto'},
-          {value:'sangre_vomito',emoji:'🔴',label:'Con sangre'},
-          {value:'otro_vomito',emoji:'❓',label:'Otro'},
-        ]},
+        {titulo:'¿Qué tipo de vómito?',opciones:tiposVomito},
         {titulo:'¿Cuántas veces?',opciones:[
           {value:'1_vez',emoji:'1️⃣',label:'1 vez'},
           {value:'2_veces',emoji:'2️⃣',label:'2 veces'},
@@ -81,35 +98,66 @@ const CATS: Categoria[] = [
         ]},
       ]},
       {value:'estrenimiento',emoji:'😬',label:'Estreñimiento'},
-    ]},
-  { id:'pelaje', nombre:'Pelaje y piel', icon:'✨', color:'#4CAF7D',
+    ]}
+
+  // Arenero / Eliminación urinaria: categoría nueva, para AMBAS especies.
+  // Es la señal más crítica que faltaba — en gato puede indicar una
+  // obstrucción urinaria (emergencia real); en perro puede indicar
+  // problemas renales, de próstata o infección urinaria.
+  const arenero: Categoria = { id:'arenero', nombre: esGato ? 'Arenero' : 'Orina', icon:'🚽', color:'#8A6FD8',
     opciones:[
-      {value:'brillante',emoji:'✨',label:'Brillante'},
-      {value:'normal',emoji:'😊',label:'Normal'},
-      {value:'opaco',emoji:'😐',label:'Opaco'},
-      {value:'caida_leve',emoji:'🍂',label:'Caída leve'},
-      {value:'caida_excesiva',emoji:'🍂🍂',label:'Caída excesiva',detalle:[
-        {titulo:'¿Dónde?',opciones:[{value:'orejas',emoji:'👂',label:'Orejas'},{value:'patas',emoji:'🐾',label:'Patas'},{value:'barriga',emoji:'🫃',label:'Barriga'},{value:'lomo',emoji:'🐕',label:'Lomo'},{value:'cara',emoji:'🐶',label:'Cara'},{value:'general',emoji:'🔄',label:'General'}]}
+      {value:'normal',emoji:'✅',label:'Normal'},
+      {value:'mas_orina',emoji:'💦',label:'Orinó más',detalle:[
+        {titulo:'¿Desde cuándo?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓️',label:'Hace semanas'}]}
       ]},
-      {value:'rasca',emoji:'🐾',label:'Se rasca',detalle:[
-        {titulo:'¿Dónde?',opciones:[{value:'orejas',emoji:'👂',label:'Orejas'},{value:'patas',emoji:'🐾',label:'Patas'},{value:'barriga',emoji:'🫃',label:'Barriga'},{value:'lomo',emoji:'🐕',label:'Lomo'},{value:'cara',emoji:'🐶',label:'Cara'},{value:'general',emoji:'🔄',label:'General'}]}
+      {value:'menos_costo',emoji:'😣',label: esGato ? 'Le costó / poca cantidad' : 'Le costó orinar',detalle:[
+        {titulo:'¿Notaste sangre?',opciones:[{value:'si_sangre',emoji:'🔴',label:'Sí'},{value:'no_sangre',emoji:'⬜',label:'No'}]}
       ]},
-    ]},
-  { id:'conducta', nombre:'Conducta', icon:'🧠', color:'#E05252',
-    opciones:[
-      {value:'normal',emoji:'😊',label:'Normal'},
-      {value:'sociable',emoji:'🤩',label:'Muy sociable'},
-      {value:'ansioso',emoji:'😰',label:'Ansioso',detalle:[
-        {titulo:'¿Ante qué?',opciones:[{value:'perros',emoji:'🐕',label:'Perros'},{value:'personas',emoji:'🧍',label:'Personas'},{value:'ruidos',emoji:'🔊',label:'Ruidos'},{value:'solo',emoji:'🏠',label:'Solo en casa'}]}
-      ]},
-      {value:'temeroso',emoji:'😨',label:'Temeroso',detalle:[
-        {titulo:'¿Ante qué?',opciones:[{value:'perros',emoji:'🐕',label:'Perros'},{value:'personas',emoji:'🧍',label:'Personas'},{value:'ruidos',emoji:'🔊',label:'Ruidos'},{value:'solo',emoji:'🏠',label:'Solo en casa'}]}
-      ]},
-      {value:'reactivo',emoji:'⚡',label:'Reactivo',detalle:[
-        {titulo:'¿Ante qué?',opciones:[{value:'perros',emoji:'🐕',label:'Perros'},{value:'personas',emoji:'🧍',label:'Personas'},{value:'ruidos',emoji:'🔊',label:'Ruidos'},{value:'solo',emoji:'🏠',label:'Solo en casa'}]}
-      ]},
-    ]},
-  { id:'movilidad', nombre:'Movilidad', icon:'🦴', color:'#8A8FA8',
+      ...(esGato ? [{value:'fuera_arenero',emoji:'⚠️',label:'Fuera del arenero'} as Opcion] : [{value:'fuera_lugar',emoji:'⚠️',label:'Ensució dentro de casa'} as Opcion]),
+      {value:'con_sangre',emoji:'🆘',label:'Con sangre'},
+      {value:'no_orino',emoji:'🚨',label:'No orinó en todo el día'},
+    ]}
+
+  const tiposZonaCuerpo = [{value:'orejas',emoji:'👂',label:'Orejas'},{value:'patas',emoji:'🐾',label:'Patas'},{value:'barriga',emoji:'🫃',label:'Barriga'},{value:'lomo',emoji:'🐕',label:'Lomo'},{value:'cara',emoji:'🐶',label:'Cara'},{value:'general',emoji:'🔄',label:'General'}]
+
+  // Pelaje y piel: en gato separamos "se lame en exceso" (acicalamiento
+  // compulsivo, señal de estrés o dolor) de "se rasca" (más asociado a
+  // picazón/parásitos), porque son conductas distintas y ambas relevantes.
+  const pelajeOpciones: Opcion[] = [
+    {value:'brillante',emoji:'✨',label:'Brillante'},
+    {value:'normal',emoji:'😊',label:'Normal'},
+    {value:'opaco',emoji:'😐',label:'Opaco'},
+    {value:'caida_leve',emoji:'🍂',label:'Caída leve'},
+    {value:'caida_excesiva',emoji:'🍂🍂',label:'Caída excesiva',detalle:[{titulo:'¿Dónde?',opciones:tiposZonaCuerpo}]},
+    {value:'rasca',emoji:'🐾',label:'Se rasca',detalle:[{titulo:'¿Dónde?',opciones:tiposZonaCuerpo}]},
+  ]
+  if (esGato) {
+    pelajeOpciones.push({value:'lame_exceso',emoji:'👅',label:'Se lame en exceso',detalle:[{titulo:'¿Dónde?',opciones:tiposZonaCuerpo}]})
+  }
+  const pelaje: Categoria = { id:'pelaje', nombre:'Pelaje y piel', icon:'✨', color:'#4CAF7D', opciones: pelajeOpciones }
+
+  // Conducta: en gato, las causas de ansiedad/miedo cambian ("Otros gatos"
+  // y "Visitas" en vez de "Perros"), y agregamos "Se esconde / se aísla",
+  // la señal de malestar felino más citada y que antes no existía.
+  const causasConducta = esGato
+    ? [{value:'otros_gatos',emoji:'🐈',label:'Otros gatos'},{value:'personas',emoji:'🧍',label:'Personas'},{value:'ruidos',emoji:'🔊',label:'Ruidos'},{value:'visitas',emoji:'🚪',label:'Visitas en casa'},{value:'solo',emoji:'🏠',label:'Solo en casa'}]
+    : [{value:'perros',emoji:'🐕',label:'Perros'},{value:'personas',emoji:'🧍',label:'Personas'},{value:'ruidos',emoji:'🔊',label:'Ruidos'},{value:'solo',emoji:'🏠',label:'Solo en casa'}]
+
+  const conductaOpciones: Opcion[] = [
+    {value:'normal',emoji:'😊',label:'Normal'},
+    {value:'sociable',emoji:'🤩',label:'Muy sociable'},
+    {value:'ansioso',emoji:'😰',label:'Ansioso',detalle:[{titulo:'¿Ante qué?',opciones:causasConducta}]},
+    {value:'temeroso',emoji:'😨',label:'Temeroso',detalle:[{titulo:'¿Ante qué?',opciones:causasConducta}]},
+    {value:'reactivo',emoji:'⚡',label:'Reactivo',detalle:[{titulo:'¿Ante qué?',opciones:causasConducta}]},
+  ]
+  if (esGato) {
+    conductaOpciones.push({value:'esconde',emoji:'🙈',label:'Se esconde / se aísla',detalle:[
+      {titulo:'¿Dónde se esconde?',opciones:[{value:'bajo_cama',emoji:'🛏️',label:'Bajo la cama'},{value:'closet',emoji:'🚪',label:'Closet / mueble'},{value:'lugar_alto',emoji:'🔼',label:'Lugar alto'},{value:'otro_lugar',emoji:'❓',label:'Otro lugar'}]}
+    ]})
+  }
+  const conducta: Categoria = { id:'conducta', nombre:'Conducta', icon:'🧠', color:'#E05252', opciones: conductaOpciones }
+
+  const movilidad: Categoria = { id:'movilidad', nombre:'Movilidad', icon:'🦴', color:'#8A8FA8',
     opciones:[
       {value:'normal',emoji:'🏃',label:'Normal'},
       {value:'rigidez',emoji:'🦾',label:'Rigidez'},
@@ -120,13 +168,15 @@ const CATS: Categoria[] = [
         {titulo:'¿Qué pata o zona?',opciones:[{value:'del_izq',emoji:'↖️',label:'Del. izq'},{value:'del_der',emoji:'↗️',label:'Del. der'},{value:'tras_izq',emoji:'↙️',label:'Tras. izq'},{value:'tras_der',emoji:'↘️',label:'Tras. der'},{value:'columna',emoji:'🦴',label:'Columna'}]}
       ]},
       {value:'costo_levantarse',emoji:'😓',label:'Le costó levantarse'},
-    ]},
-]
+    ]}
+
+  return [energia, animo, apetito, agua, digestion, arenero, pelaje, conducta, movilidad]
+}
 
 function calcEstado(sel: Record<string,string>): string {
   const vals = Object.values(sel)
-  const alertas = ['vomito','diarrea','nada','muy_baja','decaido','cojera_marcada']
-  const observar = ['menos','gases','nauseas','baja','ansioso','temeroso','cojera_leve','caida_excesiva','rasca','triste','irritable','rigidez','opaco']
+  const alertas = ['vomito','diarrea','nada','muy_baja','decaido','cojera_marcada','con_sangre','no_orino']
+  const observar = ['menos','gases','nauseas','baja','ansioso','temeroso','cojera_leve','caida_excesiva','rasca','triste','irritable','rigidez','opaco','mas_orina','menos_costo','fuera_arenero','fuera_lugar','esconde','lame_exceso']
   if (vals.some(v => alertas.includes(v))) return 'naranjo'
   if (vals.some(v => observar.includes(v))) return 'amarillo'
   return 'verde'
@@ -137,6 +187,7 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
   const supabase = createClient()
   const [mascotaId, setMascotaId] = useState('')
   const [mascotaNombre, setMascotaNombre] = useState('')
+  const [especie, setEspecie] = useState('')
   const [sel, setSel] = useState<Record<string,string>>({})
   const [det, setDet] = useState<Record<string,string[]>>({})
   const [fechaRegistro, setFechaRegistro] = useState('')
@@ -150,10 +201,11 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: m } = await supabase.from('mascotas').select('id,nombre').limit(1).single()
+      const { data: m } = await supabase.from('mascotas').select('id,nombre,especie').limit(1).single()
       if (!m) { router.push('/mascota/nueva'); return }
       setMascotaId(m.id)
       setMascotaNombre(m.nombre)
+      setEspecie(m.especie || '')
       const hoy = searchParams?.fecha || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0]
       setFechaRegistro(hoy)
       const { data: r } = await supabase.from('registros_diarios').select('id').eq('mascota_id', m.id).eq('fecha', hoy).single()
@@ -162,6 +214,8 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
     }
     init()
   }, [])
+
+  const CATS = getCategorias(especie)
 
   async function guardar() {
     if (!Object.keys(sel).length) return
@@ -175,6 +229,7 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
       apetito: sel.apetito || null, apetito_detalle: det.apetito?.join(', ') || null,
       agua: sel.agua || null, agua_detalle: det.agua?.join(', ') || null,
       digestion: sel.digestion || null, digestion_detalle: det.digestion?.join(', ') || null,
+      arenero: sel.arenero || null, arenero_detalle: det.arenero?.join(', ') || null,
       pelaje: sel.pelaje || null, pelaje_detalle: det.pelaje?.join(', ') || null,
       conducta: sel.conducta || null, conducta_detalle: det.conducta?.join(', ') || null,
       movilidad: sel.movilidad || null, movilidad_detalle: det.movilidad?.join(', ') || null,
@@ -222,7 +277,7 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
       </div>
 
       <div className="mx-4 mt-3 mb-1 bg-[#1E2333] border border-[#3DD6B5]/15 rounded-xl p-3 flex gap-2.5">
-        <span className="text-lg flex-shrink-0">🐶</span>
+        <span className="text-lg flex-shrink-0">{especie === 'Gato' ? '🐱' : '🐶'}</span>
         <p className="text-xs text-[#F0EEE8] leading-relaxed">
           Toca las categorías que apliquen hoy. Si algo fue distinto, aparecerán más opciones. No necesitas registrar todo.
         </p>
