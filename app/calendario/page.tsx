@@ -149,7 +149,7 @@ export default function CalendarioPage() {
                 <div className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-xs font-semibold"
                   style={{ background: `${ESTADO_COLOR[regDia.estado_dia]}20`, color: ESTADO_COLOR[regDia.estado_dia] }}>
                   <div className="w-1.5 h-1.5 rounded-full" style={{ background: ESTADO_COLOR[regDia.estado_dia] }}/>
-                  {{ verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' }[regDia.estado_dia]}
+                  {({ verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' } as Record<string,string>)[regDia.estado_dia]}
                 </div>
               )}
             </div>
