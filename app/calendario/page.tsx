@@ -27,6 +27,7 @@ export default function CalendarioPage() {
   const supabase = createClient()
   const [mascota, setMascota] = useState<any>(null)
   const [registros, setRegistros] = useState<Record<string, any>>({})
+  const [pesos, setPesos] = useState<Record<string, number>>({})
   const [mes, setMes] = useState(new Date().getMonth())
   const [año, setAño] = useState(new Date().getFullYear())
   const [diaSeleccionado, setDiaSeleccionado] = useState<number | null>(null)
@@ -49,15 +50,26 @@ export default function CalendarioPage() {
     const ultimoDia = new Date(a, m + 1, 0).getDate()
     const inicio = `${a}-${String(m + 1).padStart(2, '0')}-01`
     const fin = `${a}-${String(m + 1).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`
-    const { data } = await supabase
-      .from('registros_diarios')
-      .select('fecha, estado_dia, nota, energia, animo, apetito, agua, digestion, pelaje, conducta, movilidad')
-      .eq('mascota_id', mascotaId)
-      .gte('fecha', inicio)
-      .lte('fecha', fin)
+    const [{ data }, { data: pesoData }] = await Promise.all([
+      supabase
+        .from('registros_diarios')
+        .select('fecha, estado_dia, nota, energia, animo, apetito, agua, digestion, pelaje, conducta, movilidad')
+        .eq('mascota_id', mascotaId)
+        .gte('fecha', inicio)
+        .lte('fecha', fin),
+      supabase
+        .from('historial_peso')
+        .select('fecha, peso')
+        .eq('mascota_id', mascotaId)
+        .gte('fecha', inicio)
+        .lte('fecha', fin),
+    ])
     const map: Record<string, any> = {}
     data?.forEach(r => { map[r.fecha] = r })
     setRegistros(map)
+    const mapPeso: Record<string, number> = {}
+    pesoData?.forEach(p => { mapPeso[p.fecha] = p.peso })
+    setPesos(mapPeso)
   }
 
   async function cambiarMes(dir: number) {
@@ -146,13 +158,20 @@ export default function CalendarioPage() {
           <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
             <div>
               <p className="text-sm font-bold">{diaSeleccionado} de {MESES[mes]}</p>
-              {regDia && (
-                <div className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-xs font-semibold"
-                  style={{ background: `${ESTADO_COLOR[regDia.estado_dia]}20`, color: ESTADO_COLOR[regDia.estado_dia] }}>
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: ESTADO_COLOR[regDia.estado_dia] }}/>
-                  {({ verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' } as Record<string,string>)[regDia.estado_dia]}
-                </div>
-              )}
+              <div className="flex items-center gap-2 mt-1">
+                {regDia && (
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold"
+                    style={{ background: `${ESTADO_COLOR[regDia.estado_dia]}20`, color: ESTADO_COLOR[regDia.estado_dia] }}>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: ESTADO_COLOR[regDia.estado_dia] }}/>
+                    {({ verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' } as Record<string,string>)[regDia.estado_dia]}
+                  </div>
+                )}
+                {diaSeleccionado && pesos[fechaKey(diaSeleccionado)] && (
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#F07A30]/15 text-[#F07A30]">
+                    ⚖️ {pesos[fechaKey(diaSeleccionado)]} kg
+                  </div>
+                )}
+              </div>
             </div>
             <button onClick={() => setDiaSeleccionado(null)} className="text-[#8A8FA8] text-lg w-7 h-7 flex items-center justify-center">✕</button>
           </div>

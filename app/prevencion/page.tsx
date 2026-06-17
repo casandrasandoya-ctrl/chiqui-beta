@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
+import PesoTracker from '@/components/PesoTracker'
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 function fmt(f: string) { const d = new Date(f + 'T00:00:00'); return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}` }
@@ -30,7 +31,7 @@ export default function PrevencionPage() {
   const [antis, setAntis] = useState<any[]>([])
   const [obs, setObs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'vacunas' | 'anti' | 'obs'>('vacunas')
+  const [tab, setTab] = useState<'peso' | 'vacunas' | 'anti' | 'obs'>('peso')
   const [modal, setModal] = useState<'vacuna' | 'anti' | 'obs' | null>(null)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
@@ -90,23 +91,30 @@ export default function PrevencionPage() {
           <h1 className="font-heading text-xl font-extrabold">Salud preventiva</h1>
           <p className="text-xs text-[#8A8FA8]">{mascota?.nombre}</p>
         </div>
-        <button
-          onClick={() => { setModal(tab === 'vacunas' ? 'vacuna' : tab === 'anti' ? 'anti' : 'obs'); setForm({}) }}
-          className="bg-[#E8A84C] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl"
-        >
-          + Agregar
-        </button>
+        {tab !== 'peso' && (
+          <button
+            onClick={() => { setModal(tab === 'vacunas' ? 'vacuna' : tab === 'anti' ? 'anti' : 'obs'); setForm({}) }}
+            className="bg-[#E8A84C] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl"
+          >
+            + Agregar
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
-      <div className="flex px-4 gap-2 mb-4">
-        {[['vacunas','💉 Vacunas'],['anti','💊 Antiparasitarios'],['obs','👁️ Observaciones']].map(([t, l]) => (
+      <div className="flex px-4 gap-2 mb-4 overflow-x-auto">
+        {[['peso','⚖️ Peso'],['vacunas','💉 Vacunas'],['anti','💊 Antipar.'],['obs','👁️ Obs.']].map(([t, l]) => (
           <button key={t} onClick={() => setTab(t as any)}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${tab === t ? 'bg-[#E8A84C] text-[#1A1200]' : 'bg-[#232840] text-[#8A8FA8]'}`}>
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${tab === t ? 'bg-[#E8A84C] text-[#1A1200]' : 'bg-[#232840] text-[#8A8FA8]'}`}>
             {l}
           </button>
         ))}
       </div>
+
+      {/* PESO */}
+      {tab === 'peso' && mascota && (
+        <PesoTracker mascotaId={mascota.id} pesoActual={mascota.peso_actual} />
+      )}
 
       {/* VACUNAS */}
       {tab === 'vacunas' && (
