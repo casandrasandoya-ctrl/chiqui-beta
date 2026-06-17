@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 
@@ -182,8 +182,10 @@ function calcEstado(sel: Record<string,string>): string {
   return 'verde'
 }
 
-export default function RegistroPage({ searchParams }: { searchParams?: { fecha?: string } }) {
+function RegistroContenido() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const fechaUrl = searchParams.get('fecha')
   const supabase = createClient()
   const [mascotaId, setMascotaId] = useState('')
   const [mascotaNombre, setMascotaNombre] = useState('')
@@ -206,14 +208,14 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
       setMascotaId(m.id)
       setMascotaNombre(m.nombre)
       setEspecie(m.especie || '')
-      const hoy = searchParams?.fecha || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0]
+      const hoy = fechaUrl || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0]
       setFechaRegistro(hoy)
       const { data: r } = await supabase.from('registros_diarios').select('id').eq('mascota_id', m.id).eq('fecha', hoy).single()
       if (r) setYaRegistro(true)
       setCargando(false)
     }
     init()
-  }, [])
+  }, [fechaUrl])
 
   const CATS = getCategorias(especie)
 
@@ -378,5 +380,13 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
 
       <BottomNav />
     </div>
+  )
+}
+
+export default function RegistroPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-[#8A8FA8]">Cargando...</div>}>
+      <RegistroContenido />
+    </Suspense>
   )
 }
