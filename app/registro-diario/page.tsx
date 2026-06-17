@@ -21,7 +21,7 @@ const CATS: Categoria[] = [
       {value:'muy_baja',emoji:'🛌',label:'Muy baja'},
       {value:'decaido',emoji:'😟',label:'Decaído'},
     ]},
-  { id:'animo', nombre:'Ánimo', icon:'😄', color:'#E3A84A',
+  { id:'animo', nombre:'Ánimo', icon:'😄', color:'#E8A84C',
     opciones:[
       {value:'muy_feliz',emoji:'🥳',label:'Muy feliz'},
       {value:'feliz',emoji:'😄',label:'Feliz'},
@@ -50,7 +50,7 @@ const CATS: Categoria[] = [
         {titulo:'¿Cuándo notaste el cambio?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓️',label:'Hace semanas'}]}
       ]},
     ]},
-  { id:'digestion', nombre:'Digestión', icon:'🫃', color:'#F39B35',
+  { id:'digestion', nombre:'Digestión', icon:'🫃', color:'#F07A30',
     opciones:[
       {value:'normal',emoji:'✅',label:'Normal'},
       {value:'gases',emoji:'💨',label:'Gases'},
@@ -82,7 +82,7 @@ const CATS: Categoria[] = [
       ]},
       {value:'estrenimiento',emoji:'😬',label:'Estreñimiento'},
     ]},
-  { id:'pelaje', nombre:'Pelaje y piel', icon:'✨', color:'#4CCB7F',
+  { id:'pelaje', nombre:'Pelaje y piel', icon:'✨', color:'#4CAF7D',
     opciones:[
       {value:'brillante',emoji:'✨',label:'Brillante'},
       {value:'normal',emoji:'😊',label:'Normal'},
@@ -95,7 +95,7 @@ const CATS: Categoria[] = [
         {titulo:'¿Dónde?',opciones:[{value:'orejas',emoji:'👂',label:'Orejas'},{value:'patas',emoji:'🐾',label:'Patas'},{value:'barriga',emoji:'🫃',label:'Barriga'},{value:'lomo',emoji:'🐕',label:'Lomo'},{value:'cara',emoji:'🐶',label:'Cara'},{value:'general',emoji:'🔄',label:'General'}]}
       ]},
     ]},
-  { id:'conducta', nombre:'Conducta', icon:'🧠', color:'#E25D5D',
+  { id:'conducta', nombre:'Conducta', icon:'🧠', color:'#E05252',
     opciones:[
       {value:'normal',emoji:'😊',label:'Normal'},
       {value:'sociable',emoji:'🤩',label:'Muy sociable'},
@@ -190,7 +190,7 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
       <div className="text-5xl mb-4">✅</div>
       <h2 className="text-xl font-bold mb-2">Ya registraste hoy</h2>
       <p className="text-[#8A8FA8] text-sm mb-8">El registro de {mascotaNombre} para hoy ya está guardado.</p>
-      <button onClick={() => router.push('/dashboard')} className="bg-[#E3A84A] text-[#1A1200] font-bold px-8 py-4 rounded-xl">
+      <button onClick={() => router.push('/dashboard')} className="bg-[#E8A84C] text-[#1A1200] font-bold px-8 py-4 rounded-xl">
         Ir al inicio →
       </button>
       <BottomNav />
@@ -201,27 +201,27 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
 
   return (
     <div className="min-h-screen pb-24 fade-in">
-      <div className="px-5 pt-6 pb-3 sticky top-0 bg-[#0B1020] z-10 border-b border-white/5">
+      <div className="px-5 pt-6 pb-3 sticky top-0 bg-[#0F1117] z-10 border-b border-white/[0.07]">
         <div className="flex items-center gap-3 mb-2">
-          <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-[#1E2848] flex items-center justify-center text-lg flex-shrink-0">←</button>
+          <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-[#232840] flex items-center justify-center text-lg flex-shrink-0">←</button>
           <div className="flex-1">
             <p className="text-xs text-[#8A8FA8] capitalize">{fechaRegistro && new Date(fechaRegistro + 'T00:00:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'})}</p>
-            <h1 className="text-base font-bold">¿Cómo estuvo {mascotaNombre}?</h1>
+            <h1 className="font-heading text-base font-extrabold">¿Cómo estuvo {mascotaNombre}?</h1>
           </div>
           <button onClick={guardar} disabled={loading || !completadas}
-            className="bg-[#E3A84A] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40 flex-shrink-0">
+            className="bg-[#E8A84C] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40 flex-shrink-0">
             {loading ? '...' : 'Guardar'}
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-[#3DD6B5] rounded-full transition-all" style={{width:`${(completadas/CATS.length)*100}%`}}/>
+        <div className="flex items-center gap-2.5">
+          <div className="flex-1 h-1 bg-[#1E2333] rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all" style={{width:`${(completadas/CATS.length)*100}%`, background: 'linear-gradient(90deg, #3DD6B5, #4CAF7D)'}}/>
           </div>
-          <span className="text-xs text-[#8A8FA8]">{completadas}/{CATS.length}</span>
+          <span className="text-[11px] text-[#8A8FA8] whitespace-nowrap">{completadas}/{CATS.length}</span>
         </div>
       </div>
 
-      <div className="mx-4 mt-3 mb-1 bg-[#1B2340] border border-[#3DD6B5]/15 rounded-xl p-3 flex gap-2.5">
+      <div className="mx-4 mt-3 mb-1 bg-[#1E2333] border border-[#3DD6B5]/15 rounded-xl p-3 flex gap-2.5">
         <span className="text-lg flex-shrink-0">🐶</span>
         <p className="text-xs text-[#F0EEE8] leading-relaxed">
           Toca las categorías que apliquen hoy. Si algo fue distinto, aparecerán más opciones. No necesitas registrar todo.
@@ -263,14 +263,14 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
                           if (!op.detalle) setDet(p => { const n={...p}; delete n[cat.id]; return n })
                         }}
                         className="flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all"
-                        style={selVal===op.value ? {borderColor:cat.color,background:`${cat.color}15`,borderWidth:'1.5px'} : {background:'#1E2848',borderColor:'rgba(255,255,255,0.1)'}}>
+                        style={selVal===op.value ? {borderColor:cat.color,background:'rgba(61,214,181,0.08)',borderWidth:'1.5px'} : {background:'#232840',borderColor:'rgba(255,255,255,0.07)',borderWidth:'1.5px'}}>
                         <span className="text-xl">{op.emoji}</span>
                         <span className="text-[10px] text-[#8A8FA8] leading-tight text-center">{op.label}</span>
                       </button>
                     ))}
                   </div>
                   {selVal && opSel?.detalle && (
-                    <div className="bg-[#1B2340] rounded-xl p-3 border border-white/8 space-y-3">
+                    <div className="bg-[#1E2333] rounded-xl p-3 border border-white/8 space-y-3">
                       {opSel.detalle.map((sub, subIdx) => (
                         <div key={subIdx}>
                           <p className="text-xs text-[#8A8FA8] uppercase tracking-wider font-semibold mb-2">{sub.titulo}</p>
@@ -285,7 +285,7 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
                                     return {...p, [cat.id]: arr}
                                   })}
                                   className="flex flex-col items-center gap-1 p-2 rounded-lg border transition-all"
-                                  style={seleccionadoSub ? {borderColor:'#F39B35',background:'#F39B3515'} : {background:'#1E2848',borderColor:'rgba(255,255,255,0.1)'}}>
+                                  style={seleccionadoSub ? {borderColor:'#F07A30',background:'#F07A3015'} : {background:'#232840',borderColor:'rgba(255,255,255,0.1)'}}>
                                   <span className="text-base">{op2.emoji}</span>
                                   <span className="text-[10px] text-[#8A8FA8] leading-tight text-center">{op2.label}</span>
                                 </button>
@@ -310,12 +310,12 @@ export default function RegistroPage({ searchParams }: { searchParams?: { fecha?
         </label>
         <textarea value={nota} onChange={e => setNota(e.target.value)}
           placeholder="¿Algo que quieras recordar de hoy?" rows={3}
-          className="w-full bg-[#1E2848] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none resize-none"/>
+          className="w-full bg-[#232840] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none resize-none"/>
       </div>
 
       <div className="mx-4 mt-4">
         <button onClick={guardar} disabled={loading || !completadas}
-          className="w-full bg-[#E3A84A] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
+          className="w-full bg-[#E8A84C] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
           {loading ? 'Guardando...' : 'Guardar registro de hoy ✓'}
         </button>
         {!completadas && <p className="text-center text-xs text-[#8A8FA8] mt-2">Selecciona al menos una categoría para guardar</p>}

@@ -54,7 +54,7 @@ export default function RegistroPage() {
         <p className="text-[#8A8FA8] text-sm leading-relaxed mb-8 max-w-xs">
           Tu cuenta fue creada con éxito.
         </p>
-        <Link href="/login" className="bg-[#E3A84A] text-[#1A1200] font-bold px-8 py-4 rounded-xl text-sm">
+        <Link href="/login" className="bg-[#E8A84C] text-[#1A1200] font-bold px-8 py-4 rounded-xl text-sm">
           Ir al login →
         </Link>
       </div>
@@ -67,13 +67,13 @@ export default function RegistroPage() {
       <div className="text-center mb-10">
         <div className="text-5xl mb-3">🐶</div>
         <div className="text-2xl font-bold">Crear cuenta</div>
-        <div className="text-sm text-[#E3A84A] font-semibold tracking-widest uppercase mt-1">CHIQUI Entre Señales</div>
+        <div className="text-sm text-[#E8A84C] font-semibold tracking-widest uppercase mt-1">CHIQUI Entre Señales</div>
       </div>
 
       <form onSubmit={handleRegistro} className="w-full max-w-sm space-y-4">
 
         {error && (
-          <div className="bg-[#E25D5D]/10 border border-[#E25D5D]/30 rounded-xl px-4 py-3 text-sm text-[#E25D5D]">
+          <div className="bg-[#E05252]/10 border border-[#E05252]/30 rounded-xl px-4 py-3 text-sm text-[#E05252]">
             {error}
           </div>
         )}
@@ -86,7 +86,7 @@ export default function RegistroPage() {
             onChange={e => setNombre(e.target.value)}
             placeholder="¿Cómo te llamamos?"
             required
-            className="w-full bg-[#1E2848] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E3A84A]/60"
+            className="w-full bg-[#232840] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
           />
         </div>
 
@@ -98,7 +98,7 @@ export default function RegistroPage() {
             onChange={e => setEmail(e.target.value)}
             placeholder="tu@email.com"
             required
-            className="w-full bg-[#1E2848] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E3A84A]/60"
+            className="w-full bg-[#232840] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
           />
         </div>
 
@@ -110,14 +110,14 @@ export default function RegistroPage() {
             onChange={e => setPassword(e.target.value)}
             placeholder="Mínimo 6 caracteres"
             required
-            className="w-full bg-[#1E2848] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E3A84A]/60"
+            className="w-full bg-[#232840] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#E3A84A] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-50 mt-2"
+          className="w-full bg-[#E8A84C] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-50 mt-2"
         >
           {loading ? 'Creando cuenta...' : 'Crear cuenta gratis →'}
         </button>

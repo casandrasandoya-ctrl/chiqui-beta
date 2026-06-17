@@ -3,10 +3,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
-import LinkVet from '@/components/LinkVet'
 
-const IC = "w-full bg-[#1B2340] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E3A84A]/60"
-const SC = "w-full bg-[#1B2340] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm focus:outline-none appearance-none"
+const IC = "w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
+const SC = "w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm focus:outline-none appearance-none"
 
 function calcEdad(f: string): string {
   const h = new Date(), n = new Date(f)
@@ -113,40 +112,39 @@ export default function PerfilPage() {
   return (
     <div className="min-h-screen pb-24 fade-in">
 
-      <div className="relative bg-gradient-to-b from-[#1B2340] to-[#0B1020] pt-8 pb-6 text-center">
-        <button onClick={() => router.back()} className="absolute left-4 top-4 w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-lg">←</button>
-        <div className="w-20 h-20 rounded-full bg-[#1E2848] border-2 border-[#4CCB7F] flex items-center justify-center text-4xl mx-auto mb-3">
+      <div className="relative bg-gradient-to-b from-[#1E2333] to-[#0F1117] pt-8 pb-6 text-center">
+        <div className="w-20 h-20 rounded-full bg-[#232840] border-2 border-[#4CAF7D] flex items-center justify-center text-4xl mx-auto mb-3">
           🐶
         </div>
-        <h1 className="text-xl font-bold">{mascota?.nombre}</h1>
+        <h1 className="font-heading text-xl font-extrabold">{mascota?.nombre}</h1>
         <p className="text-sm text-[#8A8FA8] mt-1">
           {mascota?.especie}
           {mascota?.raza ? ` · ${mascota.raza}` : ''}
           {edad ? ` · ${edad}` : ''}
         </p>
         {mascota?.alergias && (
-          <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-bold bg-[#E25D5D]/15 text-[#E25D5D]">
+          <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-bold bg-[#E05252]/15 text-[#E05252]">
             ⚠️ Alergia: {mascota.alergias}
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-3 gap-3 mx-4 mt-4 mb-4">
-        <div className="bg-[#1E2848] rounded-2xl border border-white/8 p-3 text-center">
-          <div className="font-bold text-sm text-[#F39B35]">{mascota?.peso_actual ? `${mascota.peso_actual}kg` : '-'}</div>
+        <div className="bg-[#232840] rounded-2xl border border-white/8 p-3 text-center">
+          <div className="font-bold text-sm text-[#F07A30]">{mascota?.peso_actual ? `${mascota.peso_actual}kg` : '-'}</div>
           <div className="text-[10px] text-[#8A8FA8] uppercase tracking-wider mt-0.5">Peso</div>
         </div>
-        <div className="bg-[#1E2848] rounded-2xl border border-white/8 p-3 text-center">
+        <div className="bg-[#232840] rounded-2xl border border-white/8 p-3 text-center">
           <div className="font-bold text-sm text-[#4AABDB]">{mascota?.sexo || '-'}</div>
           <div className="text-[10px] text-[#8A8FA8] uppercase tracking-wider mt-0.5">Sexo</div>
         </div>
-        <div className="bg-[#1E2848] rounded-2xl border border-white/8 p-3 text-center">
-          <div className="font-bold text-sm text-[#4CCB7F]">{mascota?.castrado ? 'Sí' : 'No'}</div>
+        <div className="bg-[#232840] rounded-2xl border border-white/8 p-3 text-center">
+          <div className="font-bold text-sm text-[#4CAF7D]">{mascota?.castrado ? 'Sí' : 'No'}</div>
           <div className="text-[10px] text-[#8A8FA8] uppercase tracking-wider mt-0.5">Castrado</div>
         </div>
       </div>
 
-      <div className="mx-4 mb-4 bg-[#1E2848] rounded-2xl border border-white/8 overflow-hidden">
+      <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
           <h2 className="font-bold text-sm">Datos del perfil</h2>
           <button onClick={() => { setEditando(!editando); setForm(mascota || {}) }} className="text-xs font-bold text-[#4AABDB]">
@@ -200,14 +198,14 @@ export default function PerfilPage() {
                 <option>Mixto</option>
               </select>
             </div>
-            <button onClick={guardar} disabled={saving} className="w-full bg-[#E3A84A] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-50">
+            <button onClick={guardar} disabled={saving} className="w-full bg-[#E8A84C] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-50">
               {saving ? 'Guardando...' : 'Guardar cambios'}
             </button>
           </div>
         )}
       </div>
 
-      <div className="mx-4 mb-4 bg-[#1E2848] rounded-2xl border border-white/8 overflow-hidden">
+      <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
         <div className="px-4 py-3 border-b border-white/5">
           <h2 className="font-bold text-sm">Mi cuenta</h2>
         </div>
@@ -215,21 +213,20 @@ export default function PerfilPage() {
           <p className="text-xs text-[#8A8FA8]">Email</p>
           <p className="text-sm mt-0.5">{userEmail}</p>
         </div>
-        <button onClick={cerrarSesion} className="w-full px-4 py-3 text-left text-sm text-[#E25D5D] font-semibold">
+        <button onClick={cerrarSesion} className="w-full px-4 py-3 text-left text-sm text-[#E05252] font-semibold">
           Cerrar sesión →
         </button>
       </div>
 
-      {mascota && <LinkVet mascotaId={mascota.id} />}
-      <div className="mx-4 mb-4 bg-[#1B2340] border border-white/5 rounded-2xl p-4">
+      <div className="mx-4 mb-4 bg-[#1E2333] border border-white/5 rounded-2xl p-4">
         <p className="text-xs text-[#8A8FA8] leading-relaxed text-center">
-          <span className="text-[#E3A84A] font-bold">CHIQUI Entre Señales</span><br/>
+          <span className="text-[#E8A84C] font-bold">CHIQUI Entre Señales</span><br/>
           No es una aplicación veterinaria. Es una herramienta de observación y acompañamiento.
         </p>
       </div>
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#4CCB7F] text-[#0a2418] font-bold text-sm px-5 py-3 rounded-full shadow-lg z-50">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#4CAF7D] text-[#0a2418] font-bold text-sm px-5 py-3 rounded-full shadow-lg z-50">
           {toast}
         </div>
       )}

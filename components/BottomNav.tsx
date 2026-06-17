@@ -6,17 +6,17 @@ import { usePathname } from 'next/navigation'
 const navItems = [
   { href: '/dashboard', icon: '🏠', label: 'Inicio' },
   { href: '/calendario', icon: '📅', label: 'Calendario' },
-  { href: '/registro-diario', icon: '✏️', label: 'Registrar', center: true },
-  { href: '/prevencion', icon: '🛡️', label: 'Salud' },
-  { href: '/perfil', icon: '🐾', label: 'Perfil' },
+  { href: '/registro-diario', icon: '✏️', label: '', center: true },
+  { href: '/analisis', icon: '📊', label: 'Análisis' },
+  { href: '/prevencion', icon: '🐾', label: 'Salud' },
 ]
 
 export default function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center">
-      <div className="w-full max-w-[480px] bg-[#111830] border-t border-white/8 flex items-center justify-around px-2 pb-safe pt-2">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 w-full max-w-[420px]">
+      <div className="bg-[#181C26] border-t border-white/[0.07] flex items-center justify-around px-0 pt-2.5 pb-4">
         {navItems.map(item => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
 
@@ -27,7 +27,7 @@ export default function BottomNav() {
                 href={item.href}
                 className="flex flex-col items-center -mt-5"
               >
-                <div className="w-14 h-14 rounded-full bg-[#E3A84A] flex items-center justify-center text-2xl shadow-lg border-4 border-[#0B1020]">
+                <div className="w-[52px] h-[52px] rounded-full bg-[#E8A84C] flex items-center justify-center text-[26px] border-[3px] border-[#0F1117]">
                   {item.icon}
                 </div>
               </Link>
@@ -38,10 +38,10 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 min-w-[52px] py-1"
+              className="flex flex-col items-center gap-1 min-w-[52px]"
             >
-              <span className="text-xl">{item.icon}</span>
-              <span className={`text-[10px] font-medium ${isActive ? 'text-[#E3A84A]' : 'text-[#8A8FA8]'}`}>
+              <span className="text-[22px] leading-none">{item.icon}</span>
+              <span className={`text-[10px] font-heading font-semibold ${isActive ? 'text-[#E8A84C]' : 'text-[#8A8FA8]'}`}>
                 {item.label}
               </span>
             </Link>

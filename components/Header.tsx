@@ -10,10 +10,10 @@ interface HeaderProps {
 export default function Header({ titulo, subtitulo, accion }: HeaderProps) {
   const router = useRouter()
   return (
-    <div className="px-5 pt-6 pb-3 flex items-center gap-3 sticky top-0 bg-[#0B1020] z-10 border-b border-white/5">
+    <div className="px-5 pt-6 pb-3 flex items-center gap-3 sticky top-0 bg-[#0F1117] z-10 border-b border-white/5">
       <button
         onClick={() => router.back()}
-        className="w-9 h-9 rounded-full bg-[#1E2848] flex items-center justify-center text-lg flex-shrink-0"
+        className="w-9 h-9 rounded-full bg-[#232840] flex items-center justify-center text-lg flex-shrink-0"
       >
         ←
       </button>

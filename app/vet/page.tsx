@@ -6,7 +6,7 @@ interface Props {
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 function fmt(f: string) { const d = new Date(f + 'T00:00:00'); return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}` }
-const EC: Record<string,string> = { verde:'#4CCB7F', amarillo:'#F5C842', naranjo:'#F39B35', rojo:'#E25D5D' }
+const EC: Record<string,string> = { verde:'#4CAF7D', amarillo:'#F5C842', naranjo:'#F07A30', rojo:'#E05252' }
 const EL: Record<string,string> = { verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' }
 
 function calcEdad(f: string): string {
@@ -59,11 +59,11 @@ export default async function VetPage({ searchParams }: Props) {
   return (
     <div className="min-h-screen bg-white text-gray-900 pb-12 max-w-lg mx-auto">
 
-      <div className="bg-[#0B1020] text-white px-5 pt-8 pb-6">
+      <div className="bg-[#0F1117] text-white px-5 pt-8 pb-6">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xl">🐶</span>
           <div>
-            <div className="text-xs font-bold text-[#E3A84A] tracking-widest uppercase">CHIQUI Entre Señales</div>
+            <div className="text-xs font-bold text-[#E8A84C] tracking-widest uppercase">CHIQUI Entre Señales</div>
             <div className="text-xs text-[#8A8FA8]">Vista veterinaria · Solo lectura</div>
           </div>
         </div>

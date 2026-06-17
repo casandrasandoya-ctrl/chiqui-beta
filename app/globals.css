@@ -1,15 +1,72 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 :root {
-  --bg: #0B1020; --bg2: #111830; --bg3: #1B2340; --card: #1E2848;
-  --border: rgba(255,255,255,0.08); --text: #F0EEE8; --muted: #8A8FA8;
-  --accent: #E3A84A; --green: #4CCB7F; --yellow: #F5C842;
-  --orange: #F39B35; --red: #E25D5D; --blue: #4AABDB; --teal: #3DD6B5;
+  --bg: #0F1117;
+  --bg2: #181C26;
+  --bg3: #1E2333;
+  --card: #232840;
+  --border: rgba(255,255,255,0.07);
+  --text: #F0EEE8;
+  --muted: #8A8FA8;
+  --accent: #E8A84C;
+  --green: #4CAF7D;
+  --yellow: #F5C842;
+  --orange: #F07A30;
+  --red: #E05252;
+  --blue: #4AABDB;
+  --teal: #3DD6B5;
+  --radius: 16px;
+  --radius-sm: 10px;
 }
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { font-family: var(--font-poppins), sans-serif; background: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-nunito-sans), sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  max-width: 420px;
+  margin: 0 auto;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 80px;
+}
+
+.font-heading {
+  font-family: var(--font-nunito), sans-serif;
+}
+
+/* Scrollbar invisible */
 ::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Input base */
+input, select, textarea {
+  font-family: var(--font-nunito-sans), sans-serif;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .fade-in { animation: fadeIn 0.25s ease-out; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* Bandana decorativa (avatar de mascota) */
+.bandana {
+  position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
+  width: 28px; height: 8px;
+  border-radius: 0 0 4px 4px;
+  clip-path: polygon(0 0, 100% 0, 85% 100%, 50% 70%, 15% 100%);
+}
