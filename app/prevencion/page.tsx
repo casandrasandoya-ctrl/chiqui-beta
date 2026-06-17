@@ -239,6 +239,12 @@ export default function PrevencionPage() {
                   <span className="text-xs">{med.indicado_por_vet ? '🩺' : '💡'}</span>
                   <span className="text-xs text-[#8A8FA8]">{med.indicado_por_vet ? 'Indicado por veterinario' : 'Sin indicación veterinaria'}</span>
                 </div>
+                {med.proximo_control && (
+                  <div className="flex items-center gap-1.5 mt-2 bg-[#4AABDB]/10 rounded-lg px-2.5 py-1.5">
+                    <span className="text-xs">⏰</span>
+                    <span className="text-xs text-[#4AABDB] font-semibold">Próximo control: {fmt(med.proximo_control)}</span>
+                  </div>
+                )}
                 {med.nota && <p className="text-xs text-[#8A8FA8] mt-2 italic bg-[#1E2333] rounded-xl p-2">📝 {med.nota}</p>}
               </div>
             </div>
@@ -277,6 +283,12 @@ export default function PrevencionPage() {
                       {estadoLabel[enf.estado] || enf.estado}
                     </span>
                   </div>
+                  {enf.proxima_revision && (
+                    <div className="flex items-center gap-1.5 mt-2 bg-[#E05252]/10 rounded-lg px-2.5 py-1.5">
+                      <span className="text-xs">⏰</span>
+                      <span className="text-xs text-[#E05252] font-semibold">Próxima revisión: {fmt(enf.proxima_revision)}</span>
+                    </div>
+                  )}
                   {enf.nota && <p className="text-xs text-[#8A8FA8] mt-2 italic bg-[#1E2333] rounded-xl p-2">📝 {enf.nota}</p>}
                   {enf.fecha_resolucion && <p className="text-xs text-[#4CAF7D] mt-2">Resuelta: {fmt(enf.fecha_resolucion)}</p>}
                 </div>
@@ -380,6 +392,8 @@ export default function PrevencionPage() {
                 <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha de término</label>
                   <input type="date" className={IC} value={form.fecha_fin || ''} onChange={e => u('fecha_fin', e.target.value)}/></div>
               </div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Próximo control</label>
+                <input type="date" className={IC} value={form.proximo_control || ''} onChange={e => u('proximo_control', e.target.value)}/></div>
               <button type="button" onClick={() => u('indicado_por_vet', form.indicado_por_vet ? '' : 'true')}
                 className="w-full flex items-center gap-3 bg-[#1E2333] rounded-xl px-4 py-3 border border-white/10">
                 <div className="w-5 h-5 rounded-md flex items-center justify-center text-xs flex-shrink-0" style={{ background: form.indicado_por_vet ? '#4AABDB' : 'transparent', border: form.indicado_por_vet ? 'none' : '1.5px solid #8A8FA8' }}>
@@ -405,6 +419,8 @@ export default function PrevencionPage() {
                 </select></div>
               <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Veterinario tratante</label>
                 <input className={IC} placeholder="ej. Dr. González, Clínica X" value={form.veterinario || ''} onChange={e => u('veterinario', e.target.value)}/></div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Próxima revisión</label>
+                <input type="date" className={IC} value={form.proxima_revision || ''} onChange={e => u('proxima_revision', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Notas</label>
                 <textarea className={IC} rows={3} placeholder="Detalles del diagnóstico, tratamiento indicado..." value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
             </>}

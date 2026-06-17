@@ -34,11 +34,13 @@ export default async function Dashboard() {
   const m = mascotas[0]
   const hoy = new Date().toISOString().split('T')[0]
 
-  const [{ data: regHoy }, { data: vacunas }, { data: antis }, { data: obs }] = await Promise.all([
+  const [{ data: regHoy }, { data: vacunas }, { data: antis }, { data: obs }, { data: medsConControl }, { data: enfsConRevision }] = await Promise.all([
     supabase.from('registros_diarios').select('estado_dia').eq('mascota_id', m.id).eq('fecha', hoy).single(),
     supabase.from('vacunas').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
     supabase.from('antiparasitarios').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
     supabase.from('observaciones').select('titulo,fecha_inicio').eq('mascota_id', m.id).eq('estado', 'activa').limit(1),
+    supabase.from('medicamentos').select('nombre,proximo_control').eq('mascota_id', m.id).gte('proximo_control', hoy).order('proximo_control').limit(2),
+    supabase.from('enfermedades').select('diagnostico,proxima_revision').eq('mascota_id', m.id).gte('proxima_revision', hoy).order('proxima_revision').limit(2),
   ])
 
   const color = regHoy?.estado_dia ? EC[regHoy.estado_dia] : '#4CAF7D'
@@ -50,6 +52,8 @@ export default async function Dashboard() {
   const proximaVacuna = vacunas?.[0]
   const proximoAnti = antis?.[0]
   const obsActiva = obs?.[0]
+  const proximoMed = medsConControl?.[0]
+  const proximaRevisionEnf = enfsConRevision?.[0]
 
   return (
     <div className="min-h-screen pb-24 fade-in">
@@ -134,7 +138,7 @@ export default async function Dashboard() {
       )}
 
       {/* PRÓXIMOS */}
-      {(proximaVacuna || proximoAnti) && (
+      {(proximaVacuna || proximoAnti || proximoMed || proximaRevisionEnf) && (
         <>
           <div className="flex items-center justify-between px-5 pb-2.5">
             <span className="font-heading text-[13px] font-bold text-[#8A8FA8] uppercase tracking-wider">Próximos</span>
@@ -159,6 +163,26 @@ export default async function Dashboard() {
                   <p className="text-xs text-[#8A8FA8]">{fmtFecha(proximoAnti.proxima_fecha)}</p>
                 </div>
                 <span className="font-heading text-xs font-bold text-[#F5C842]">{diasR(proximoAnti.proxima_fecha)}</span>
+              </div>
+            )}
+            {proximoMed && (
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.07] last:border-b-0">
+                <div className="w-9 h-9 rounded-lg bg-[#4AABDB]/15 flex items-center justify-center text-base flex-shrink-0">🩹</div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">{proximoMed.nombre}</p>
+                  <p className="text-xs text-[#8A8FA8]">Control: {fmtFecha(proximoMed.proximo_control)}</p>
+                </div>
+                <span className="font-heading text-xs font-bold text-[#4AABDB]">{diasR(proximoMed.proximo_control)}</span>
+              </div>
+            )}
+            {proximaRevisionEnf && (
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.07] last:border-b-0">
+                <div className="w-9 h-9 rounded-lg bg-[#E05252]/15 flex items-center justify-center text-base flex-shrink-0">🏥</div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">{proximaRevisionEnf.diagnostico}</p>
+                  <p className="text-xs text-[#8A8FA8]">Revisión: {fmtFecha(proximaRevisionEnf.proxima_revision)}</p>
+                </div>
+                <span className="font-heading text-xs font-bold text-[#E05252]">{diasR(proximaRevisionEnf.proxima_revision)}</span>
               </div>
             )}
           </div>
