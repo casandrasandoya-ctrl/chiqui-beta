@@ -23,6 +23,16 @@ function diasColor(f: string) {
   return '#4CAF7D'
 }
 
+const CATEGORIAS_EXAMEN: Record<string, { label: string; icon: string }> = {
+  hemograma: { label: 'Hemograma', icon: '🩸' },
+  bioquimico: { label: 'Perfil bioquímico', icon: '🧪' },
+  orina: { label: 'Orina', icon: '🚽' },
+  corazon: { label: 'Corazón', icon: '❤️' },
+  otro: { label: 'Otro', icon: '📄' },
+}
+
+const MAX_ARCHIVO_BYTES = 8 * 1024 * 1024 // 8MB
+
 export default function PrevencionPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -32,11 +42,15 @@ export default function PrevencionPage() {
   const [obs, setObs] = useState<any[]>([])
   const [medicamentos, setMedicamentos] = useState<any[]>([])
   const [enfermedades, setEnfermedades] = useState<any[]>([])
+  const [examenes, setExamenes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'peso' | 'vacunas' | 'anti' | 'medicamentos' | 'enfermedades' | 'obs'>('peso')
-  const [modal, setModal] = useState<'vacuna' | 'anti' | 'obs' | 'medicamento' | 'enfermedad' | null>(null)
+  const [tab, setTab] = useState<'peso' | 'vacunas' | 'anti' | 'medicamentos' | 'enfermedades' | 'obs' | 'examenes'>('peso')
+  const [modal, setModal] = useState<'vacuna' | 'anti' | 'obs' | 'medicamento' | 'enfermedad' | 'examen' | null>(null)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
+  const [archivoExamen, setArchivoExamen] = useState<File | null>(null)
+  const [errorExamen, setErrorExamen] = useState('')
+  const [urlEnProgreso, setUrlEnProgreso] = useState<string | null>(null)
 
   useEffect(() => {
     async function init() {
@@ -52,18 +66,20 @@ export default function PrevencionPage() {
   }, [])
 
   async function cargarDatos(id: string) {
-    const [v, a, o, med, enf] = await Promise.all([
+    const [v, a, o, med, enf, exa] = await Promise.all([
       supabase.from('vacunas').select('*').eq('mascota_id', id).order('fecha_aplicacion', { ascending: false }),
       supabase.from('antiparasitarios').select('*').eq('mascota_id', id).order('fecha_aplicacion', { ascending: false }),
       supabase.from('observaciones').select('*').eq('mascota_id', id).order('created_at', { ascending: false }),
       supabase.from('medicamentos').select('*').eq('mascota_id', id).order('fecha_inicio', { ascending: false }),
       supabase.from('enfermedades').select('*').eq('mascota_id', id).order('fecha_diagnostico', { ascending: false }),
+      supabase.from('examenes').select('*').eq('mascota_id', id).order('fecha', { ascending: false }),
     ])
     setVacunas(v.data || [])
     setAntis(a.data || [])
     setObs(o.data || [])
     setMedicamentos(med.data || [])
     setEnfermedades(enf.data || [])
+    setExamenes(exa.data || [])
   }
 
   async function guardar() {
@@ -86,6 +102,83 @@ export default function PrevencionPage() {
     setModal(null); setForm({}); setSaving(false)
   }
 
+  // Guardar examen es distinto: primero sube el PDF a Storage, y solo si
+  // esa subida funciona, se crea la fila en la tabla examenes con la ruta.
+  // Si falla cualquiera de los dos pasos, no queda nada huérfano a medias.
+  async function guardarExamen() {
+    setErrorExamen('')
+    if (!archivoExamen) { setErrorExamen('Selecciona un archivo PDF.'); return }
+    if (!form.categoria) { setErrorExamen('Selecciona una categoría.'); return }
+    if (!form.fecha) { setErrorExamen('Selecciona la fecha del examen.'); return }
+    if (archivoExamen.size > MAX_ARCHIVO_BYTES) {
+      setErrorExamen('El archivo supera los 8MB. Intenta comprimirlo o sacar una foto en menor resolución.')
+      return
+    }
+    if (archivoExamen.type !== 'application/pdf') {
+      setErrorExamen('Solo se aceptan archivos PDF.')
+      return
+    }
+
+    setSaving(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || !mascota) { setSaving(false); return }
+
+    const timestamp = Date.now()
+    const nombreLimpio = archivoExamen.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const path = `${user.id}/${mascota.id}/${timestamp}_${nombreLimpio}`
+
+    const { error: uploadError } = await supabase.storage.from('examenes').upload(path, archivoExamen, {
+      contentType: 'application/pdf',
+      upsert: false,
+    })
+
+    if (uploadError) {
+      setErrorExamen('No se pudo subir el archivo. Intenta de nuevo.')
+      setSaving(false)
+      return
+    }
+
+    const { error: insertError } = await supabase.from('examenes').insert({
+      mascota_id: mascota.id,
+      user_id: user.id,
+      categoria: form.categoria,
+      nombre: form.nombre || null,
+      nota: form.nota || null,
+      fecha: form.fecha,
+      archivo_path: path,
+      archivo_nombre_original: archivoExamen.name,
+    })
+
+    if (insertError) {
+      // Si falla guardar el registro, eliminamos el archivo ya subido
+      // para no dejar un PDF huérfano ocupando espacio sin un registro asociado.
+      await supabase.storage.from('examenes').remove([path])
+      setErrorExamen('No se pudo guardar el examen. Intenta de nuevo.')
+      setSaving(false)
+      return
+    }
+
+    await cargarDatos(mascota.id)
+    setModal(null); setForm({}); setArchivoExamen(null); setSaving(false)
+  }
+
+  // Genera una URL firmada temporal (válida 60 segundos) para ver/descargar
+  // el PDF. No se guarda la URL en ningún lado porque expira sola.
+  async function abrirExamen(examenId: string, path: string) {
+    setUrlEnProgreso(examenId)
+    const { data, error } = await supabase.storage.from('examenes').createSignedUrl(path, 60)
+    setUrlEnProgreso(null)
+    if (error || !data) { alert('No se pudo abrir el archivo. Intenta de nuevo.'); return }
+    window.open(data.signedUrl, '_blank')
+  }
+
+  async function borrarExamen(examenId: string, path: string) {
+    if (!confirm('¿Eliminar este examen? Esta acción no se puede deshacer.')) return
+    await supabase.storage.from('examenes').remove([path])
+    await supabase.from('examenes').delete().eq('id', examenId)
+    if (mascota) await cargarDatos(mascota.id)
+  }
+
   const u = (k: string, v: string) => setForm((p: any) => ({ ...p, [k]: v }))
   const IC = "w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
   const SC = "w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm focus:outline-none appearance-none"
@@ -104,8 +197,8 @@ export default function PrevencionPage() {
         {tab !== 'peso' && (
           <button
             onClick={() => {
-              const modalMap: Record<string, any> = { vacunas:'vacuna', anti:'anti', medicamentos:'medicamento', enfermedades:'enfermedad', obs:'obs' }
-              setModal(modalMap[tab]); setForm({})
+              const modalMap: Record<string, any> = { vacunas:'vacuna', anti:'anti', medicamentos:'medicamento', enfermedades:'enfermedad', obs:'obs', examenes:'examen' }
+              setModal(modalMap[tab]); setForm({}); setArchivoExamen(null); setErrorExamen('')
             }}
             className="bg-[#E8A84C] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl"
           >
@@ -116,7 +209,7 @@ export default function PrevencionPage() {
 
       {/* Tabs */}
       <div className="flex px-4 gap-2 mb-4 overflow-x-auto">
-        {[['peso','⚖️ Peso'],['vacunas','💉 Vacunas'],['anti','💊 Antipar.'],['medicamentos','🩹 Medicamentos'],['enfermedades','🏥 Enfermedades'],['obs','👁️ Obs.']].map(([t, l]) => (
+        {[['peso','⚖️ Peso'],['vacunas','💉 Vacunas'],['anti','💊 Antipar.'],['medicamentos','🩹 Medicamentos'],['enfermedades','🏥 Enfermedades'],['obs','👁️ Obs.'],['examenes','📄 Exámenes']].map(([t, l]) => (
           <button key={t} onClick={() => setTab(t as any)}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${tab === t ? 'bg-[#E8A84C] text-[#1A1200]' : 'bg-[#232840] text-[#8A8FA8]'}`}>
             {l}
@@ -332,13 +425,56 @@ export default function PrevencionPage() {
         </div>
       )}
 
+      {/* EXÁMENES */}
+      {tab === 'examenes' && (
+        <div className="mx-4 space-y-3">
+          {examenes.length === 0 && (
+            <div className="bg-[#232840] rounded-2xl border border-white/8 p-8 text-center">
+              <div className="text-4xl mb-3">📄</div>
+              <p className="text-sm text-[#8A8FA8]">Sin exámenes registrados</p>
+              <p className="text-xs text-[#8A8FA8]/70 mt-1">Sube hemogramas, perfiles bioquímicos y otros exámenes en PDF</p>
+              <button onClick={() => { setModal('examen'); setForm({}); setArchivoExamen(null); setErrorExamen('') }} className="mt-4 bg-[#E8A84C] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+                + Subir primer examen
+              </button>
+            </div>
+          )}
+          {examenes.map(ex => {
+            const cat = CATEGORIAS_EXAMEN[ex.categoria] || CATEGORIAS_EXAMEN.otro
+            return (
+              <div key={ex.id} className="bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#9B7FE8]/15 flex items-center justify-center text-xl flex-shrink-0">{cat.icon}</div>
+                      <div>
+                        <p className="font-bold text-sm">{ex.nombre || cat.label}</p>
+                        <p className="text-xs text-[#8A8FA8] mt-0.5">{cat.label} · {fmt(ex.fecha)}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => borrarExamen(ex.id, ex.archivo_path)} className="text-[#8A8FA8] text-sm px-1 flex-shrink-0">✕</button>
+                  </div>
+                  {ex.nota && <p className="text-xs text-[#8A8FA8] mt-2 italic bg-[#1E2333] rounded-xl p-2">📝 {ex.nota}</p>}
+                  <button
+                    onClick={() => abrirExamen(ex.id, ex.archivo_path)}
+                    disabled={urlEnProgreso === ex.id}
+                    className="w-full mt-3 bg-[#9B7FE8]/15 text-[#9B7FE8] font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
+                  >
+                    {urlEnProgreso === ex.id ? 'Abriendo...' : '📄 Ver / descargar PDF'}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* MODAL AGREGAR */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setModal(null)}>
-          <div className="w-full max-w-[480px] bg-[#232840] rounded-t-2xl p-5 space-y-4" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-[480px] bg-[#232840] rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-bold text-base">
-                {modal === 'vacuna' ? '💉 Nueva vacuna' : modal === 'anti' ? '💊 Nuevo antiparasitario' : modal === 'medicamento' ? '🩹 Nuevo medicamento' : modal === 'enfermedad' ? '🏥 Nuevo diagnóstico' : '👁️ Nueva observación'}
+                {modal === 'vacuna' ? '💉 Nueva vacuna' : modal === 'anti' ? '💊 Nuevo antiparasitario' : modal === 'medicamento' ? '🩹 Nuevo medicamento' : modal === 'enfermedad' ? '🏥 Nuevo diagnóstico' : modal === 'examen' ? '📄 Nuevo examen' : '👁️ Nueva observación'}
               </h2>
               <button onClick={() => setModal(null)} className="text-[#8A8FA8] text-xl">✕</button>
             </div>
@@ -439,7 +575,37 @@ export default function PrevencionPage() {
                 <input type="date" className={IC} value={form.fecha_inicio || ''} onChange={e => u('fecha_inicio', e.target.value)}/></div>
             </>}
 
-            <button onClick={guardar} disabled={saving || (!form.nombre && !form.titulo && !form.diagnostico)}
+            {modal === 'examen' && <>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Categoría *</label>
+                <select className={SC} value={form.categoria || ''} onChange={e => u('categoria', e.target.value)}>
+                  <option value="">Seleccionar...</option>
+                  {Object.entries(CATEGORIAS_EXAMEN).map(([key, c]) => (
+                    <option key={key} value={key}>{c.icon} {c.label}</option>
+                  ))}
+                </select></div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nombre del examen</label>
+                <input className={IC} placeholder="ej. Control anual, Chequeo pre-cirugía" value={form.nombre || ''} onChange={e => u('nombre', e.target.value)}/></div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha del examen *</label>
+                <input type="date" className={IC} value={form.fecha || ''} onChange={e => u('fecha', e.target.value)}/></div>
+              <div>
+                <label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Archivo PDF *</label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={e => setArchivoExamen(e.target.files?.[0] || null)}
+                  className="w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#E8A84C] file:text-[#1A1200] file:text-xs file:font-bold"
+                />
+                <p className="text-[11px] text-[#8A8FA8] mt-1.5">Máximo 8MB, solo PDF.</p>
+                {archivoExamen && <p className="text-xs text-[#4CAF7D] mt-1">✓ {archivoExamen.name} ({(archivoExamen.size / 1024 / 1024).toFixed(1)}MB)</p>}
+              </div>
+              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nota / resultado</label>
+                <textarea className={IC} rows={3} placeholder="ej. Todo normal, colesterol levemente alto..." value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
+              {errorExamen && <p className="text-xs text-[#E05252] bg-[#E05252]/10 rounded-xl p-3">{errorExamen}</p>}
+            </>}
+
+            <button
+              onClick={modal === 'examen' ? guardarExamen : guardar}
+              disabled={saving || (modal !== 'examen' && (!form.nombre && !form.titulo && !form.diagnostico))}
               className="w-full bg-[#E8A84C] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
