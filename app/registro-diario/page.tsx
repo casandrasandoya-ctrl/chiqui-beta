@@ -4,57 +4,144 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 
-interface Opcion { value: string; emoji: string; label: string; hasDetail?: boolean }
+interface DetalleSub { titulo: string; opciones: { value: string; emoji: string; label: string }[] }
+interface Opcion { value: string; emoji: string; label: string; detalle?: DetalleSub[] }
 interface Categoria {
   id: string; nombre: string; icon: string; color: string
   opciones: Opcion[]
-  detalle?: { titulo: string; opciones: Opcion[] }
 }
 
 const CATS: Categoria[] = [
   { id:'energia', nombre:'Energía', icon:'⚡', color:'#F5C842',
-    opciones:[{value:'muy_alta',emoji:'⚡⚡',label:'Muy alta'},{value:'alta',emoji:'⚡',label:'Alta'},{value:'normal',emoji:'😊',label:'Normal'},{value:'baja',emoji:'😴',label:'Baja'},{value:'muy_baja',emoji:'🛌',label:'Muy baja'},{value:'decaido',emoji:'😟',label:'Decaído'}] },
+    opciones:[
+      {value:'muy_alta',emoji:'⚡⚡',label:'Muy alta'},
+      {value:'alta',emoji:'⚡',label:'Alta'},
+      {value:'normal',emoji:'😊',label:'Normal'},
+      {value:'baja',emoji:'😴',label:'Baja'},
+      {value:'muy_baja',emoji:'🛌',label:'Muy baja'},
+      {value:'decaido',emoji:'😟',label:'Decaído'},
+    ]},
   { id:'animo', nombre:'Ánimo', icon:'😄', color:'#E3A84A',
-    opciones:[{value:'muy_feliz',emoji:'🥳',label:'Muy feliz'},{value:'feliz',emoji:'😄',label:'Feliz'},{value:'normal',emoji:'😐',label:'Normal'},{value:'ansioso',emoji:'😰',label:'Ansioso'},{value:'triste',emoji:'😢',label:'Triste'},{value:'irritable',emoji:'😤',label:'Irritable'}] },
+    opciones:[
+      {value:'muy_feliz',emoji:'🥳',label:'Muy feliz'},
+      {value:'feliz',emoji:'😄',label:'Feliz'},
+      {value:'normal',emoji:'😐',label:'Normal'},
+      {value:'ansioso',emoji:'😰',label:'Ansioso'},
+      {value:'triste',emoji:'😢',label:'Triste'},
+      {value:'irritable',emoji:'😤',label:'Irritable'},
+    ]},
   { id:'apetito', nombre:'Apetito', icon:'🍽️', color:'#3DD6B5',
-    opciones:[{value:'mas',emoji:'😋',label:'Comió más'},{value:'normal',emoji:'✅',label:'Normal'},{value:'menos',emoji:'🍽️',label:'Comió menos'},{value:'nada',emoji:'❌',label:'No comió',hasDetail:true}],
-    detalle:{titulo:'¿Cuántas comidas saltó?',opciones:[{value:'una',emoji:'1️⃣',label:'Una'},{value:'dos',emoji:'2️⃣',label:'Dos'},{value:'todo',emoji:'🚫',label:'Todo el día'}]} },
+    opciones:[
+      {value:'mas',emoji:'😋',label:'Comió más'},
+      {value:'normal',emoji:'✅',label:'Normal'},
+      {value:'menos',emoji:'🍽️',label:'Comió menos'},
+      {value:'nada',emoji:'❌',label:'No comió',detalle:[
+        {titulo:'¿Cuántas comidas saltó?',opciones:[{value:'una',emoji:'1️⃣',label:'Una'},{value:'dos',emoji:'2️⃣',label:'Dos'},{value:'todo',emoji:'🚫',label:'Todo el día'}]}
+      ]},
+    ]},
   { id:'agua', nombre:'Agua', icon:'💧', color:'#4AABDB',
-    opciones:[{value:'mas',emoji:'💧💧',label:'Más de lo normal',hasDetail:true},{value:'normal',emoji:'💧',label:'Normal'},{value:'menos',emoji:'🏜️',label:'Menos'},{value:'nada',emoji:'⚠️',label:'No tomó',hasDetail:true}],
-    detalle:{titulo:'¿Cuándo notaste el cambio?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓️',label:'Hace semanas'}]} },
+    opciones:[
+      {value:'mas',emoji:'💧💧',label:'Más de lo normal',detalle:[
+        {titulo:'¿Cuándo notaste el cambio?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓️',label:'Hace semanas'}]}
+      ]},
+      {value:'normal',emoji:'💧',label:'Normal'},
+      {value:'menos',emoji:'🏜️',label:'Menos'},
+      {value:'nada',emoji:'⚠️',label:'No tomó',detalle:[
+        {titulo:'¿Cuándo notaste el cambio?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓️',label:'Hace semanas'}]}
+      ]},
+    ]},
   { id:'digestion', nombre:'Digestión', icon:'🫃', color:'#F39B35',
-    opciones:[{value:'normal',emoji:'✅',label:'Normal'},{value:'gases',emoji:'💨',label:'Gases'},{value:'nauseas',emoji:'🤢',label:'Náuseas'},{value:'vomito',emoji:'🤮',label:'Vómito',hasDetail:true},{value:'diarrea',emoji:'💩',label:'Diarrea',hasDetail:true},{value:'estrenimiento',emoji:'😬',label:'Estreñimiento'}],
-    detalle:{titulo:'¿Qué observaste?',opciones:[{value:'espuma',emoji:'🫧',label:'Espuma'},{value:'bilis',emoji:'🟡',label:'Bilis'},{value:'pasto',emoji:'🌿',label:'Pasto'},{value:'sangre',emoji:'🔴',label:'Con sangre'},{value:'blandas',emoji:'🟤',label:'Heces blandas'},{value:'liquidas',emoji:'💧',label:'Heces líquidas'}]} },
+    opciones:[
+      {value:'normal',emoji:'✅',label:'Normal'},
+      {value:'gases',emoji:'💨',label:'Gases'},
+      {value:'nauseas',emoji:'🤢',label:'Náuseas'},
+      {value:'vomito',emoji:'🤮',label:'Vómito',detalle:[
+        {titulo:'¿Qué tipo de vómito?',opciones:[
+          {value:'espuma',emoji:'🫧',label:'Espuma'},
+          {value:'bilis',emoji:'🟡',label:'Bilis'},
+          {value:'comida',emoji:'🍖',label:'Comida'},
+          {value:'pasto',emoji:'🌿',label:'Pasto'},
+          {value:'sangre_vomito',emoji:'🔴',label:'Con sangre'},
+          {value:'otro_vomito',emoji:'❓',label:'Otro'},
+        ]},
+        {titulo:'¿Cuántas veces?',opciones:[
+          {value:'1_vez',emoji:'1️⃣',label:'1 vez'},
+          {value:'2_veces',emoji:'2️⃣',label:'2 veces'},
+          {value:'3_mas_veces',emoji:'⚠️',label:'+3 veces'},
+        ]},
+      ]},
+      {value:'diarrea',emoji:'💩',label:'Diarrea',detalle:[
+        {titulo:'¿Cómo fueron las heces?',opciones:[
+          {value:'blandas',emoji:'🟤',label:'Blandas'},
+          {value:'liquidas',emoji:'💧',label:'Líquidas'},
+          {value:'sangre_heces',emoji:'🔴',label:'Con sangre'},
+          {value:'mucosidad',emoji:'🫧',label:'Con mucosidad'},
+          {value:'muy_oscuras',emoji:'⚫',label:'Muy oscuras'},
+          {value:'muy_claras',emoji:'⬜',label:'Muy claras'},
+        ]},
+      ]},
+      {value:'estrenimiento',emoji:'😬',label:'Estreñimiento'},
+    ]},
   { id:'pelaje', nombre:'Pelaje y piel', icon:'✨', color:'#4CCB7F',
-    opciones:[{value:'brillante',emoji:'✨',label:'Brillante'},{value:'normal',emoji:'😊',label:'Normal'},{value:'opaco',emoji:'😐',label:'Opaco'},{value:'caida_leve',emoji:'🍂',label:'Caída leve'},{value:'caida_excesiva',emoji:'🍂🍂',label:'Caída excesiva',hasDetail:true},{value:'rasca',emoji:'🐾',label:'Se rasca',hasDetail:true}],
-    detalle:{titulo:'¿Dónde?',opciones:[{value:'orejas',emoji:'👂',label:'Orejas'},{value:'patas',emoji:'🐾',label:'Patas'},{value:'barriga',emoji:'🫃',label:'Barriga'},{value:'lomo',emoji:'🐕',label:'Lomo'},{value:'cara',emoji:'🐶',label:'Cara'},{value:'general',emoji:'🔄',label:'General'}]} },
+    opciones:[
+      {value:'brillante',emoji:'✨',label:'Brillante'},
+      {value:'normal',emoji:'😊',label:'Normal'},
+      {value:'opaco',emoji:'😐',label:'Opaco'},
+      {value:'caida_leve',emoji:'🍂',label:'Caída leve'},
+      {value:'caida_excesiva',emoji:'🍂🍂',label:'Caída excesiva',detalle:[
+        {titulo:'¿Dónde?',opciones:[{value:'orejas',emoji:'👂',label:'Orejas'},{value:'patas',emoji:'🐾',label:'Patas'},{value:'barriga',emoji:'🫃',label:'Barriga'},{value:'lomo',emoji:'🐕',label:'Lomo'},{value:'cara',emoji:'🐶',label:'Cara'},{value:'general',emoji:'🔄',label:'General'}]}
+      ]},
+      {value:'rasca',emoji:'🐾',label:'Se rasca',detalle:[
+        {titulo:'¿Dónde?',opciones:[{value:'orejas',emoji:'👂',label:'Orejas'},{value:'patas',emoji:'🐾',label:'Patas'},{value:'barriga',emoji:'🫃',label:'Barriga'},{value:'lomo',emoji:'🐕',label:'Lomo'},{value:'cara',emoji:'🐶',label:'Cara'},{value:'general',emoji:'🔄',label:'General'}]}
+      ]},
+    ]},
   { id:'conducta', nombre:'Conducta', icon:'🧠', color:'#E25D5D',
-    opciones:[{value:'normal',emoji:'😊',label:'Normal'},{value:'sociable',emoji:'🤩',label:'Muy sociable'},{value:'ansioso',emoji:'😰',label:'Ansioso',hasDetail:true},{value:'temeroso',emoji:'😨',label:'Temeroso',hasDetail:true},{value:'reactivo',emoji:'⚡',label:'Reactivo',hasDetail:true}],
-    detalle:{titulo:'¿Ante qué?',opciones:[{value:'perros',emoji:'🐕',label:'Perros'},{value:'personas',emoji:'🧍',label:'Personas'},{value:'ruidos',emoji:'🔊',label:'Ruidos'},{value:'solo',emoji:'🏠',label:'Solo en casa'}]} },
+    opciones:[
+      {value:'normal',emoji:'😊',label:'Normal'},
+      {value:'sociable',emoji:'🤩',label:'Muy sociable'},
+      {value:'ansioso',emoji:'😰',label:'Ansioso',detalle:[
+        {titulo:'¿Ante qué?',opciones:[{value:'perros',emoji:'🐕',label:'Perros'},{value:'personas',emoji:'🧍',label:'Personas'},{value:'ruidos',emoji:'🔊',label:'Ruidos'},{value:'solo',emoji:'🏠',label:'Solo en casa'}]}
+      ]},
+      {value:'temeroso',emoji:'😨',label:'Temeroso',detalle:[
+        {titulo:'¿Ante qué?',opciones:[{value:'perros',emoji:'🐕',label:'Perros'},{value:'personas',emoji:'🧍',label:'Personas'},{value:'ruidos',emoji:'🔊',label:'Ruidos'},{value:'solo',emoji:'🏠',label:'Solo en casa'}]}
+      ]},
+      {value:'reactivo',emoji:'⚡',label:'Reactivo',detalle:[
+        {titulo:'¿Ante qué?',opciones:[{value:'perros',emoji:'🐕',label:'Perros'},{value:'personas',emoji:'🧍',label:'Personas'},{value:'ruidos',emoji:'🔊',label:'Ruidos'},{value:'solo',emoji:'🏠',label:'Solo en casa'}]}
+      ]},
+    ]},
   { id:'movilidad', nombre:'Movilidad', icon:'🦴', color:'#8A8FA8',
-    opciones:[{value:'normal',emoji:'🏃',label:'Normal'},{value:'rigidez',emoji:'🦾',label:'Rigidez'},{value:'cojera_leve',emoji:'🩹',label:'Cojera leve',hasDetail:true},{value:'cojera_marcada',emoji:'🚨',label:'Cojera marcada',hasDetail:true},{value:'costo_levantarse',emoji:'😓',label:'Le costó levantarse'}],
-    detalle:{titulo:'¿Qué pata o zona?',opciones:[{value:'del_izq',emoji:'↖️',label:'Del. izq'},{value:'del_der',emoji:'↗️',label:'Del. der'},{value:'tras_izq',emoji:'↙️',label:'Tras. izq'},{value:'tras_der',emoji:'↘️',label:'Tras. der'},{value:'columna',emoji:'🦴',label:'Columna'}]} },
+    opciones:[
+      {value:'normal',emoji:'🏃',label:'Normal'},
+      {value:'rigidez',emoji:'🦾',label:'Rigidez'},
+      {value:'cojera_leve',emoji:'🩹',label:'Cojera leve',detalle:[
+        {titulo:'¿Qué pata o zona?',opciones:[{value:'del_izq',emoji:'↖️',label:'Del. izq'},{value:'del_der',emoji:'↗️',label:'Del. der'},{value:'tras_izq',emoji:'↙️',label:'Tras. izq'},{value:'tras_der',emoji:'↘️',label:'Tras. der'},{value:'columna',emoji:'🦴',label:'Columna'}]}
+      ]},
+      {value:'cojera_marcada',emoji:'🚨',label:'Cojera marcada',detalle:[
+        {titulo:'¿Qué pata o zona?',opciones:[{value:'del_izq',emoji:'↖️',label:'Del. izq'},{value:'del_der',emoji:'↗️',label:'Del. der'},{value:'tras_izq',emoji:'↙️',label:'Tras. izq'},{value:'tras_der',emoji:'↘️',label:'Tras. der'},{value:'columna',emoji:'🦴',label:'Columna'}]}
+      ]},
+      {value:'costo_levantarse',emoji:'😓',label:'Le costó levantarse'},
+    ]},
 ]
 
 function calcEstado(sel: Record<string,string>): string {
   const vals = Object.values(sel)
-  const alertas = ['vomito','diarrea','nada','muy_baja','decaido','cojera_marcada','sangre','liquidas']
+  const alertas = ['vomito','diarrea','nada','muy_baja','decaido','cojera_marcada']
   const observar = ['menos','gases','nauseas','baja','ansioso','temeroso','cojera_leve','caida_excesiva','rasca','triste','irritable','rigidez','opaco']
   if (vals.some(v => alertas.includes(v))) return 'naranjo'
   if (vals.some(v => observar.includes(v))) return 'amarillo'
   return 'verde'
 }
 
-export default function RegistroPage({ searchParams }: { searchParams: { fecha?: string } }) {
+export default function RegistroPage({ searchParams }: { searchParams?: { fecha?: string } }) {
   const router = useRouter()
   const supabase = createClient()
   const [mascotaId, setMascotaId] = useState('')
   const [mascotaNombre, setMascotaNombre] = useState('')
   const [sel, setSel] = useState<Record<string,string>>({})
-  const [det, setDet] = useState<Record<string,string>>({})
+  const [det, setDet] = useState<Record<string,string[]>>({})
+  const [fechaRegistro, setFechaRegistro] = useState('')
   const [nota, setNota] = useState('')
   const [abierto, setAbierto] = useState('energia')
-  const [fechaRegistro, setFechaRegistro] = useState(searchParams?.fecha || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0])
   const [loading, setLoading] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [yaRegistro, setYaRegistro] = useState(false)
@@ -67,9 +154,9 @@ export default function RegistroPage({ searchParams }: { searchParams: { fecha?:
       if (!m) { router.push('/mascota/nueva'); return }
       setMascotaId(m.id)
       setMascotaNombre(m.nombre)
-      const hoy = searchParams?.fecha || new Date(new Date().toLocaleString('en-US', {timeZone:'America/Santiago'})).toISOString().split('T')[0]
-      const fechaCheck = searchParams?.fecha || hoy
-      const { data: r } = await supabase.from('registros_diarios').select('id').eq('mascota_id', m.id).eq('fecha', fechaCheck).single()
+      const hoy = searchParams?.fecha || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0]
+      setFechaRegistro(hoy)
+      const { data: r } = await supabase.from('registros_diarios').select('id').eq('mascota_id', m.id).eq('fecha', hoy).single()
       if (r) setYaRegistro(true)
       setCargando(false)
     }
@@ -81,17 +168,16 @@ export default function RegistroPage({ searchParams }: { searchParams: { fecha?:
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const hoy = searchParams?.fecha || new Date(new Date().toLocaleString('en-US', {timeZone:'America/Santiago'})).toISOString().split('T')[0]
     await supabase.from('registros_diarios').upsert({
       mascota_id: mascotaId, user_id: user.id, fecha: fechaRegistro,
       estado_dia: calcEstado(sel), nota: nota || null,
       energia: sel.energia || null, animo: sel.animo || null,
-      apetito: sel.apetito || null, apetito_detalle: det.apetito || null,
-      agua: sel.agua || null, agua_detalle: det.agua || null,
-      digestion: sel.digestion || null, digestion_detalle: det.digestion || null,
-      pelaje: sel.pelaje || null, pelaje_detalle: det.pelaje || null,
-      conducta: sel.conducta || null, conducta_detalle: det.conducta || null,
-      movilidad: sel.movilidad || null, movilidad_detalle: det.movilidad || null,
+      apetito: sel.apetito || null, apetito_detalle: det.apetito?.join(', ') || null,
+      agua: sel.agua || null, agua_detalle: det.agua?.join(', ') || null,
+      digestion: sel.digestion || null, digestion_detalle: det.digestion?.join(', ') || null,
+      pelaje: sel.pelaje || null, pelaje_detalle: det.pelaje?.join(', ') || null,
+      conducta: sel.conducta || null, conducta_detalle: det.conducta?.join(', ') || null,
+      movilidad: sel.movilidad || null, movilidad_detalle: det.movilidad?.join(', ') || null,
     }, { onConflict: 'mascota_id,fecha' })
     router.push('/dashboard')
     router.refresh()
@@ -116,14 +202,14 @@ export default function RegistroPage({ searchParams }: { searchParams: { fecha?:
   return (
     <div className="min-h-screen pb-24 fade-in">
       <div className="px-5 pt-6 pb-3 sticky top-0 bg-[#0B1020] z-10 border-b border-white/5">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="text-xs text-[#8A8FA8]">{new Date().toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'})}</p>
+        <div className="flex items-center gap-3 mb-2">
+          <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-[#1E2848] flex items-center justify-center text-lg flex-shrink-0">←</button>
+          <div className="flex-1">
+            <p className="text-xs text-[#8A8FA8] capitalize">{fechaRegistro && new Date(fechaRegistro + 'T00:00:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'})}</p>
             <h1 className="text-base font-bold">¿Cómo estuvo {mascotaNombre}?</h1>
-              <input type="date" value={fechaRegistro} onChange={e => setFechaRegistro(e.target.value)} className="text-xs bg-[#1E2848] border border-white/10 rounded-lg px-2 py-1 text-[#E3A84A] mt-1"/>
           </div>
           <button onClick={guardar} disabled={loading || !completadas}
-            className="bg-[#E3A84A] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40">
+            className="bg-[#E3A84A] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40 flex-shrink-0">
             {loading ? '...' : 'Guardar'}
           </button>
         </div>
@@ -157,7 +243,7 @@ export default function RegistroPage({ searchParams }: { searchParams: { fecha?:
                   <p className="text-sm font-semibold">{cat.nombre}</p>
                   {selVal && (
                     <p className="text-xs mt-0.5" style={{color:cat.color}}>
-                      {opSel?.emoji} {opSel?.label}{det[cat.id] ? ` · ${det[cat.id]}` : ''}
+                      {opSel?.emoji} {opSel?.label}{(det[cat.id]?.filter(Boolean).length) ? ` · ${det[cat.id].filter(Boolean).join(', ')}` : ''}
                     </p>
                   )}
                 </div>
@@ -174,7 +260,7 @@ export default function RegistroPage({ searchParams }: { searchParams: { fecha?:
                             if (p[cat.id] === op.value) { const n={...p}; delete n[cat.id]; return n }
                             return {...p, [cat.id]: op.value}
                           })
-                          if (!op.hasDetail) setDet(p => { const n={...p}; delete n[cat.id]; return n })
+                          if (!op.detalle) setDet(p => { const n={...p}; delete n[cat.id]; return n })
                         }}
                         className="flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all"
                         style={selVal===op.value ? {borderColor:cat.color,background:`${cat.color}15`,borderWidth:'1.5px'} : {background:'#1E2848',borderColor:'rgba(255,255,255,0.1)'}}>
@@ -183,20 +269,31 @@ export default function RegistroPage({ searchParams }: { searchParams: { fecha?:
                       </button>
                     ))}
                   </div>
-                  {selVal && opSel?.hasDetail && cat.detalle && (
-                    <div className="bg-[#1B2340] rounded-xl p-3 border border-white/8">
-                      <p className="text-xs text-[#8A8FA8] uppercase tracking-wider font-semibold mb-2">{cat.detalle.titulo}</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {cat.detalle.opciones.map(op => (
-                          <button key={op.value}
-                            onClick={() => setDet(p => ({...p, [cat.id]: p[cat.id]===op.value ? '' : op.value}))}
-                            className="flex flex-col items-center gap-1 p-2 rounded-lg border transition-all"
-                            style={det[cat.id]===op.value ? {borderColor:'#F39B35',background:'#F39B3515'} : {background:'#1E2848',borderColor:'rgba(255,255,255,0.1)'}}>
-                            <span className="text-base">{op.emoji}</span>
-                            <span className="text-[10px] text-[#8A8FA8] leading-tight text-center">{op.label}</span>
-                          </button>
-                        ))}
-                      </div>
+                  {selVal && opSel?.detalle && (
+                    <div className="bg-[#1B2340] rounded-xl p-3 border border-white/8 space-y-3">
+                      {opSel.detalle.map((sub, subIdx) => (
+                        <div key={subIdx}>
+                          <p className="text-xs text-[#8A8FA8] uppercase tracking-wider font-semibold mb-2">{sub.titulo}</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {sub.opciones.map(op2 => {
+                              const seleccionadoSub = (det[cat.id] || [])[subIdx] === op2.value
+                              return (
+                                <button key={op2.value}
+                                  onClick={() => setDet(p => {
+                                    const arr = [...(p[cat.id] || [])]
+                                    arr[subIdx] = arr[subIdx] === op2.value ? '' : op2.value
+                                    return {...p, [cat.id]: arr}
+                                  })}
+                                  className="flex flex-col items-center gap-1 p-2 rounded-lg border transition-all"
+                                  style={seleccionadoSub ? {borderColor:'#F39B35',background:'#F39B3515'} : {background:'#1E2848',borderColor:'rgba(255,255,255,0.1)'}}>
+                                  <span className="text-base">{op2.emoji}</span>
+                                  <span className="text-[10px] text-[#8A8FA8] leading-tight text-center">{op2.label}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
