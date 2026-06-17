@@ -46,11 +46,12 @@ export default function CalendarioPage() {
   }, [])
 
   async function cargarRegistros(mascotaId: string, m: number, a: number) {
+    const ultimoDia = new Date(a, m + 1, 0).getDate()
     const inicio = `${a}-${String(m + 1).padStart(2, '0')}-01`
-    const fin = `${a}-${String(m + 1).padStart(2, '0')}-31`
+    const fin = `${a}-${String(m + 1).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`
     const { data } = await supabase
       .from('registros_diarios')
-      .select('fecha, estado_dia, nota')
+      .select('fecha, estado_dia, nota, energia, animo, apetito, agua, digestion, pelaje, conducta, movilidad')
       .eq('mascota_id', mascotaId)
       .gte('fecha', inicio)
       .lte('fecha', fin)
