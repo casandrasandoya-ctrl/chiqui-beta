@@ -33,10 +33,10 @@ export default function LinkVet({ mascotaId }: { mascotaId: string }) {
   }
 
   return (
-    <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/5">
+    <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#EEE2D4]">
         <h2 className="font-bold text-sm">🩺 Compartir con veterinario</h2>
-        <p className="text-xs text-[#8A8FA8] mt-0.5">Genera un link de solo lectura válido por 7 días</p>
+        <p className="text-xs text-[#8A7560] mt-0.5">Genera un link de solo lectura válido por 7 días</p>
       </div>
       <div className="p-4">
         {!link ? (
@@ -46,14 +46,14 @@ export default function LinkVet({ mascotaId }: { mascotaId: string }) {
           </button>
         ) : (
           <div className="space-y-3">
-            <div className="bg-[#1E2333] rounded-xl p-3 text-xs text-[#8A8FA8] break-all border border-white/8">
+            <div className="bg-[#FBEAD9] rounded-xl p-3 text-xs text-[#8A7560] break-all border border-[#EEE2D4]">
               {link}
             </div>
             <button onClick={copiar}
               className="w-full bg-[#4CAF7D] text-[#0a2418] font-bold py-3 rounded-xl text-sm">
               {copiado ? '✅ ¡Copiado!' : '📋 Copiar link'}
             </button>
-            <p className="text-xs text-[#8A8FA8] text-center">El veterinario puede ver el historial sin crear cuenta</p>
+            <p className="text-xs text-[#8A7560] text-center">El veterinario puede ver el historial sin crear cuenta</p>
           </div>
         )}
       </div>

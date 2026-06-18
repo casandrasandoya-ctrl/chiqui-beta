@@ -37,7 +37,7 @@ export default function AnalisisPage() {
     init()
   }, [])
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-[#8A8FA8]">Cargando...</div>
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-[#8A7560]">Cargando...</div>
 
   const total = registros.length
   const verdes = registros.filter(r => r.estado_dia === 'verde').length
@@ -78,27 +78,27 @@ export default function AnalisisPage() {
 
       <div className="px-5 pt-6 pb-3">
         <h1 className="font-heading text-xl font-extrabold">Análisis</h1>
-        <p className="text-xs text-[#8A8FA8]">{mascota?.nombre} · últimos 30 días</p>
+        <p className="text-xs text-[#8A7560]">{mascota?.nombre} · últimos 30 días</p>
       </div>
 
       {/* Insights Chiqui */}
-      <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
-        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/5">
+      <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#EEE2D4]">
           <span className="text-lg">🐶</span>
           <div>
             <p className="text-sm font-bold">Lo que observé este mes</p>
-            <p className="text-xs text-[#8A8FA8]">{total} registros</p>
+            <p className="text-xs text-[#8A7560]">{total} registros</p>
           </div>
         </div>
         {insights.length === 0 ? (
-          <div className="p-6 text-center text-sm text-[#8A8FA8]">Cargando insights...</div>
+          <div className="p-6 text-center text-sm text-[#8A7560]">Cargando insights...</div>
         ) : (
           insights.map((ins, i) => (
-            <div key={i} className="flex items-start gap-3 px-4 py-3 border-b border-white/5 last:border-0">
+            <div key={i} className="flex items-start gap-3 px-4 py-3 border-b border-[#EEE2D4] last:border-0">
               <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0 ${ins.tipo === 'good' ? 'bg-[#4CAF7D]/15' : ins.tipo === 'warn' ? 'bg-[#F07A30]/15' : 'bg-[#4AABDB]/15'}`}>
                 {ins.icon}
               </div>
-              <p className="text-xs text-[#F0EEE8] leading-relaxed">{ins.text}</p>
+              <p className="text-xs text-[#3D2B1F] leading-relaxed">{ins.text}</p>
             </div>
           ))
         )}
@@ -107,7 +107,7 @@ export default function AnalisisPage() {
       {/* Resumen estadístico */}
       {total > 0 && <>
         <div className="px-5 mb-2">
-          <h2 className="text-xs font-bold text-[#8A8FA8] uppercase tracking-wider">Resumen del período</h2>
+          <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Resumen del período</h2>
         </div>
         <div className="grid grid-cols-4 gap-2 mx-4 mb-4">
           {[
@@ -116,27 +116,27 @@ export default function AnalisisPage() {
             { label: 'Leve', val: amarillos, color: '#F5C842' },
             { label: 'Síntoma', val: naranjos + rojos, color: '#F07A30' },
           ].map(s => (
-            <div key={s.label} className="bg-[#232840] rounded-2xl border border-white/8 p-3 text-center">
+            <div key={s.label} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
               <div className="font-bold text-lg" style={{ color: s.color }}>{s.val}</div>
-              <div className="text-[9px] text-[#8A8FA8] uppercase tracking-wider mt-0.5">{s.label}</div>
+              <div className="text-[9px] text-[#8A7560] uppercase tracking-wider mt-0.5">{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Últimos 7 días visual */}
         <div className="px-5 mb-2">
-          <h2 className="text-xs font-bold text-[#8A8FA8] uppercase tracking-wider">Últimos 7 días</h2>
+          <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Últimos 7 días</h2>
         </div>
-        <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/8 p-4">
+        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
           <div className="flex items-end justify-between gap-1 h-16">
             {Array(7).fill(null).map((_, i) => {
               const reg = ultimos7[i]
-              const color = reg ? ESTADO_COLOR[reg.estado_dia] : 'rgba(255,255,255,0.08)'
+              const color = reg ? ESTADO_COLOR[reg.estado_dia] : 'rgba(140,87,47,0.08)'
               const d = new Date(); d.setDate(d.getDate() - (6 - i))
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
                   <div className="w-full rounded-lg transition-all" style={{ height: reg ? '100%' : '20%', background: color, minHeight: '8px' }}/>
-                  <span className="text-[9px] text-[#8A8FA8]">{d.getDate()}</span>
+                  <span className="text-[9px] text-[#8A7560]">{d.getDate()}</span>
                 </div>
               )
             })}
@@ -145,7 +145,7 @@ export default function AnalisisPage() {
             {Object.entries(ESTADO_COLOR).map(([e, c]) => (
               <div key={e} className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full" style={{ background: c }}/>
-                <span className="text-[9px] text-[#8A8FA8] capitalize">{e}</span>
+                <span className="text-[9px] text-[#8A7560] capitalize">{e}</span>
               </div>
             ))}
           </div>
@@ -153,21 +153,21 @@ export default function AnalisisPage() {
 
         {/* Historial reciente */}
         <div className="px-5 mb-2">
-          <h2 className="text-xs font-bold text-[#8A8FA8] uppercase tracking-wider">Registros recientes</h2>
+          <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Registros recientes</h2>
         </div>
-        <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
+        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           {registros.slice(0, 10).map(r => {
             const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
             const d = new Date(r.fecha + 'T00:00:00')
             const color = ESTADO_COLOR[r.estado_dia]
             const labels: Record<string,string> = { verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' }
             return (
-              <div key={r.id} className="flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-0">
+              <div key={r.id} className="flex items-center gap-3 px-4 py-3 border-b border-[#EEE2D4] last:border-0">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}/>
                 <div className="flex-1">
                   <p className="text-xs font-semibold">{d.getDate()} {MESES[d.getMonth()]}</p>
                   <p className="text-xs mt-0.5" style={{ color }}>{labels[r.estado_dia]}</p>
-                  {r.nota && <p className="text-[10px] text-[#8A8FA8] mt-0.5 italic">{r.nota}</p>}
+                  {r.nota && <p className="text-[10px] text-[#8A7560] mt-0.5 italic">{r.nota}</p>}
                 </div>
               </div>
             )
@@ -176,10 +176,10 @@ export default function AnalisisPage() {
       </>}
 
       {total === 0 && (
-        <div className="mx-4 bg-[#232840] rounded-2xl border border-white/8 p-8 text-center">
+        <div className="mx-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
           <div className="text-5xl mb-3">📊</div>
-          <p className="text-sm text-[#8A8FA8] mb-4">Empieza a registrar para ver tendencias y análisis aquí.</p>
-          <a href="/registro" className="bg-[#E8A84C] text-[#1A1200] font-bold px-6 py-3 rounded-xl text-sm inline-block">
+          <p className="text-sm text-[#8A7560] mb-4">Empieza a registrar para ver tendencias y análisis aquí.</p>
+          <a href="/registro-diario" className="bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-3 rounded-xl text-sm inline-block">
             Registrar hoy →
           </a>
         </div>

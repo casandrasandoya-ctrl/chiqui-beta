@@ -5,8 +5,8 @@ import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import LinkVet from '@/components/LinkVet'
 
-const IC = "w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
-const SC = "w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm focus:outline-none appearance-none"
+const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
+const SC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
 
 function calcEdad(f: string): string {
   const h = new Date(), n = new Date(f)
@@ -94,7 +94,7 @@ export default function PerfilPage() {
   const u = (k: string, v: string | boolean) => setForm(p => ({ ...p, [k]: v }))
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center text-[#8A8FA8]">Cargando...</div>
+    <div className="min-h-screen flex items-center justify-center text-[#8A7560]">Cargando...</div>
   )
 
   const edad = mascota?.fecha_nacimiento ? calcEdad(mascota.fecha_nacimiento) : ''
@@ -113,12 +113,12 @@ export default function PerfilPage() {
   return (
     <div className="min-h-screen pb-24 fade-in">
 
-      <div className="relative bg-gradient-to-b from-[#1E2333] to-[#0F1117] pt-8 pb-6 text-center">
-        <div className="w-20 h-20 rounded-full bg-[#232840] border-2 border-[#4CAF7D] flex items-center justify-center text-4xl mx-auto mb-3">
+      <div className="relative bg-gradient-to-b from-[#8C572F] to-[#F5EDE3] pt-8 pb-6 text-center">
+        <div className="w-20 h-20 rounded-full bg-[#FFFCF8] border-2 border-[#4CAF7D] flex items-center justify-center text-4xl mx-auto mb-3">
           🐶
         </div>
         <h1 className="font-heading text-xl font-extrabold">{mascota?.nombre}</h1>
-        <p className="text-sm text-[#8A8FA8] mt-1">
+        <p className="text-sm text-[#8A7560] mt-1">
           {mascota?.especie}
           {mascota?.raza ? ` · ${mascota.raza}` : ''}
           {edad ? ` · ${edad}` : ''}
@@ -131,34 +131,34 @@ export default function PerfilPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-3 mx-4 mt-4 mb-4">
-        <div className="bg-[#232840] rounded-2xl border border-white/8 p-3 text-center">
+        <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
           <div className="font-bold text-sm text-[#F07A30]">{mascota?.peso_actual ? `${mascota.peso_actual}kg` : '-'}</div>
-          <div className="text-[10px] text-[#8A8FA8] uppercase tracking-wider mt-0.5">Peso</div>
+          <div className="text-[10px] text-[#8A7560] uppercase tracking-wider mt-0.5">Peso</div>
         </div>
-        <div className="bg-[#232840] rounded-2xl border border-white/8 p-3 text-center">
-          <div className="font-bold text-sm text-[#E8A84C]">{mascota?.sexo || '-'}</div>
-          <div className="text-[10px] text-[#8A8FA8] uppercase tracking-wider mt-0.5">Sexo</div>
+        <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
+          <div className="font-bold text-sm text-[#FFBD59]">{mascota?.sexo || '-'}</div>
+          <div className="text-[10px] text-[#8A7560] uppercase tracking-wider mt-0.5">Sexo</div>
         </div>
-        <div className="bg-[#232840] rounded-2xl border border-white/8 p-3 text-center">
+        <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
           <div className="font-bold text-sm text-[#4CAF7D]">{mascota?.castrado ? 'Sí' : 'No'}</div>
-          <div className="text-[10px] text-[#8A8FA8] uppercase tracking-wider mt-0.5">Castrado</div>
+          <div className="text-[10px] text-[#8A7560] uppercase tracking-wider mt-0.5">Castrado</div>
         </div>
       </div>
 
-      <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+      <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#EEE2D4]">
           <h2 className="font-bold text-sm">Datos del perfil</h2>
-          <button onClick={() => { setEditando(!editando); setForm(mascota || {}) }} className="text-xs font-bold text-[#E8A84C]">
+          <button onClick={() => { setEditando(!editando); setForm(mascota || {}) }} className="text-xs font-bold text-[#FFBD59]">
             {editando ? 'Cancelar' : '✏️ Editar'}
           </button>
         </div>
 
         {!editando ? (
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-[#EEE2D4]">
             {datos.map(([label, val]) => (
               <div key={label} className="flex items-center gap-3 px-4 py-3">
                 <div className="flex-1">
-                  <p className="text-xs text-[#8A8FA8]">{label}</p>
+                  <p className="text-xs text-[#8A7560]">{label}</p>
                   <p className="text-sm font-medium mt-0.5">{val}</p>
                 </div>
               </div>
@@ -178,7 +178,7 @@ export default function PerfilPage() {
               ['Veterinaria', 'veterinaria', 'text', ''],
             ].map(([label, key, type, placeholder]) => (
               <div key={key}>
-                <label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">{label}</label>
+                <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">{label}</label>
                 <input
                   type={type}
                   step={type === 'number' ? '0.1' : undefined}
@@ -190,7 +190,7 @@ export default function PerfilPage() {
               </div>
             ))}
             <div>
-              <label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Alimentación</label>
+              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Alimentación</label>
               <select className={SC} value={form.alimentacion_tipo || ''} onChange={e => u('alimentacion_tipo', e.target.value)}>
                 <option value="">Seleccionar...</option>
                 <option>Pellet seco</option>
@@ -199,7 +199,7 @@ export default function PerfilPage() {
                 <option>Mixto</option>
               </select>
             </div>
-            <button onClick={guardar} disabled={saving} className="w-full bg-[#E8A84C] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-50">
+            <button onClick={guardar} disabled={saving} className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-50">
               {saving ? 'Guardando...' : 'Guardar cambios'}
             </button>
           </div>
@@ -208,12 +208,12 @@ export default function PerfilPage() {
 
       {mascota && <LinkVet mascotaId={mascota.id} />}
 
-      <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/5">
+      <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#EEE2D4]">
           <h2 className="font-bold text-sm">Mi cuenta</h2>
         </div>
-        <div className="px-4 py-3 border-b border-white/5">
-          <p className="text-xs text-[#8A8FA8]">Email</p>
+        <div className="px-4 py-3 border-b border-[#EEE2D4]">
+          <p className="text-xs text-[#8A7560]">Email</p>
           <p className="text-sm mt-0.5">{userEmail}</p>
         </div>
         <button onClick={cerrarSesion} className="w-full px-4 py-3 text-left text-sm text-[#E05252] font-semibold">
@@ -221,9 +221,9 @@ export default function PerfilPage() {
         </button>
       </div>
 
-      <div className="mx-4 mb-4 bg-[#1E2333] border border-white/5 rounded-2xl p-4">
-        <p className="text-xs text-[#8A8FA8] leading-relaxed text-center">
-          <span className="text-[#E8A84C] font-bold">CHIQUI Entre Señales</span><br/>
+      <div className="mx-4 mb-4 bg-[#FBEAD9] border border-[#EEE2D4] rounded-2xl p-4">
+        <p className="text-xs text-[#8A7560] leading-relaxed text-center">
+          <span className="text-[#FFBD59] font-bold">CHIQUI Entre Señales</span><br/>
           No es una aplicación veterinaria. Es una herramienta de observación y acompañamiento.
         </p>
       </div>
