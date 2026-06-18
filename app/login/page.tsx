@@ -36,9 +36,9 @@ export default function LoginPage() {
       {/* Logo */}
       <div className="text-center mb-10">
         <div className="text-6xl mb-3">🐶</div>
-        <div className="text-3xl font-bold text-[#F0EEE8] tracking-tight">CHIQUI</div>
-        <div className="text-sm font-semibold text-[#E8A84C] tracking-widest uppercase mt-1">Entre Señales</div>
-        <div className="text-xs text-[#8A8FA8] mt-1 italic">Tu compañero de observación y cuidado.</div>
+        <div className="text-3xl font-bold text-[#3D2B1F] tracking-tight">CHIQUI</div>
+        <div className="text-sm font-semibold text-[#FFBD59] tracking-widest uppercase mt-1">Entre Señales</div>
+        <div className="text-xs text-[#8A7560] mt-1 italic">Tu compañero de observación y cuidado.</div>
       </div>
 
       {/* Formulario */}
@@ -51,7 +51,7 @@ export default function LoginPage() {
         )}
 
         <div>
-          <label className="block text-xs font-semibold text-[#8A8FA8] uppercase tracking-wider mb-2">
+          <label className="block text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2">
             Email
           </label>
           <input
@@ -60,12 +60,12 @@ export default function LoginPage() {
             onChange={e => setEmail(e.target.value)}
             placeholder="tu@email.com"
             required
-            className="w-full bg-[#232840] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60 transition-colors"
+            className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60 transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-[#8A8FA8] uppercase tracking-wider mb-2">
+          <label className="block text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2">
             Contraseña
           </label>
           <input
@@ -74,21 +74,21 @@ export default function LoginPage() {
             onChange={e => setPassword(e.target.value)}
             placeholder="••••••••"
             required
-            className="w-full bg-[#232840] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60 transition-colors"
+            className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60 transition-colors"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#E8A84C] text-[#1A1200] font-bold py-4 rounded-xl text-base transition-opacity disabled:opacity-50 mt-2"
+          className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base transition-opacity disabled:opacity-50 mt-2"
         >
           {loading ? 'Ingresando...' : 'Ingresar →'}
         </button>
 
       </form>
 
-      <p className="mt-6 text-sm text-[#8A8FA8]">
+      <p className="mt-6 text-sm text-[#8A7560]">
         ¿No tienes cuenta?{' '}
         <Link href="/registro" className="text-[#4AABDB] font-semibold">
           Regístrate gratis
@@ -96,7 +96,7 @@ export default function LoginPage() {
       </p>
 
       {/* Disclaimer */}
-      <p className="mt-10 text-xs text-[#8A8FA8]/60 text-center max-w-xs leading-relaxed">
+      <p className="mt-10 text-xs text-[#8A7560]/60 text-center max-w-xs leading-relaxed">
         CHIQUI no es una aplicación veterinaria. Es una herramienta de observación y acompañamiento para tutores.
       </p>
 

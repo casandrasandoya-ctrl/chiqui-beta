@@ -51,10 +51,10 @@ export default function RegistroPage() {
       <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
         <div className="text-5xl mb-4">🐶</div>
         <h1 className="text-2xl font-bold mb-3">¡Cuenta creada!</h1>
-        <p className="text-[#8A8FA8] text-sm leading-relaxed mb-8 max-w-xs">
+        <p className="text-[#8A7560] text-sm leading-relaxed mb-8 max-w-xs">
           Tu cuenta fue creada con éxito.
         </p>
-        <Link href="/login" className="bg-[#E8A84C] text-[#1A1200] font-bold px-8 py-4 rounded-xl text-sm">
+        <Link href="/login" className="bg-[#FFBD59] text-[#1A1200] font-bold px-8 py-4 rounded-xl text-sm">
           Ir al login →
         </Link>
       </div>
@@ -67,7 +67,7 @@ export default function RegistroPage() {
       <div className="text-center mb-10">
         <div className="text-5xl mb-3">🐶</div>
         <div className="text-2xl font-bold">Crear cuenta</div>
-        <div className="text-sm text-[#E8A84C] font-semibold tracking-widest uppercase mt-1">CHIQUI Entre Señales</div>
+        <div className="text-sm text-[#FFBD59] font-semibold tracking-widest uppercase mt-1">CHIQUI Entre Señales</div>
       </div>
 
       <form onSubmit={handleRegistro} className="w-full max-w-sm space-y-4">
@@ -79,52 +79,52 @@ export default function RegistroPage() {
         )}
 
         <div>
-          <label className="block text-xs font-semibold text-[#8A8FA8] uppercase tracking-wider mb-2">Tu nombre</label>
+          <label className="block text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2">Tu nombre</label>
           <input
             type="text"
             value={nombre}
             onChange={e => setNombre(e.target.value)}
             placeholder="¿Cómo te llamamos?"
             required
-            className="w-full bg-[#232840] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
+            className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-[#8A8FA8] uppercase tracking-wider mb-2">Email</label>
+          <label className="block text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2">Email</label>
           <input
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder="tu@email.com"
             required
-            className="w-full bg-[#232840] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
+            className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-[#8A8FA8] uppercase tracking-wider mb-2">Contraseña</label>
+          <label className="block text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2">Contraseña</label>
           <input
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="Mínimo 6 caracteres"
             required
-            className="w-full bg-[#232840] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
+            className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#E8A84C] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-50 mt-2"
+          className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-50 mt-2"
         >
           {loading ? 'Creando cuenta...' : 'Crear cuenta gratis →'}
         </button>
 
       </form>
 
-      <p className="mt-6 text-sm text-[#8A8FA8]">
+      <p className="mt-6 text-sm text-[#8A7560]">
         ¿Ya tienes cuenta?{' '}
         <Link href="/login" className="text-[#4AABDB] font-semibold">Inicia sesión</Link>
       </p>
