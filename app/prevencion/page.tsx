@@ -102,9 +102,6 @@ export default function PrevencionPage() {
     setModal(null); setForm({}); setSaving(false)
   }
 
-  // Guardar examen es distinto: primero sube el PDF a Storage, y solo si
-  // esa subida funciona, se crea la fila en la tabla examenes con la ruta.
-  // Si falla cualquiera de los dos pasos, no queda nada huérfano a medias.
   async function guardarExamen() {
     setErrorExamen('')
     if (!archivoExamen) { setErrorExamen('Selecciona un archivo PDF.'); return }
@@ -150,8 +147,6 @@ export default function PrevencionPage() {
     })
 
     if (insertError) {
-      // Si falla guardar el registro, eliminamos el archivo ya subido
-      // para no dejar un PDF huérfano ocupando espacio sin un registro asociado.
       await supabase.storage.from('examenes').remove([path])
       setErrorExamen('No se pudo guardar el examen. Intenta de nuevo.')
       setSaving(false)
@@ -162,8 +157,6 @@ export default function PrevencionPage() {
     setModal(null); setForm({}); setArchivoExamen(null); setSaving(false)
   }
 
-  // Genera una URL firmada temporal (válida 60 segundos) para ver/descargar
-  // el PDF. No se guarda la URL en ningún lado porque expira sola.
   async function abrirExamen(examenId: string, path: string) {
     setUrlEnProgreso(examenId)
     const { data, error } = await supabase.storage.from('examenes').createSignedUrl(path, 60)
@@ -180,10 +173,10 @@ export default function PrevencionPage() {
   }
 
   const u = (k: string, v: string) => setForm((p: any) => ({ ...p, [k]: v }))
-  const IC = "w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
-  const SC = "w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm focus:outline-none appearance-none"
+  const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
+  const SC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-[#8A8FA8]">Cargando...</div>
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-[#8A7560]">Cargando...</div>
 
   return (
     <div className="min-h-screen pb-24 fade-in">
@@ -192,7 +185,7 @@ export default function PrevencionPage() {
       <div className="px-5 pt-6 pb-3 flex items-center justify-between">
         <div>
           <h1 className="font-heading text-xl font-extrabold">Salud preventiva</h1>
-          <p className="text-xs text-[#8A8FA8]">{mascota?.nombre}</p>
+          <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
         </div>
         {tab !== 'peso' && (
           <button
@@ -200,7 +193,7 @@ export default function PrevencionPage() {
               const modalMap: Record<string, any> = { vacunas:'vacuna', anti:'anti', medicamentos:'medicamento', enfermedades:'enfermedad', obs:'obs', examenes:'examen' }
               setModal(modalMap[tab]); setForm({}); setArchivoExamen(null); setErrorExamen('')
             }}
-            className="bg-[#E8A84C] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl"
+            className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl"
           >
             + Agregar
           </button>
@@ -211,7 +204,7 @@ export default function PrevencionPage() {
       <div className="flex px-4 gap-2 mb-4 overflow-x-auto">
         {[['peso','⚖️ Peso'],['vacunas','💉 Vacunas'],['anti','💊 Antipar.'],['medicamentos','🩹 Medicamentos'],['enfermedades','🏥 Enfermedades'],['obs','👁️ Obs.'],['examenes','📄 Exámenes']].map(([t, l]) => (
           <button key={t} onClick={() => setTab(t as any)}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${tab === t ? 'bg-[#E8A84C] text-[#1A1200]' : 'bg-[#232840] text-[#8A8FA8]'}`}>
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${tab === t ? 'bg-[#FFBD59] text-[#1A1200]' : 'bg-[#FFFCF8] text-[#8A7560]'}`}>
             {l}
           </button>
         ))}
@@ -226,35 +219,35 @@ export default function PrevencionPage() {
       {tab === 'vacunas' && (
         <div className="mx-4 space-y-3">
           {vacunas.length === 0 && (
-            <div className="bg-[#232840] rounded-2xl border border-white/8 p-8 text-center">
+            <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">💉</div>
-              <p className="text-sm text-[#8A8FA8]">Sin vacunas registradas</p>
-              <button onClick={() => { setModal('vacuna'); setForm({}) }} className="mt-4 bg-[#E8A84C] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <p className="text-sm text-[#8A7560]">Sin vacunas registradas</p>
+              <button onClick={() => { setModal('vacuna'); setForm({}) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Agregar primera vacuna
               </button>
             </div>
           )}
           {vacunas.map(v => (
-            <div key={v.id} className="bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
+            <div key={v.id} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
               <div className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-[#4CAF7D]/15 flex items-center justify-center text-xl">💉</div>
                     <div>
                       <p className="font-bold text-sm">{v.nombre}</p>
-                      <p className="text-xs text-[#8A8FA8] mt-0.5">Aplicada: {fmt(v.fecha_aplicacion)}</p>
-                      {v.lote && <p className="text-xs text-[#8A8FA8]">Lote: {v.lote}</p>}
+                      <p className="text-xs text-[#8A7560] mt-0.5">Aplicada: {fmt(v.fecha_aplicacion)}</p>
+                      {v.lote && <p className="text-xs text-[#8A7560]">Lote: {v.lote}</p>}
                     </div>
                   </div>
                   {v.proxima_fecha && (
                     <div className="text-right">
-                      <p className="text-xs text-[#8A8FA8]">Próxima</p>
+                      <p className="text-xs text-[#8A7560]">Próxima</p>
                       <p className="text-xs font-bold" style={{ color: diasColor(v.proxima_fecha) }}>{dias(v.proxima_fecha)}</p>
-                      <p className="text-xs text-[#8A8FA8]">{fmt(v.proxima_fecha)}</p>
+                      <p className="text-xs text-[#8A7560]">{fmt(v.proxima_fecha)}</p>
                     </div>
                   )}
                 </div>
-                {v.nota && <p className="text-xs text-[#8A8FA8] mt-2 italic bg-[#1E2333] rounded-xl p-2">📝 {v.nota}</p>}
+                {v.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {v.nota}</p>}
               </div>
             </div>
           ))}
@@ -265,34 +258,34 @@ export default function PrevencionPage() {
       {tab === 'anti' && (
         <div className="mx-4 space-y-3">
           {antis.length === 0 && (
-            <div className="bg-[#232840] rounded-2xl border border-white/8 p-8 text-center">
+            <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">💊</div>
-              <p className="text-sm text-[#8A8FA8]">Sin antiparasitarios registrados</p>
-              <button onClick={() => { setModal('anti'); setForm({}) }} className="mt-4 bg-[#E8A84C] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <p className="text-sm text-[#8A7560]">Sin antiparasitarios registrados</p>
+              <button onClick={() => { setModal('anti'); setForm({}) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Agregar primero
               </button>
             </div>
           )}
           {antis.map(a => (
-            <div key={a.id} className="bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
+            <div key={a.id} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
               <div className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-[#F5C842]/15 flex items-center justify-center text-xl">💊</div>
                     <div>
                       <p className="font-bold text-sm">{a.nombre}</p>
-                      <p className="text-xs text-[#8A8FA8] mt-0.5">{a.tipo} · {a.forma}</p>
-                      <p className="text-xs text-[#8A8FA8]">Aplicado: {fmt(a.fecha_aplicacion)}</p>
+                      <p className="text-xs text-[#8A7560] mt-0.5">{a.tipo} · {a.forma}</p>
+                      <p className="text-xs text-[#8A7560]">Aplicado: {fmt(a.fecha_aplicacion)}</p>
                     </div>
                   </div>
                   {a.proxima_fecha && (
                     <div className="text-right">
-                      <p className="text-xs text-[#8A8FA8]">Próximo</p>
+                      <p className="text-xs text-[#8A7560]">Próximo</p>
                       <p className="text-xs font-bold" style={{ color: diasColor(a.proxima_fecha) }}>{dias(a.proxima_fecha)}</p>
                     </div>
                   )}
                 </div>
-                {a.nota && <p className="text-xs text-[#8A8FA8] mt-2 italic bg-[#1E2333] rounded-xl p-2">📝 {a.nota}</p>}
+                {a.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {a.nota}</p>}
               </div>
             </div>
           ))}
@@ -303,34 +296,34 @@ export default function PrevencionPage() {
       {tab === 'medicamentos' && (
         <div className="mx-4 space-y-3">
           {medicamentos.length === 0 && (
-            <div className="bg-[#232840] rounded-2xl border border-white/8 p-8 text-center">
+            <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">🩹</div>
-              <p className="text-sm text-[#8A8FA8]">Sin medicamentos registrados</p>
-              <button onClick={() => { setModal('medicamento'); setForm({}) }} className="mt-4 bg-[#E8A84C] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <p className="text-sm text-[#8A7560]">Sin medicamentos registrados</p>
+              <button onClick={() => { setModal('medicamento'); setForm({}) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Agregar medicamento
               </button>
             </div>
           )}
           {medicamentos.map(med => (
-            <div key={med.id} className="bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
+            <div key={med.id} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
               <div className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-[#4AABDB]/15 flex items-center justify-center text-xl">🩹</div>
                     <div>
                       <p className="font-bold text-sm">{med.nombre}</p>
-                      {med.dosis && <p className="text-xs text-[#8A8FA8] mt-0.5">{med.dosis}{med.frecuencia ? ` · ${med.frecuencia}` : ''}</p>}
-                      <p className="text-xs text-[#8A8FA8]">Desde: {fmt(med.fecha_inicio)}{med.fecha_fin ? ` hasta ${fmt(med.fecha_fin)}` : ''}</p>
+                      {med.dosis && <p className="text-xs text-[#8A7560] mt-0.5">{med.dosis}{med.frecuencia ? ` · ${med.frecuencia}` : ''}</p>}
+                      <p className="text-xs text-[#8A7560]">Desde: {fmt(med.fecha_inicio)}{med.fecha_fin ? ` hasta ${fmt(med.fecha_fin)}` : ''}</p>
                     </div>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-white/10 text-[#8A8FA8]'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
                     {med.estado === 'activo' ? 'Activo' : 'Finalizado'}
                   </span>
                 </div>
-                {med.motivo && <p className="text-xs text-[#8A8FA8] mt-2">Motivo: {med.motivo}</p>}
+                {med.motivo && <p className="text-xs text-[#8A7560] mt-2">Motivo: {med.motivo}</p>}
                 <div className="flex items-center gap-1.5 mt-2">
                   <span className="text-xs">{med.indicado_por_vet ? '🩺' : '💡'}</span>
-                  <span className="text-xs text-[#8A8FA8]">{med.indicado_por_vet ? 'Indicado por veterinario' : 'Sin indicación veterinaria'}</span>
+                  <span className="text-xs text-[#8A7560]">{med.indicado_por_vet ? 'Indicado por veterinario' : 'Sin indicación veterinaria'}</span>
                 </div>
                 {med.proximo_control && (
                   <div className="flex items-center gap-1.5 mt-2 bg-[#4AABDB]/10 rounded-lg px-2.5 py-1.5">
@@ -338,7 +331,7 @@ export default function PrevencionPage() {
                     <span className="text-xs text-[#4AABDB] font-semibold">Próximo control: {fmt(med.proximo_control)}</span>
                   </div>
                 )}
-                {med.nota && <p className="text-xs text-[#8A8FA8] mt-2 italic bg-[#1E2333] rounded-xl p-2">📝 {med.nota}</p>}
+                {med.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {med.nota}</p>}
               </div>
             </div>
           ))}
@@ -349,10 +342,10 @@ export default function PrevencionPage() {
       {tab === 'enfermedades' && (
         <div className="mx-4 space-y-3">
           {enfermedades.length === 0 && (
-            <div className="bg-[#232840] rounded-2xl border border-white/8 p-8 text-center">
+            <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">🏥</div>
-              <p className="text-sm text-[#8A8FA8]">Sin enfermedades registradas</p>
-              <button onClick={() => { setModal('enfermedad'); setForm({}) }} className="mt-4 bg-[#E8A84C] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <p className="text-sm text-[#8A7560]">Sin enfermedades registradas</p>
+              <button onClick={() => { setModal('enfermedad'); setForm({}) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Agregar diagnóstico
               </button>
             </div>
@@ -361,15 +354,15 @@ export default function PrevencionPage() {
             const estadoColor: Record<string,string> = { activa: '#F07A30', cronica: '#E05252', resuelta: '#4CAF7D' }
             const estadoLabel: Record<string,string> = { activa: 'Activa', cronica: 'Crónica', resuelta: 'Resuelta' }
             return (
-              <div key={enf.id} className="bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
+              <div key={enf.id} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
                 <div className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: `${estadoColor[enf.estado]}20` }}>🏥</div>
                       <div>
                         <p className="font-bold text-sm">{enf.diagnostico}</p>
-                        <p className="text-xs text-[#8A8FA8] mt-0.5">Diagnosticada: {fmt(enf.fecha_diagnostico)}</p>
-                        {enf.veterinario && <p className="text-xs text-[#8A8FA8]">Por: {enf.veterinario}</p>}
+                        <p className="text-xs text-[#8A7560] mt-0.5">Diagnosticada: {fmt(enf.fecha_diagnostico)}</p>
+                        {enf.veterinario && <p className="text-xs text-[#8A7560]">Por: {enf.veterinario}</p>}
                       </div>
                     </div>
                     <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: `${estadoColor[enf.estado]}20`, color: estadoColor[enf.estado] }}>
@@ -382,7 +375,7 @@ export default function PrevencionPage() {
                       <span className="text-xs text-[#E05252] font-semibold">Próxima revisión: {fmt(enf.proxima_revision)}</span>
                     </div>
                   )}
-                  {enf.nota && <p className="text-xs text-[#8A8FA8] mt-2 italic bg-[#1E2333] rounded-xl p-2">📝 {enf.nota}</p>}
+                  {enf.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {enf.nota}</p>}
                   {enf.fecha_resolucion && <p className="text-xs text-[#4CAF7D] mt-2">Resuelta: {fmt(enf.fecha_resolucion)}</p>}
                 </div>
               </div>
@@ -395,16 +388,16 @@ export default function PrevencionPage() {
       {tab === 'obs' && (
         <div className="mx-4 space-y-3">
           {obs.length === 0 && (
-            <div className="bg-[#232840] rounded-2xl border border-white/8 p-8 text-center">
+            <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">👁️</div>
-              <p className="text-sm text-[#8A8FA8]">Sin observaciones registradas</p>
-              <button onClick={() => { setModal('obs'); setForm({}) }} className="mt-4 bg-[#E8A84C] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <p className="text-sm text-[#8A7560]">Sin observaciones registradas</p>
+              <button onClick={() => { setModal('obs'); setForm({}) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Agregar observación
               </button>
             </div>
           )}
           {obs.map(o => (
-            <div key={o.id} className="bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
+            <div key={o.id} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
               <div className="p-4">
                 <div className="flex items-start gap-3">
                   <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${o.estado === 'activa' ? 'bg-[#F07A30]' : 'bg-[#4CAF7D]'}`}/>
@@ -415,8 +408,8 @@ export default function PrevencionPage() {
                         {o.estado === 'activa' ? 'Activa' : 'Resuelta'}
                       </span>
                     </div>
-                    {o.descripcion && <p className="text-xs text-[#8A8FA8] mt-1 leading-relaxed">{o.descripcion}</p>}
-                    <p className="text-xs text-[#8A8FA8] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
+                    {o.descripcion && <p className="text-xs text-[#8A7560] mt-1 leading-relaxed">{o.descripcion}</p>}
+                    <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
                   </div>
                 </div>
               </div>
@@ -429,11 +422,11 @@ export default function PrevencionPage() {
       {tab === 'examenes' && (
         <div className="mx-4 space-y-3">
           {examenes.length === 0 && (
-            <div className="bg-[#232840] rounded-2xl border border-white/8 p-8 text-center">
+            <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">📄</div>
-              <p className="text-sm text-[#8A8FA8]">Sin exámenes registrados</p>
-              <p className="text-xs text-[#8A8FA8]/70 mt-1">Sube hemogramas, perfiles bioquímicos y otros exámenes en PDF</p>
-              <button onClick={() => { setModal('examen'); setForm({}); setArchivoExamen(null); setErrorExamen('') }} className="mt-4 bg-[#E8A84C] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <p className="text-sm text-[#8A7560]">Sin exámenes registrados</p>
+              <p className="text-xs text-[#8A7560]/70 mt-1">Sube hemogramas, perfiles bioquímicos y otros exámenes en PDF</p>
+              <button onClick={() => { setModal('examen'); setForm({}); setArchivoExamen(null); setErrorExamen('') }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Subir primer examen
               </button>
             </div>
@@ -441,19 +434,19 @@ export default function PrevencionPage() {
           {examenes.map(ex => {
             const cat = CATEGORIAS_EXAMEN[ex.categoria] || CATEGORIAS_EXAMEN.otro
             return (
-              <div key={ex.id} className="bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
+              <div key={ex.id} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[#9B7FE8]/15 flex items-center justify-center text-xl flex-shrink-0">{cat.icon}</div>
                       <div>
                         <p className="font-bold text-sm">{ex.nombre || cat.label}</p>
-                        <p className="text-xs text-[#8A8FA8] mt-0.5">{cat.label} · {fmt(ex.fecha)}</p>
+                        <p className="text-xs text-[#8A7560] mt-0.5">{cat.label} · {fmt(ex.fecha)}</p>
                       </div>
                     </div>
-                    <button onClick={() => borrarExamen(ex.id, ex.archivo_path)} className="text-[#8A8FA8] text-sm px-1 flex-shrink-0">✕</button>
+                    <button onClick={() => borrarExamen(ex.id, ex.archivo_path)} className="text-[#8A7560] text-sm px-1 flex-shrink-0">✕</button>
                   </div>
-                  {ex.nota && <p className="text-xs text-[#8A8FA8] mt-2 italic bg-[#1E2333] rounded-xl p-2">📝 {ex.nota}</p>}
+                  {ex.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {ex.nota}</p>}
                   <button
                     onClick={() => abrirExamen(ex.id, ex.archivo_path)}
                     disabled={urlEnProgreso === ex.id}
@@ -471,134 +464,134 @@ export default function PrevencionPage() {
       {/* MODAL AGREGAR */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setModal(null)}>
-          <div className="w-full max-w-[480px] bg-[#232840] rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-bold text-base">
                 {modal === 'vacuna' ? '💉 Nueva vacuna' : modal === 'anti' ? '💊 Nuevo antiparasitario' : modal === 'medicamento' ? '🩹 Nuevo medicamento' : modal === 'enfermedad' ? '🏥 Nuevo diagnóstico' : modal === 'examen' ? '📄 Nuevo examen' : '👁️ Nueva observación'}
               </h2>
-              <button onClick={() => setModal(null)} className="text-[#8A8FA8] text-xl">✕</button>
+              <button onClick={() => setModal(null)} className="text-[#8A7560] text-xl">✕</button>
             </div>
 
             {modal === 'vacuna' && <>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nombre de la vacuna *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nombre de la vacuna *</label>
                 <input className={IC} placeholder="ej. Séxtuple, Antirrábica..." value={form.nombre || ''} onChange={e => u('nombre', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha de aplicación *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de aplicación *</label>
                 <input type="date" className={IC} value={form.fecha_aplicacion || ''} onChange={e => u('fecha_aplicacion', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Próxima vacunación</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próxima vacunación</label>
                 <input type="date" className={IC} value={form.proxima_fecha || ''} onChange={e => u('proxima_fecha', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Lote / Serie</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Lote / Serie</label>
                 <input className={IC} placeholder="ej. A16301" value={form.lote || ''} onChange={e => u('lote', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nota</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nota</label>
                 <input className={IC} placeholder="Observación opcional" value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
             </>}
 
             {modal === 'anti' && <>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nombre del producto *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nombre del producto *</label>
                 <input className={IC} placeholder="ej. Bravecto, Simparica..." value={form.nombre || ''} onChange={e => u('nombre', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Tipo *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Tipo *</label>
                 <select className={SC} value={form.tipo || ''} onChange={e => u('tipo', e.target.value)}>
                   <option value="">Seleccionar...</option>
                   <option>interno</option><option>externo</option><option>ambos</option>
                 </select></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Forma</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Forma</label>
                 <select className={SC} value={form.forma || ''} onChange={e => u('forma', e.target.value)}>
                   <option value="">Seleccionar...</option>
                   <option>pastilla</option><option>liquido</option><option>collar</option><option>otro</option>
                 </select></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha de aplicación *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de aplicación *</label>
                 <input type="date" className={IC} value={form.fecha_aplicacion || ''} onChange={e => u('fecha_aplicacion', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Próxima dosis</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próxima dosis</label>
                 <input type="date" className={IC} value={form.proxima_fecha || ''} onChange={e => u('proxima_fecha', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nota</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nota</label>
                 <input className={IC} placeholder="Observación opcional" value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
             </>}
 
             {modal === 'medicamento' && <>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nombre del medicamento *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nombre del medicamento *</label>
                 <input className={IC} placeholder="ej. Amoxicilina" value={form.nombre || ''} onChange={e => u('nombre', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Dosis</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Dosis</label>
                 <input className={IC} placeholder="ej. 250mg, media pastilla" value={form.dosis || ''} onChange={e => u('dosis', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Frecuencia</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Frecuencia</label>
                 <input className={IC} placeholder="ej. cada 12 horas, 1 vez al día" value={form.frecuencia || ''} onChange={e => u('frecuencia', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Motivo</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Motivo</label>
                 <input className={IC} placeholder="ej. Infección de oído" value={form.motivo || ''} onChange={e => u('motivo', e.target.value)}/></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha de inicio *</label>
+                <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de inicio *</label>
                   <input type="date" className={IC} value={form.fecha_inicio || ''} onChange={e => u('fecha_inicio', e.target.value)}/></div>
-                <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha de término</label>
+                <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de término</label>
                   <input type="date" className={IC} value={form.fecha_fin || ''} onChange={e => u('fecha_fin', e.target.value)}/></div>
               </div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Próximo control</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próximo control</label>
                 <input type="date" className={IC} value={form.proximo_control || ''} onChange={e => u('proximo_control', e.target.value)}/></div>
               <button type="button" onClick={() => u('indicado_por_vet', form.indicado_por_vet ? '' : 'true')}
-                className="w-full flex items-center gap-3 bg-[#1E2333] rounded-xl px-4 py-3 border border-white/10">
-                <div className="w-5 h-5 rounded-md flex items-center justify-center text-xs flex-shrink-0" style={{ background: form.indicado_por_vet ? '#4AABDB' : 'transparent', border: form.indicado_por_vet ? 'none' : '1.5px solid #8A8FA8' }}>
+                className="w-full flex items-center gap-3 bg-[#FBEAD9] rounded-xl px-4 py-3 border border-[#EEE2D4]">
+                <div className="w-5 h-5 rounded-md flex items-center justify-center text-xs flex-shrink-0" style={{ background: form.indicado_por_vet ? '#4AABDB' : 'transparent', border: form.indicado_por_vet ? 'none' : '1.5px solid #8A7560' }}>
                   {form.indicado_por_vet ? '✓' : ''}
                 </div>
                 <span className="text-sm">Indicado por veterinario</span>
               </button>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nota</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nota</label>
                 <input className={IC} placeholder="Observación opcional" value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
             </>}
 
             {modal === 'enfermedad' && <>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Diagnóstico *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Diagnóstico *</label>
                 <input className={IC} placeholder="ej. Displasia de cadera, Gastritis" value={form.diagnostico || ''} onChange={e => u('diagnostico', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha de diagnóstico *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de diagnóstico *</label>
                 <input type="date" className={IC} value={form.fecha_diagnostico || ''} onChange={e => u('fecha_diagnostico', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Estado *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Estado *</label>
                 <select className={SC} value={form.estado || ''} onChange={e => u('estado', e.target.value)}>
                   <option value="">Seleccionar...</option>
                   <option value="activa">Activa</option>
                   <option value="cronica">Crónica</option>
                   <option value="resuelta">Resuelta</option>
                 </select></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Veterinario tratante</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Veterinario tratante</label>
                 <input className={IC} placeholder="ej. Dr. González, Clínica X" value={form.veterinario || ''} onChange={e => u('veterinario', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Próxima revisión</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próxima revisión</label>
                 <input type="date" className={IC} value={form.proxima_revision || ''} onChange={e => u('proxima_revision', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Notas</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Notas</label>
                 <textarea className={IC} rows={3} placeholder="Detalles del diagnóstico, tratamiento indicado..." value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
             </>}
 
             {modal === 'obs' && <>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Título *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Título *</label>
                 <input className={IC} placeholder="ej. Grano en oreja derecha" value={form.titulo || ''} onChange={e => u('titulo', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Tipo</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Tipo</label>
                 <select className={SC} value={form.tipo || ''} onChange={e => u('tipo', e.target.value)}>
                   <option value="">Seleccionar...</option>
                   <option>alergia</option><option>enfermedad</option><option>lesion</option><option>comportamiento</option><option>otro</option>
                 </select></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Descripción</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Descripción</label>
                 <textarea className={IC} rows={3} placeholder="Describe lo observado..." value={form.descripcion || ''} onChange={e => u('descripcion', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha de inicio</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de inicio</label>
                 <input type="date" className={IC} value={form.fecha_inicio || ''} onChange={e => u('fecha_inicio', e.target.value)}/></div>
             </>}
 
             {modal === 'examen' && <>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Categoría *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Categoría *</label>
                 <select className={SC} value={form.categoria || ''} onChange={e => u('categoria', e.target.value)}>
                   <option value="">Seleccionar...</option>
                   {Object.entries(CATEGORIAS_EXAMEN).map(([key, c]) => (
                     <option key={key} value={key}>{c.icon} {c.label}</option>
                   ))}
                 </select></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nombre del examen</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nombre del examen</label>
                 <input className={IC} placeholder="ej. Control anual, Chequeo pre-cirugía" value={form.nombre || ''} onChange={e => u('nombre', e.target.value)}/></div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha del examen *</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha del examen *</label>
                 <input type="date" className={IC} value={form.fecha || ''} onChange={e => u('fecha', e.target.value)}/></div>
               <div>
-                <label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Archivo PDF *</label>
+                <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Archivo PDF *</label>
                 <input
                   type="file"
                   accept="application/pdf"
                   onChange={e => setArchivoExamen(e.target.files?.[0] || null)}
-                  className="w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#E8A84C] file:text-[#1A1200] file:text-xs file:font-bold"
+                  className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#FFBD59] file:text-[#1A1200] file:text-xs file:font-bold"
                 />
-                <p className="text-[11px] text-[#8A8FA8] mt-1.5">Máximo 8MB, solo PDF.</p>
+                <p className="text-[11px] text-[#8A7560] mt-1.5">Máximo 8MB, solo PDF.</p>
                 {archivoExamen && <p className="text-xs text-[#4CAF7D] mt-1">✓ {archivoExamen.name} ({(archivoExamen.size / 1024 / 1024).toFixed(1)}MB)</p>}
               </div>
-              <div><label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Nota / resultado</label>
+              <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nota / resultado</label>
                 <textarea className={IC} rows={3} placeholder="ej. Todo normal, colesterol levemente alto..." value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
               {errorExamen && <p className="text-xs text-[#E05252] bg-[#E05252]/10 rounded-xl p-3">{errorExamen}</p>}
             </>}
@@ -606,7 +599,7 @@ export default function PrevencionPage() {
             <button
               onClick={modal === 'examen' ? guardarExamen : guardar}
               disabled={saving || (modal !== 'examen' && (!form.nombre && !form.titulo && !form.diagnostico))}
-              className="w-full bg-[#E8A84C] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
+              className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
           </div>

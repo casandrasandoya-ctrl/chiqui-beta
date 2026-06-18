@@ -97,7 +97,7 @@ export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: stri
     : ''
 
   return (
-    <div className="mx-4 mb-4 bg-[#232840] rounded-2xl border border-white/[0.07] overflow-hidden">
+    <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
       <div className="px-4 py-3.5 flex items-center justify-between">
         <div>
           <p className="font-heading text-sm font-bold">Peso</p>
@@ -105,7 +105,7 @@ export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: stri
             <span className="font-heading text-[22px] font-extrabold text-[#F07A30]">
               {ultimo ? ultimo.peso : pesoActual || '—'}
             </span>
-            <span className="text-[13px] text-[#8A8FA8]">kg</span>
+            <span className="text-[13px] text-[#8A7560]">kg</span>
             {cambio !== null && cambio !== 0 && (
               <span className={`text-[11px] ml-1 ${cambio > 0 ? 'text-[#E05252]' : 'text-[#4CAF7D]'}`}>
                 {cambio > 0 ? '+' : ''}{cambio} kg
@@ -113,7 +113,7 @@ export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: stri
             )}
           </div>
         </div>
-        <button onClick={() => setModal(true)} className="bg-[#E8A84C] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl">
+        <button onClick={() => setModal(true)} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl">
           + Registrar
         </button>
       </div>
@@ -123,17 +123,17 @@ export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: stri
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 70, overflow: 'visible' }} preserveAspectRatio="none">
             <path d={pathD} fill="none" stroke="#F07A30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             {puntos.map((p, i) => (
-              <circle key={i} cx={p.x} cy={p.y} r={i === puntos.length - 1 ? 4 : 3} fill="#F07A30" stroke={i === puntos.length - 1 ? '#1E2333' : 'none'} strokeWidth={i === puntos.length - 1 ? 2 : 0} />
+              <circle key={i} cx={p.x} cy={p.y} r={i === puntos.length - 1 ? 4 : 3} fill="#F07A30" stroke={i === puntos.length - 1 ? '#FBEAD9' : 'none'} strokeWidth={i === puntos.length - 1 ? 2 : 0} />
             ))}
           </svg>
           <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-[#8A8FA8]">{fmtCorta(historial[0].fecha)}</span>
-            <span className="text-[10px] text-[#8A8FA8]">{fmtCorta(historial[historial.length - 1].fecha)}</span>
+            <span className="text-[10px] text-[#8A7560]">{fmtCorta(historial[0].fecha)}</span>
+            <span className="text-[10px] text-[#8A7560]">{fmtCorta(historial[historial.length - 1].fecha)}</span>
           </div>
         </div>
       ) : (
         <div className="px-4 pb-4">
-          <p className="text-xs text-[#8A8FA8]">
+          <p className="text-xs text-[#8A7560]">
             {historial.length === 1 ? 'Registra un segundo peso para ver la tendencia.' : 'Registra el peso para empezar a ver su evolución.'}
           </p>
         </div>
@@ -141,32 +141,32 @@ export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: stri
 
       {modal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setModal(false)}>
-          <div className="w-full max-w-[420px] bg-[#232840] rounded-t-2xl p-5 space-y-4" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="font-heading font-bold text-base">⚖️ Registrar peso</h2>
-              <button onClick={() => setModal(false)} className="text-[#8A8FA8] text-xl">✕</button>
+              <button onClick={() => setModal(false)} className="text-[#8A7560] text-xl">✕</button>
             </div>
             <div>
-              <label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Peso (kg)</label>
+              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Peso (kg)</label>
               <input
                 type="number" step="0.1" autoFocus
-                className="w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm placeholder-[#8A8FA8] focus:outline-none focus:border-[#E8A84C]/60"
+                className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
                 placeholder="ej. 16.2"
                 value={nuevoPeso}
                 onChange={e => setNuevoPeso(e.target.value)}
               />
             </div>
             <div>
-              <label className="text-xs text-[#8A8FA8] uppercase tracking-wider mb-1.5 block">Fecha</label>
+              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha</label>
               <input
                 type="date"
-                className="w-full bg-[#1E2333] border border-white/10 rounded-xl px-4 py-3 text-[#F0EEE8] text-sm focus:outline-none"
+                className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none"
                 value={nuevaFecha}
                 onChange={e => setNuevaFecha(e.target.value)}
               />
             </div>
             <button onClick={guardar} disabled={saving || !nuevoPeso}
-              className="w-full bg-[#E8A84C] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
+              className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
               {saving ? 'Guardando...' : 'Guardar peso'}
             </button>
           </div>
