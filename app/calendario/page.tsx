@@ -89,25 +89,25 @@ export default function CalendarioPage() {
   const fechaKey = (d: number) => `${año}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
   const regDia = diaSeleccionado ? registros[fechaKey(diaSeleccionado)] : null
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-[#8A8FA8]">Cargando...</div>
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-[#8A7560]">Cargando...</div>
 
   return (
     <div className="min-h-screen pb-24 fade-in">
 
       {/* Header mes */}
-      <div className="px-5 pt-6 pb-3 flex items-center justify-between sticky top-0 bg-[#0F1117] z-10 border-b border-white/5">
-        <button onClick={() => cambiarMes(-1)} className="w-9 h-9 rounded-full bg-[#232840] flex items-center justify-center text-lg">‹</button>
+      <div className="px-5 pt-6 pb-3 flex items-center justify-between sticky top-0 bg-[#F5EDE3] z-10 border-b border-[#EEE2D4]">
+        <button onClick={() => cambiarMes(-1)} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg">‹</button>
         <div className="text-center">
           <h1 className="font-heading text-base font-extrabold">{MESES[mes]} {año}</h1>
-          <p className="text-xs text-[#8A8FA8]">{mascota?.nombre}</p>
+          <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
         </div>
-        <button onClick={() => cambiarMes(1)} className="w-9 h-9 rounded-full bg-[#232840] flex items-center justify-center text-lg">›</button>
+        <button onClick={() => cambiarMes(1)} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg">›</button>
       </div>
 
       {/* Leyenda */}
       <div className="flex gap-4 px-5 py-2 overflow-x-auto scrollbar-none">
         {[['verde','Todo bien'],['amarillo','Leve'],['naranjo','Síntoma'],['rojo','Alerta']].map(([e,l]) => (
-          <div key={e} className="flex items-center gap-1.5 text-xs text-[#8A8FA8] whitespace-nowrap">
+          <div key={e} className="flex items-center gap-1.5 text-xs text-[#8A7560] whitespace-nowrap">
             <div className="w-2.5 h-2.5 rounded-full" style={{ background: ESTADO_COLOR[e] }}/>
             {l}
           </div>
@@ -117,7 +117,7 @@ export default function CalendarioPage() {
       {/* Días semana */}
       <div className="grid grid-cols-7 px-3 pb-1">
         {DIAS_SEMANA.map((d, i) => (
-          <div key={i} className="text-center text-xs font-bold text-[#8A8FA8] py-1">{d}</div>
+          <div key={i} className="text-center text-xs font-bold text-[#8A7560] py-1">{d}</div>
         ))}
       </div>
 
@@ -138,15 +138,15 @@ export default function CalendarioPage() {
               disabled={esFuturo}
               className="aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all relative"
               style={{
-                background: seleccionado ? 'rgba(255,255,255,0.15)' : reg ? ESTADO_BG[reg.estado_dia] : 'rgba(255,255,255,0.04)',
-                border: esHoy(d) ? '1.5px solid #E8A84C' : seleccionado ? '1.5px solid white' : '1px solid transparent',
+                background: seleccionado ? 'rgba(140,87,47,0.15)' : reg ? ESTADO_BG[reg.estado_dia] : 'rgba(140,87,47,0.05)',
+                border: esHoy(d) ? '1.5px solid #FFBD59' : seleccionado ? '1.5px solid #8C572F' : '1px solid transparent',
                 opacity: esFuturo ? 0.25 : 1,
               }}
             >
-              <span className="text-sm font-bold leading-none" style={{ color: reg ? ESTADO_COLOR[reg.estado_dia] : esHoy(d) ? '#E8A84C' : '#8A8FA8' }}>
+              <span className="text-sm font-bold leading-none" style={{ color: reg ? ESTADO_COLOR[reg.estado_dia] : esHoy(d) ? '#FFBD59' : '#8A7560' }}>
                 {d}
               </span>
-              {reg?.nota && <div className="w-1 h-1 rounded-full bg-[#E8A84C]"/>}
+              {reg?.nota && <div className="w-1 h-1 rounded-full bg-[#FFBD59]"/>}
             </button>
           )
         })}
@@ -154,8 +154,8 @@ export default function CalendarioPage() {
 
       {/* Panel día seleccionado */}
       {diaSeleccionado && (
-        <div className="mx-4 mt-4 bg-[#232840] rounded-2xl border border-white/8 overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+        <div className="mx-4 mt-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#EEE2D4] flex items-center justify-between">
             <div>
               <p className="text-sm font-bold">{diaSeleccionado} de {MESES[mes]}</p>
               <div className="flex items-center gap-2 mt-1">
@@ -173,7 +173,7 @@ export default function CalendarioPage() {
                 )}
               </div>
             </div>
-            <button onClick={() => setDiaSeleccionado(null)} className="text-[#8A8FA8] text-lg w-7 h-7 flex items-center justify-center">✕</button>
+            <button onClick={() => setDiaSeleccionado(null)} className="text-[#8A7560] text-lg w-7 h-7 flex items-center justify-center">✕</button>
           </div>
 
           {regDia ? (
@@ -189,23 +189,23 @@ export default function CalendarioPage() {
                   ['🧠','Conducta',regDia.conducta],
                   ['🦴','Movilidad',regDia.movilidad],
                 ].map(([icon, label, val]) => val && (
-                  <div key={label as string} className="bg-[#1E2333] rounded-xl p-2 text-center">
+                  <div key={label as string} className="bg-[#FBEAD9] rounded-xl p-2 text-center">
                     <div className="text-lg">{icon}</div>
-                    <div className="text-[9px] text-[#8A8FA8] mt-0.5">{label}</div>
-                    <div className="text-[10px] text-[#F0EEE8] font-semibold mt-0.5 leading-tight">{(val as string).replace(/_/g,' ')}</div>
+                    <div className="text-[9px] text-[#8A7560] mt-0.5">{label}</div>
+                    <div className="text-[10px] text-[#3D2B1F] font-semibold mt-0.5 leading-tight">{(val as string).replace(/_/g,' ')}</div>
                   </div>
                 ))}
               </div>
               {regDia.nota && (
-                <div className="bg-[#1E2333] rounded-xl p-3 text-xs text-[#8A8FA8] italic">
+                <div className="bg-[#FBEAD9] rounded-xl p-3 text-xs text-[#8A7560] italic">
                   📝 {regDia.nota}
                 </div>
               )}
             </div>
           ) : (
             <div className="p-6 text-center">
-              <p className="text-sm text-[#8A8FA8] mb-3">Sin registro para este día</p>
-              <Link href={`/registro-diario?fecha=${fechaKey(diaSeleccionado)}`} className="bg-[#E8A84C] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm inline-block">
+              <p className="text-sm text-[#8A7560] mb-3">Sin registro para este día</p>
+              <Link href={`/registro-diario?fecha=${fechaKey(diaSeleccionado)}`} className="bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm inline-block">
                 Registrar este día →
               </Link>
             </div>
@@ -220,9 +220,9 @@ export default function CalendarioPage() {
           { label: 'Días verdes', val: Object.values(registros).filter((r: any) => r.estado_dia === 'verde').length, color: '#4CAF7D' },
           { label: 'Con síntoma', val: Object.values(registros).filter((r: any) => ['naranjo','rojo'].includes(r.estado_dia)).length, color: '#F07A30' },
         ].map(item => (
-          <div key={item.label} className="bg-[#232840] rounded-2xl border border-white/8 p-3 text-center">
+          <div key={item.label} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
             <div className="text-xl font-bold" style={{ color: item.color }}>{item.val}</div>
-            <div className="text-[10px] text-[#8A8FA8] mt-0.5 uppercase tracking-wider">{item.label}</div>
+            <div className="text-[10px] text-[#8A7560] mt-0.5 uppercase tracking-wider">{item.label}</div>
           </div>
         ))}
       </div>
