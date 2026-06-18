@@ -114,6 +114,7 @@ export default function PerfilPage() {
     <div className="min-h-screen pb-24 fade-in">
 
       <div className="relative bg-gradient-to-b from-[#8C572F] to-[#F5EDE3] pt-8 pb-6 text-center">
+        <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-9 h-9 object-contain absolute top-3 right-4 opacity-90" />
         <div className="w-20 h-20 rounded-full bg-[#FFFCF8] border-2 border-[#4CAF7D] flex items-center justify-center text-4xl mx-auto mb-3">
           🐶
         </div>

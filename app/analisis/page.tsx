@@ -76,9 +76,12 @@ export default function AnalisisPage() {
   return (
     <div className="min-h-screen pb-24 fade-in">
 
-      <div className="px-5 pt-6 pb-3">
-        <h1 className="font-heading text-xl font-extrabold">Análisis</h1>
-        <p className="text-xs text-[#8A7560]">{mascota?.nombre} · últimos 30 días</p>
+      <div className="px-5 pt-6 pb-3 flex items-center gap-2.5">
+        <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
+        <div>
+          <h1 className="font-heading text-xl font-extrabold">Análisis</h1>
+          <p className="text-xs text-[#8A7560]">{mascota?.nombre} · últimos 30 días</p>
+        </div>
       </div>
 
       {/* Insights Chiqui */}

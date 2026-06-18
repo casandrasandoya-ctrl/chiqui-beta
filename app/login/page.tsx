@@ -35,10 +35,7 @@ export default function LoginPage() {
 
       {/* Logo */}
       <div className="text-center mb-10">
-        <div className="text-6xl mb-3">🐶</div>
-        <div className="text-3xl font-bold text-[#3D2B1F] tracking-tight">CHIQUI</div>
-        <div className="text-sm font-semibold text-[#FFBD59] tracking-widest uppercase mt-1">Entre Señales</div>
-        <div className="text-xs text-[#8A7560] mt-1 italic">Tu compañero de observación y cuidado.</div>
+        <img src="/logo-chiqui-completo.png" alt="CHIQUI Entre Señales" className="w-48 h-48 mx-auto" />
       </div>
 
       {/* Formulario */}

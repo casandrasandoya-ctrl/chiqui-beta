@@ -83,8 +83,8 @@ export default async function Dashboard() {
           <span className="text-xs text-[#8A7560] tracking-wide capitalize">{dias[today.getDay()]}, {today.getDate()} {meses[today.getMonth()]} {today.getFullYear()}</span>
           <span className="font-heading text-xl font-extrabold text-[#3D2B1F]">Hola 👋</span>
         </div>
-        <div className="w-10 h-10 rounded-full bg-[#FFFCF8] border-2 border-[#FFBD59] flex items-center justify-center text-lg">
-          🐾
+        <div className="w-10 h-10 rounded-full bg-[#FFFCF8] border-2 border-[#FFBD59] flex items-center justify-center overflow-hidden">
+          <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
         </div>
       </div>
 

@@ -183,9 +183,12 @@ export default function PrevencionPage() {
 
       {/* Header */}
       <div className="px-5 pt-6 pb-3 flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-xl font-extrabold">Salud preventiva</h1>
-          <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
+        <div className="flex items-center gap-2.5">
+          <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
+          <div>
+            <h1 className="font-heading text-xl font-extrabold">Salud preventiva</h1>
+            <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
+          </div>
         </div>
         {tab !== 'peso' && (
           <button

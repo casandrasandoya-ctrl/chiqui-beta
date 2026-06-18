@@ -49,7 +49,7 @@ export default function RegistroPage() {
   if (success) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
-        <div className="text-5xl mb-4">🐶</div>
+        <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-20 h-20 mb-2" />
         <h1 className="text-2xl font-bold mb-3">¡Cuenta creada!</h1>
         <p className="text-[#8A7560] text-sm leading-relaxed mb-8 max-w-xs">
           Tu cuenta fue creada con éxito.
@@ -65,7 +65,7 @@ export default function RegistroPage() {
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
 
       <div className="text-center mb-10">
-        <div className="text-5xl mb-3">🐶</div>
+        <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-24 h-24 mx-auto mb-2" />
         <div className="text-2xl font-bold">Crear cuenta</div>
         <div className="text-sm text-[#FFBD59] font-semibold tracking-widest uppercase mt-1">CHIQUI Entre Señales</div>
       </div>

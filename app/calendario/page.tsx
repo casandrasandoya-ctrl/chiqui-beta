@@ -97,9 +97,12 @@ export default function CalendarioPage() {
       {/* Header mes */}
       <div className="px-5 pt-6 pb-3 flex items-center justify-between sticky top-0 bg-[#F5EDE3] z-10 border-b border-[#EEE2D4]">
         <button onClick={() => cambiarMes(-1)} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg">‹</button>
-        <div className="text-center">
-          <h1 className="font-heading text-base font-extrabold">{MESES[mes]} {año}</h1>
-          <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
+        <div className="text-center flex items-center gap-2">
+          <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-7 h-7 object-contain" />
+          <div>
+            <h1 className="font-heading text-base font-extrabold">{MESES[mes]} {año}</h1>
+            <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
+          </div>
         </div>
         <button onClick={() => cambiarMes(1)} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg">›</button>
       </div>
