@@ -77,15 +77,17 @@ export default async function Dashboard() {
   return (
     <div className="min-h-screen pb-24 fade-in bg-[#F5EDE3] text-[#3D2B1F]">
 
-      {/* TOP BAR */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-3">
-        <div className="flex flex-col">
-          <span className="text-xs text-[#8A7560] tracking-wide capitalize">{dias[today.getDay()]}, {today.getDate()} {meses[today.getMonth()]} {today.getFullYear()}</span>
-          <span className="font-heading text-xl font-extrabold text-[#3D2B1F]">Hola 👋</span>
+      {/* TOP BAR - Marca */}
+      <div className="flex items-center justify-between px-5 pt-5 pb-1">
+        <div className="flex items-center gap-2">
+          <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-16 h-16 object-contain" />
+          <span className="font-heading text-2xl font-extrabold text-[#8C572F]">Entre Señales</span>
         </div>
-        <div className="w-10 h-10 rounded-full bg-[#FFFCF8] border-2 border-[#FFBD59] flex items-center justify-center overflow-hidden">
-          <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
-        </div>
+      </div>
+
+      {/* Fecha */}
+      <div className="px-5 pb-3">
+        <span className="text-xs text-[#8A7560] tracking-wide capitalize">{dias[today.getDay()]}, {today.getDate()} {meses[today.getMonth()]} {today.getFullYear()}</span>
       </div>
 
       {/* Saludo / banner superior */}
