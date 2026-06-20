@@ -63,7 +63,7 @@ export default function PrevencionPage() {
   const [modal, setModal] = useState<'vacuna' | 'anti' | 'obs' | 'medicamento' | 'enfermedad' | 'examen' | null>(null)
   const [form, setForm] = useState<any>({})
   const [editandoId, setEditandoId] = useState<string | null>(null)
-  const [menuAbierto, setMenuAbierto] = useState<string | null>(null)
+  const [menuAbierto, setMenuAbierto] = useState<{ tipo: 'vacuna' | 'anti'; id: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const [archivoExamen, setArchivoExamen] = useState<File | null>(null)
   const [errorExamen, setErrorExamen] = useState('')
@@ -364,18 +364,7 @@ export default function PrevencionPage() {
                         <p className="text-xs text-[#8A7560]">{fmt(v.proxima_fecha)}</p>
                       </div>
                     )}
-                    <div className="relative">
-                      <button onClick={() => setMenuAbierto(menuAbierto === v.id ? null : v.id)} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
-                      {menuAbierto === v.id && (
-                        <>
-                          <div className="fixed inset-0 z-30" onClick={() => setMenuAbierto(null)} />
-                          <div className="absolute right-0 top-7 z-40 w-32 bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl overflow-hidden shadow-md">
-                            <button onClick={() => editarVacuna(v)} className="w-full px-3 py-2 text-left text-xs font-medium text-[#3D2B1F] hover:bg-[#FBEAD9]">✏️ Editar</button>
-                            <button onClick={() => eliminarVacuna(v.id)} className="w-full px-3 py-2 text-left text-xs font-medium text-[#E05252] hover:bg-[#FBEAD9]">🗑️ Eliminar</button>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    <button onClick={() => setMenuAbierto({ tipo: 'vacuna', id: v.id })} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
                   </div>
                 </div>
                 {v.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {v.nota}</p>}
@@ -420,18 +409,7 @@ export default function PrevencionPage() {
                         <p className="text-xs font-bold" style={{ color: diasColor(a.proxima_fecha) }}>{dias(a.proxima_fecha)}</p>
                       </div>
                     )}
-                    <div className="relative">
-                      <button onClick={() => setMenuAbierto(menuAbierto === a.id ? null : a.id)} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
-                      {menuAbierto === a.id && (
-                        <>
-                          <div className="fixed inset-0 z-30" onClick={() => setMenuAbierto(null)} />
-                          <div className="absolute right-0 top-7 z-40 w-32 bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl overflow-hidden shadow-md">
-                            <button onClick={() => editarAnti(a)} className="w-full px-3 py-2 text-left text-xs font-medium text-[#3D2B1F] hover:bg-[#FBEAD9]">✏️ Editar</button>
-                            <button onClick={() => eliminarAnti(a.id)} className="w-full px-3 py-2 text-left text-xs font-medium text-[#E05252] hover:bg-[#FBEAD9]">🗑️ Eliminar</button>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    <button onClick={() => setMenuAbierto({ tipo: 'anti', id: a.id })} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
                   </div>
                 </div>
                 {a.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {a.nota}</p>}
@@ -629,6 +607,40 @@ export default function PrevencionPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* MODAL DE ACCIONES (editar/eliminar) — siempre centrado abajo,
+          nunca se corta por la posicion de la tarjeta en la pantalla */}
+      {menuAbierto && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setMenuAbierto(null)}>
+          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-2 pb-5" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-[#EEE2D4] rounded-full mx-auto mb-3 mt-1" />
+            <button
+              onClick={() => {
+                if (menuAbierto.tipo === 'vacuna') {
+                  const v = vacunas.find((x: any) => x.id === menuAbierto.id)
+                  if (v) editarVacuna(v)
+                } else {
+                  const a = antis.find((x: any) => x.id === menuAbierto.id)
+                  if (a) editarAnti(a)
+                }
+              }}
+              className="w-full px-4 py-3.5 text-left text-sm font-medium text-[#3D2B1F] flex items-center gap-3"
+            >
+              <span className="text-lg">✏️</span> Editar
+            </button>
+            <div className="h-px bg-[#EEE2D4] mx-4" />
+            <button
+              onClick={() => {
+                if (menuAbierto.tipo === 'vacuna') eliminarVacuna(menuAbierto.id)
+                else eliminarAnti(menuAbierto.id)
+              }}
+              className="w-full px-4 py-3.5 text-left text-sm font-medium text-[#E05252] flex items-center gap-3"
+            >
+              <span className="text-lg">🗑️</span> Eliminar
+            </button>
+          </div>
         </div>
       )}
 
