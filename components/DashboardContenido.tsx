@@ -96,7 +96,7 @@ export default function DashboardContenido({
       </div>
 
       {/* HERO */}
-      <div className="relative mx-4 mb-4 bg-[#8C572F] rounded-2xl p-5 overflow-hidden">
+      <Link href="/perfil" className="relative mx-4 mb-4 bg-[#8C572F] rounded-2xl p-5 overflow-hidden block">
         <div className="flex items-start gap-3.5">
           {m.foto_url ? (
             <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[#FFFCF8]/40 flex-shrink-0">
@@ -117,6 +117,7 @@ export default function DashboardContenido({
               {estadoLabel}
             </div>
           </div>
+          <span className="text-[#FFFCF8]/50 text-xl pt-1">›</span>
         </div>
 
         <div className="grid grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-[#FFFCF8]/15">
@@ -133,7 +134,7 @@ export default function DashboardContenido({
             <div className="text-[10px] text-[#D9B596] mt-0.5">Estado</div>
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* MENSAJE / ESTADO DEL DÍA */}
       <div className="mx-4 mb-3 bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5">
