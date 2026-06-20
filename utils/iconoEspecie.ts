@@ -4,8 +4,8 @@
 // siempre el mismo perrito sin importar si es un gato, conejo, o ave.
 
 export const ICONO_ESPECIE: Record<string, string> = {
-  Perro: '🐕',
-  Gato: '🐈',
+  Perro: '🐶',
+  Gato: '🐱',
   Conejo: '🐇',
   Ave: '🐦',
 }
