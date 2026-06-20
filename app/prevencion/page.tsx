@@ -7,6 +7,7 @@ import BottomNav from '@/components/BottomNav'
 import PesoTracker from '@/components/PesoTracker'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
+import AyudaChiqui from '@/components/AyudaChiqui'
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 function fmt(f: string) { const d = new Date(f + 'T00:00:00'); return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}` }
@@ -34,6 +35,18 @@ const CATEGORIAS_EXAMEN: Record<string, { label: string; icon: string }> = {
 }
 
 const MAX_ARCHIVO_BYTES = 8 * 1024 * 1024 // 8MB
+
+// Textos de ayuda contextual de Chiqui para cada pestaña, mostrados al
+// tocar el icono de interrogacion junto al titulo.
+const AYUDA_POR_TAB: Record<string, string> = {
+  peso: '🐾 Aquí puedes contarme cuánto pesa tu compañero cada vez que lo controlen, así vemos juntos cómo va cambiando.',
+  vacunas: '🐾 Cuéntame qué vacunas le han puesto y cuándo toca la próxima. ¡Así nunca se les olvida!',
+  anti: '🐾 Aquí van los antiparasitarios de tu compañero, internos y externos, con su fecha y la próxima dosis.',
+  medicamentos: '🐾 Si tu compañero está tomando algún remedio, cuéntame cuál, cuánto, y cada cuánto. Así no se les pasa una toma.',
+  enfermedades: '🐾 Aquí va su historial médico: diagnósticos, lesiones, cómo ha ido evolucionando. Pueden agregar una foto si ayuda a verlo mejor.',
+  obs: '🐾 ¿Notaste algo raro en tu compañero? Una herida, un cambio de ánimo, lo que sea. Cuéntamelo aquí, con foto si quieres, para no olvidarlo.',
+  examenes: '🐾 Suban los exámenes en PDF de tu compañero: hemogramas, análisis, lo que le hayan hecho. Todo junto, sin buscar entre papeles.',
+}
 
 export default function PrevencionPage() {
   const router = useRouter()
@@ -200,7 +213,10 @@ export default function PrevencionPage() {
         <div className="flex items-center gap-2.5">
           <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
           <div>
-            <h1 className="font-heading text-xl font-extrabold">Salud preventiva</h1>
+            <div className="flex items-center gap-1.5">
+              <h1 className="font-heading text-xl font-extrabold">Salud preventiva</h1>
+              <AyudaChiqui texto={AYUDA_POR_TAB[tab]} />
+            </div>
             <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
           </div>
         </div>
