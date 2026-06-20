@@ -7,7 +7,6 @@ import BottomNav from '@/components/BottomNav'
 import PesoTracker from '@/components/PesoTracker'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
-import AyudaChiqui from '@/components/AyudaChiqui'
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 function fmt(f: string) { const d = new Date(f + 'T00:00:00'); return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}` }
@@ -213,10 +212,7 @@ export default function PrevencionPage() {
         <div className="flex items-center gap-2.5">
           <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
           <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="font-heading text-xl font-extrabold">Salud preventiva</h1>
-              <AyudaChiqui texto={AYUDA_POR_TAB[tab]} />
-            </div>
+            <h1 className="font-heading text-xl font-extrabold">Salud preventiva</h1>
             <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
           </div>
         </div>
@@ -248,12 +244,22 @@ export default function PrevencionPage() {
 
       {/* PESO */}
       {tab === 'peso' && mascota && (
-        <PesoTracker mascotaId={mascota.id} pesoActual={mascota.peso_actual} />
+        <>
+          <div className="mx-4 mb-3 bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
+            <span className="text-base flex-shrink-0">🐾</span>
+            <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí puedes contarme cuánto pesa tu compañero cada vez que lo controlen, así vemos juntos cómo va cambiando.</p>
+          </div>
+          <PesoTracker mascotaId={mascota.id} pesoActual={mascota.peso_actual} />
+        </>
       )}
 
       {/* VACUNAS */}
       {tab === 'vacunas' && (
         <div className="mx-4 space-y-3">
+          <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
+            <span className="text-base flex-shrink-0">🐾</span>
+            <p className="text-xs text-[#7A4A2F] leading-relaxed">Cuéntame qué vacunas le han puesto y cuándo toca la próxima. ¡Así nunca se les olvida!</p>
+          </div>
           {vacunas.length === 0 && (
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">💉</div>
@@ -293,6 +299,10 @@ export default function PrevencionPage() {
       {/* ANTIPARASITARIOS */}
       {tab === 'anti' && (
         <div className="mx-4 space-y-3">
+          <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
+            <span className="text-base flex-shrink-0">🐾</span>
+            <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí van los antiparasitarios de tu compañero, internos y externos, con su fecha y la próxima dosis.</p>
+          </div>
           {antis.length === 0 && (
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">💊</div>
@@ -331,6 +341,10 @@ export default function PrevencionPage() {
       {/* MEDICAMENTOS */}
       {tab === 'medicamentos' && (
         <div className="mx-4 space-y-3">
+          <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
+            <span className="text-base flex-shrink-0">🐾</span>
+            <p className="text-xs text-[#7A4A2F] leading-relaxed">Si tu compañero está tomando algún remedio, cuéntame cuál, cuánto, y cada cuánto. Así no se les pasa una toma.</p>
+          </div>
           {medicamentos.length === 0 && (
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">🩹</div>
@@ -377,6 +391,10 @@ export default function PrevencionPage() {
       {/* ENFERMEDADES */}
       {tab === 'enfermedades' && (
         <div className="mx-4 space-y-3">
+          <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
+            <span className="text-base flex-shrink-0">🐾</span>
+            <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí va su historial médico: diagnósticos, lesiones, cómo ha ido evolucionando. Pueden agregar una foto si ayuda a verlo mejor.</p>
+          </div>
           {enfermedades.length === 0 && (
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">🏥</div>
@@ -423,6 +441,10 @@ export default function PrevencionPage() {
       {/* OBSERVACIONES */}
       {tab === 'obs' && (
         <div className="mx-4 space-y-3">
+          <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
+            <span className="text-base flex-shrink-0">🐾</span>
+            <p className="text-xs text-[#7A4A2F] leading-relaxed">¿Notaste algo raro en tu compañero? Una herida, un cambio de ánimo, lo que sea. Cuéntamelo aquí, con foto si quieres, para no olvidarlo.</p>
+          </div>
           {obs.length === 0 && (
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">👁️</div>
@@ -457,6 +479,10 @@ export default function PrevencionPage() {
       {/* EXÁMENES */}
       {tab === 'examenes' && (
         <div className="mx-4 space-y-3">
+          <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
+            <span className="text-base flex-shrink-0">🐾</span>
+            <p className="text-xs text-[#7A4A2F] leading-relaxed">Suban los exámenes en PDF de tu compañero: hemogramas, análisis, lo que le hayan hecho. Todo junto, sin buscar entre papeles.</p>
+          </div>
           {examenes.length === 0 && (
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">📄</div>
