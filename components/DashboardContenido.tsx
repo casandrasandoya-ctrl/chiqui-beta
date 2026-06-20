@@ -5,7 +5,7 @@ import BottomNav from '@/components/BottomNav'
 import SelectorMascota from '@/components/SelectorMascota'
 import { guardarMascotaActivaId, obtenerMascotaActivaId } from '@/utils/mascotaActiva'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 function calcEdad(f: string) {
   const h = new Date(), n = new Date(f)
@@ -35,13 +35,14 @@ interface Props {
   obsActiva: { titulo: string; fecha_inicio: string } | null | undefined
   proximosItems: { label: string; sub: string; dias: string; color: string }[]
   tieneRegistroHoy: boolean
-  cuidadosRecientes: { label: string; emoji: string; dias: number }[]
+  cuidadosRecientes: { grupo: string; label: string; emoji: string; dias: number }[]
 }
 
 export default function DashboardContenido({
   mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy, cuidadosRecientes,
 }: Props) {
   const router = useRouter()
+  const [cuidadosExpandido, setCuidadosExpandido] = useState(false)
   const today = new Date()
   const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
   const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
@@ -194,22 +195,51 @@ export default function DashboardContenido({
       {/* CUIDADOS RECIENTES */}
       {cuidadosRecientes.length > 0 && (
         <>
-          <div className="px-5 pb-2.5">
+          <div className="flex items-center justify-between px-5 pb-2.5">
             <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Cuidados recientes</span>
+            {cuidadosRecientes.length > 4 && (
+              <button onClick={() => setCuidadosExpandido(e => !e)} className="text-xs text-[#CD7421] font-semibold">
+                {cuidadosExpandido ? 'Ver menos' : 'Ver todo'}
+              </button>
+            )}
           </div>
-          <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
-            {cuidadosRecientes.map(item => (
-              <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
-                <span className="text-lg flex-shrink-0">{item.emoji}</span>
-                <div>
-                  <p className="text-[12.5px] font-bold text-[#3D2B1F]">{item.label}</p>
-                  <p className="text-[11px] text-[#8A7560]">
-                    {item.dias === 0 ? 'Hoy' : item.dias === 1 ? 'Ayer' : `Hace ${item.dias} días`}
-                  </p>
+
+          {!cuidadosExpandido ? (
+            <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
+              {cuidadosRecientes.slice(0, 4).map(item => (
+                <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
+                  <span className="text-lg flex-shrink-0">{item.emoji}</span>
+                  <div>
+                    <p className="text-[12.5px] font-bold text-[#3D2B1F]">{item.label}</p>
+                    <p className="text-[11px] text-[#8A7560]">
+                      {item.dias === 0 ? 'Hoy' : item.dias === 1 ? 'Ayer' : `Hace ${item.dias} días`}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mx-4 mb-4 space-y-3">
+              {Array.from(new Set(cuidadosRecientes.map(c => c.grupo))).map(grupo => (
+                <div key={grupo}>
+                  <p className="text-[11px] font-semibold text-[#CD7421] mb-1.5">{grupo}</p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {cuidadosRecientes.filter(c => c.grupo === grupo).map(item => (
+                      <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
+                        <span className="text-lg flex-shrink-0">{item.emoji}</span>
+                        <div>
+                          <p className="text-[12.5px] font-bold text-[#3D2B1F]">{item.label}</p>
+                          <p className="text-[11px] text-[#8A7560]">
+                            {item.dias === 0 ? 'Hoy' : item.dias === 1 ? 'Ayer' : `Hace ${item.dias} días`}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 

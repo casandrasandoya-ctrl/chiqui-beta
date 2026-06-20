@@ -56,19 +56,13 @@ export default async function Dashboard({ searchParams }: Props) {
   const m = mascota
   const hoy = new Date().toISOString().split('T')[0]
 
-  const [{ data: regHoy }, { data: vacunas }, { data: antis }, { data: obs }, { data: medsConControl }, { data: enfsConRevision }, { data: ultVet }, { data: ultBano }, { data: ultUnas }, { data: ultAlimento }, { data: ultVacunaHoy }, { data: ultAntiHoy }] = await Promise.all([
+  const [{ data: regHoy }, { data: vacunas }, { data: antis }, { data: obs }, { data: medsConControl }, { data: enfsConRevision }] = await Promise.all([
     supabase.from('registros_diarios').select('estado_dia').eq('mascota_id', m.id).eq('fecha', hoy).single(),
     supabase.from('vacunas').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
     supabase.from('antiparasitarios').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
     supabase.from('observaciones').select('titulo,fecha_inicio').eq('mascota_id', m.id).eq('estado', 'activa').limit(1),
     supabase.from('medicamentos').select('nombre,proximo_control').eq('mascota_id', m.id).gte('proximo_control', hoy).order('proximo_control').limit(2),
     supabase.from('enfermedades').select('diagnostico,proxima_revision').eq('mascota_id', m.id).gte('proxima_revision', hoy).order('proxima_revision').limit(2),
-    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('fue_al_vet', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('se_bano', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('corte_unas', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('compro_alimento', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('vacuna_hoy', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('anti_hoy', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
   ])
 
   // Calcula "hace cuántos días" a partir de una fecha (texto YYYY-MM-DD).
@@ -78,14 +72,40 @@ export default async function Dashboard({ searchParams }: Props) {
     return Math.round((hoyDate.getTime() - fechaDate.getTime()) / 86400000)
   }
 
-  const cuidadosRecientes = [
-    ultVet && { label: 'Veterinario', emoji: '🩺', dias: diasDesde(ultVet.fecha) },
-    ultBano && { label: 'Baño', emoji: '🛁', dias: diasDesde(ultBano.fecha) },
-    ultUnas && { label: 'Corte de uñas', emoji: '✂️', dias: diasDesde(ultUnas.fecha) },
-    ultAlimento && { label: 'Compra de alimento', emoji: '🍖', dias: diasDesde(ultAlimento.fecha) },
-    ultVacunaHoy && { label: 'Vacuna', emoji: '💉', dias: diasDesde(ultVacunaHoy.fecha) },
-    ultAntiHoy && { label: 'Antiparasitario', emoji: '🪱', dias: diasDesde(ultAntiHoy.fecha) },
-  ].filter(Boolean) as { label: string; emoji: string; dias: number }[]
+  // Definición de los 12 cuidados posibles, organizados por grupo (mismo
+  // orden que en el registro diario), cada uno con la columna booleana
+  // que hay que consultar en registros_diarios.
+  const definicionCuidados = [
+    { grupo: 'Cuidados básicos', columna: 'fue_al_vet', label: 'Veterinario', emoji: '🩺' },
+    { grupo: 'Cuidados básicos', columna: 'se_bano', label: 'Baño', emoji: '🛁' },
+    { grupo: 'Cuidados básicos', columna: 'corte_unas', label: 'Corte de uñas', emoji: '✂️' },
+    { grupo: 'Cuidados básicos', columna: 'compro_alimento', label: 'Compra de alimento', emoji: '🍖' },
+    { grupo: 'Prevención', columna: 'medicamento_hoy', label: 'Medicamento', emoji: '💊' },
+    { grupo: 'Prevención', columna: 'vacuna_hoy', label: 'Vacuna', emoji: '💉' },
+    { grupo: 'Prevención', columna: 'anti_hoy', label: 'Antiparasitario', emoji: '🪱' },
+    { grupo: 'Higiene y bienestar', columna: 'limpieza_dental', label: 'Limpieza dental', emoji: '🦷' },
+    { grupo: 'Higiene y bienestar', columna: 'limpieza_oidos', label: 'Limpieza de oídos', emoji: '👂' },
+    { grupo: 'Higiene y bienestar', columna: 'tratamiento_dermatologico', label: 'Tratamiento dermatológico', emoji: '🧴' },
+    { grupo: 'Alimentación', columna: 'cambio_alimento', label: 'Cambio de alimento', emoji: '🥣' },
+    { grupo: 'Alimentación', columna: 'probo_alimento_nuevo', label: 'Alimento nuevo', emoji: '🎁' },
+    { grupo: 'Eventos importantes', columna: 'control_peso', label: 'Control de peso', emoji: '⚖️' },
+    { grupo: 'Eventos importantes', columna: 'procedimiento_cirugia', label: 'Procedimiento/cirugía', emoji: '🏥' },
+    { grupo: 'Eventos importantes', columna: 'seguimiento_lesion', label: 'Seguimiento de lesión', emoji: '📸' },
+  ]
+
+  const resultadosCuidados = await Promise.all(
+    definicionCuidados.map(d =>
+      supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq(d.columna, true).order('fecha', { ascending: false }).limit(1).maybeSingle()
+    )
+  )
+
+  const cuidadosRecientes = definicionCuidados
+    .map((d, i) => {
+      const fecha = resultadosCuidados[i].data?.fecha
+      if (!fecha) return null
+      return { grupo: d.grupo, label: d.label, emoji: d.emoji, dias: diasDesde(fecha) }
+    })
+    .filter(Boolean) as { grupo: string; label: string; emoji: string; dias: number }[]
 
   const color = regHoy?.estado_dia ? EC[regHoy.estado_dia] : '#4CAF7D'
   const estadoLabel = regHoy?.estado_dia ? EL[regHoy.estado_dia] : 'Sin registro hoy'

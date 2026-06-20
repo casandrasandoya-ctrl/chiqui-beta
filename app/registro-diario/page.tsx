@@ -199,7 +199,7 @@ function RegistroContenido() {
   const [fechaRegistro, setFechaRegistro] = useState('')
   const [nota, setNota] = useState('')
   const [cuidados, setCuidados] = useState<Set<string>>(new Set())
-  const [miniModal, setMiniModal] = useState<'vacuna' | 'anti' | null>(null)
+  const [miniModal, setMiniModal] = useState<'vacuna' | 'anti' | 'medicamento' | null>(null)
   const [miniForm, setMiniForm] = useState<{ nombre: string; proxima_fecha: string; tipo: string }>({ nombre: '', proxima_fecha: '', tipo: 'interno' })
   const [miniError, setMiniError] = useState('')
   const [miniGuardando, setMiniGuardando] = useState(false)
@@ -251,12 +251,14 @@ function RegistroContenido() {
   const CATS = getCategorias(especie)
 
   function toggleCuidado(valor: string) {
-    // Vacuna y antiparasitario necesitan datos adicionales (nombre, tipo)
-    // antes de poder marcarse, asi que en vez de marcar directo, abren un
-    // mini-formulario. Si ya estaban marcados, desmarcar es directo (no
-    // hay necesidad de pedir nada para quitar la marca).
-    if ((valor === 'vacuna_hoy' || valor === 'anti_hoy') && !cuidados.has(valor)) {
-      setMiniModal(valor === 'vacuna_hoy' ? 'vacuna' : 'anti')
+    // Vacuna, antiparasitario y medicamento necesitan datos adicionales
+    // (nombre, tipo) antes de poder marcarse, asi que en vez de marcar
+    // directo, abren un mini-formulario. Si ya estaban marcados,
+    // desmarcar es directo (no hay necesidad de pedir nada para quitar
+    // la marca).
+    const necesitaMiniModal = valor === 'vacuna_hoy' || valor === 'anti_hoy' || valor === 'medicamento_hoy'
+    if (necesitaMiniModal && !cuidados.has(valor)) {
+      setMiniModal(valor === 'vacuna_hoy' ? 'vacuna' : valor === 'anti_hoy' ? 'anti' : 'medicamento')
       setMiniForm({ nombre: '', proxima_fecha: '', tipo: 'interno' })
       setMiniError('')
       return
@@ -278,13 +280,18 @@ function RegistroContenido() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setMiniGuardando(false); return }
 
-    const tabla = miniModal === 'vacuna' ? 'vacunas' : 'antiparasitarios'
+    const tabla = miniModal === 'vacuna' ? 'vacunas' : miniModal === 'anti' ? 'antiparasitarios' : 'medicamentos'
     const datos: any = {
       mascota_id: mascotaId,
       user_id: user.id,
       nombre: miniForm.nombre.trim(),
-      fecha_aplicacion: fechaRegistro,
-      proxima_fecha: miniForm.proxima_fecha || null,
+    }
+    if (miniModal === 'medicamento') {
+      datos.fecha_inicio = fechaRegistro
+      datos.proximo_control = miniForm.proxima_fecha || null
+    } else {
+      datos.fecha_aplicacion = fechaRegistro
+      datos.proxima_fecha = miniForm.proxima_fecha || null
     }
     if (miniModal === 'anti') datos.tipo = miniForm.tipo
 
@@ -296,7 +303,8 @@ function RegistroContenido() {
       return
     }
 
-    setCuidados(prev => new Set(prev).add(miniModal === 'vacuna' ? 'vacuna_hoy' : 'anti_hoy'))
+    const columnaCuidado = miniModal === 'vacuna' ? 'vacuna_hoy' : miniModal === 'anti' ? 'anti_hoy' : 'medicamento_hoy'
+    setCuidados(prev => new Set(prev).add(columnaCuidado))
     setMiniModal(null)
   }
 
@@ -325,6 +333,12 @@ function RegistroContenido() {
       fue_al_vet: cuidados.has('vet'), se_bano: cuidados.has('bano'),
       corte_unas: cuidados.has('unas'), compro_alimento: cuidados.has('alimento'),
       vacuna_hoy: cuidados.has('vacuna_hoy'), anti_hoy: cuidados.has('anti_hoy'),
+      medicamento_hoy: cuidados.has('medicamento_hoy'),
+      limpieza_dental: cuidados.has('limpieza_dental'), limpieza_oidos: cuidados.has('limpieza_oidos'),
+      tratamiento_dermatologico: cuidados.has('tratamiento_dermatologico'),
+      cambio_alimento: cuidados.has('cambio_alimento'), probo_alimento_nuevo: cuidados.has('probo_alimento_nuevo'),
+      control_peso: cuidados.has('control_peso'), procedimiento_cirugia: cuidados.has('procedimiento_cirugia'),
+      seguimiento_lesion: cuidados.has('seguimiento_lesion'),
     }, { onConflict: 'mascota_id,fecha' })
     router.push('/dashboard')
     router.refresh()
@@ -460,36 +474,61 @@ function RegistroContenido() {
         })}
       </div>
 
-      {/* CUIDADOS BÁSICOS */}
+      {/* CUIDADOS — organizados en 5 grupos */}
       <div className="mx-4 mt-4">
         <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
           Cuidados de hoy · opcional, puedes marcar varios
         </label>
-        <div className="grid grid-cols-2 gap-2">
-          {[
+
+        {[
+          { titulo: 'Cuidados básicos', items: [
             { value: 'vet', emoji: '🩺', label: 'Fue al veterinario' },
             { value: 'bano', emoji: '🛁', label: 'Se bañó' },
             { value: 'unas', emoji: '✂️', label: 'Corte de uñas' },
             { value: 'alimento', emoji: '🍖', label: 'Compré alimento' },
+          ]},
+          { titulo: 'Prevención', items: [
+            { value: 'medicamento_hoy', emoji: '💊', label: 'Recibió medicamento' },
             { value: 'vacuna_hoy', emoji: '💉', label: 'Vacuna aplicada' },
             { value: 'anti_hoy', emoji: '🪱', label: 'Antiparasitario aplicado' },
-          ].map(c => {
-            const activo = cuidados.has(c.value)
-            return (
-              <button
-                key={c.value}
-                onClick={() => toggleCuidado(c.value)}
-                className="flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
-                style={activo
-                  ? { background: '#FFBD5920', borderColor: '#FFBD59', borderWidth: '1.5px' }
-                  : { background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
-              >
-                <span className="text-base flex-shrink-0">{c.emoji}</span>
-                <span className="text-xs font-medium text-[#3D2B1F]">{c.label}</span>
-              </button>
-            )
-          })}
-        </div>
+          ]},
+          { titulo: 'Higiene y bienestar', items: [
+            { value: 'limpieza_dental', emoji: '🦷', label: 'Limpieza dental' },
+            { value: 'limpieza_oidos', emoji: '👂', label: 'Limpieza de oídos' },
+            { value: 'tratamiento_dermatologico', emoji: '🧴', label: 'Tratamiento dermatológico' },
+          ]},
+          { titulo: 'Alimentación', items: [
+            { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
+            { value: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó un alimento nuevo' },
+          ]},
+          { titulo: 'Eventos importantes', items: [
+            { value: 'control_peso', emoji: '⚖️', label: 'Control de peso' },
+            { value: 'procedimiento_cirugia', emoji: '🏥', label: 'Procedimiento o cirugía' },
+            { value: 'seguimiento_lesion', emoji: '📸', label: 'Seguimiento de lesión o recuperación' },
+          ]},
+        ].map(grupo => (
+          <div key={grupo.titulo} className="mb-3 last:mb-0">
+            <p className="text-[11px] font-semibold text-[#CD7421] mb-1.5">{grupo.titulo}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {grupo.items.map(c => {
+                const activo = cuidados.has(c.value)
+                return (
+                  <button
+                    key={c.value}
+                    onClick={() => toggleCuidado(c.value)}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
+                    style={activo
+                      ? { background: '#FFBD5920', borderColor: '#FFBD59', borderWidth: '1.5px' }
+                      : { background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
+                  >
+                    <span className="text-base flex-shrink-0">{c.emoji}</span>
+                    <span className="text-xs font-medium text-[#3D2B1F]">{c.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="mx-4 mt-4">
@@ -514,18 +553,20 @@ function RegistroContenido() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={cancelarMiniModal}>
           <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
-              <h2 className="font-bold text-base">{miniModal === 'vacuna' ? '💉 Vacuna de hoy' : '🪱 Antiparasitario de hoy'}</h2>
+              <h2 className="font-bold text-base">
+                {miniModal === 'vacuna' ? '💉 Vacuna de hoy' : miniModal === 'anti' ? '🪱 Antiparasitario de hoy' : '💊 Medicamento de hoy'}
+              </h2>
               <button onClick={cancelarMiniModal} className="text-[#8A7560] text-xl">✕</button>
             </div>
             <p className="text-xs text-[#8A7560] -mt-2">Esto se guarda automáticamente en Prevención.</p>
 
             <div>
               <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">
-                {miniModal === 'vacuna' ? 'Nombre de la vacuna *' : 'Nombre del producto *'}
+                {miniModal === 'vacuna' ? 'Nombre de la vacuna *' : miniModal === 'anti' ? 'Nombre del producto *' : 'Nombre del medicamento *'}
               </label>
               <input
                 className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none"
-                placeholder={miniModal === 'vacuna' ? 'ej. Séxtuple, Antirrábica...' : 'ej. Bravecto, Simparica...'}
+                placeholder={miniModal === 'vacuna' ? 'ej. Séxtuple, Antirrábica...' : miniModal === 'anti' ? 'ej. Bravecto, Simparica...' : 'ej. Amoxicilina'}
                 value={miniForm.nombre}
                 onChange={e => setMiniForm(p => ({ ...p, nombre: e.target.value }))}
                 autoFocus
@@ -549,7 +590,7 @@ function RegistroContenido() {
 
             <div>
               <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">
-                {miniModal === 'vacuna' ? 'Próxima vacunación · opcional' : 'Próxima dosis · opcional'}
+                {miniModal === 'vacuna' ? 'Próxima vacunación · opcional' : miniModal === 'anti' ? 'Próxima dosis · opcional' : 'Próximo control · opcional'}
               </label>
               <input
                 type="date"
