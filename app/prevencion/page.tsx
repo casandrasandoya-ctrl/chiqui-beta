@@ -66,6 +66,9 @@ export default function PrevencionPage() {
   const [archivoExamen, setArchivoExamen] = useState<File | null>(null)
   const [errorExamen, setErrorExamen] = useState('')
   const [urlEnProgreso, setUrlEnProgreso] = useState<string | null>(null)
+  const [fotoSalud, setFotoSalud] = useState<File | null>(null)
+  const [fotoSaludPreview, setFotoSaludPreview] = useState<string | null>(null)
+  const [errorFotoSalud, setErrorFotoSalud] = useState('')
 
   useEffect(() => {
     async function init() {
@@ -108,6 +111,22 @@ export default function PrevencionPage() {
     setExamenes(exa.data || [])
   }
 
+  function elegirFotoSalud(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0]
+    if (!archivo) return
+    setErrorFotoSalud('')
+    if (!archivo.type.startsWith('image/')) {
+      setErrorFotoSalud('Solo se aceptan imágenes.')
+      return
+    }
+    if (archivo.size > 5 * 1024 * 1024) {
+      setErrorFotoSalud('La imagen supera los 5MB. Intenta con una foto más liviana.')
+      return
+    }
+    setFotoSalud(archivo)
+    setFotoSaludPreview(URL.createObjectURL(archivo))
+  }
+
   async function guardar() {
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -118,14 +137,30 @@ export default function PrevencionPage() {
     } else if (modal === 'anti') {
       await supabase.from('antiparasitarios').insert({ ...base, ...form })
     } else if (modal === 'obs') {
-      await supabase.from('observaciones').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0] })
+      const { data: nuevaObs } = await supabase.from('observaciones').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0] }).select('id').single()
+      if (nuevaObs && fotoSalud) await subirFotoSalud('observaciones', nuevaObs.id, user.id)
     } else if (modal === 'medicamento') {
       await supabase.from('medicamentos').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0], indicado_por_vet: !!form.indicado_por_vet })
     } else if (modal === 'enfermedad') {
-      await supabase.from('enfermedades').insert({ ...base, ...form, fecha_diagnostico: form.fecha_diagnostico || new Date().toISOString().split('T')[0] })
+      const { data: nuevaEnf } = await supabase.from('enfermedades').insert({ ...base, ...form, fecha_diagnostico: form.fecha_diagnostico || new Date().toISOString().split('T')[0] }).select('id').single()
+      if (nuevaEnf && fotoSalud) await subirFotoSalud('enfermedades', nuevaEnf.id, user.id)
     }
     await cargarDatos(mascota.id)
     setModal(null); setForm({}); setSaving(false)
+    setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('')
+  }
+
+  // Sube la foto de salud (observacion o enfermedad) ya creada, y
+  // actualiza la fila con la URL publica resultante. Si falla la
+  // subida, no bloquea -- el registro ya quedo creado, solo sin foto.
+  async function subirFotoSalud(tabla: 'observaciones' | 'enfermedades', registroId: string, userId: string) {
+    if (!fotoSalud) return
+    const extension = fotoSalud.name.split('.').pop() || 'jpg'
+    const path = `${userId}/${tabla}/${registroId}.${extension}`
+    const { error: uploadError } = await supabase.storage.from('fotos-salud').upload(path, fotoSalud, { upsert: true })
+    if (uploadError) return
+    const { data: urlData } = supabase.storage.from('fotos-salud').getPublicUrl(path)
+    await supabase.from(tabla).update({ foto_url: `${urlData.publicUrl}?t=${Date.now()}` }).eq('id', registroId)
   }
 
   async function guardarExamen() {
@@ -221,6 +256,7 @@ export default function PrevencionPage() {
             onClick={() => {
               const modalMap: Record<string, any> = { vacunas:'vacuna', anti:'anti', medicamentos:'medicamento', enfermedades:'enfermedad', obs:'obs', examenes:'examen' }
               setModal(modalMap[tab]); setForm({}); setArchivoExamen(null); setErrorExamen('')
+              setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('')
             }}
             className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl"
           >
@@ -399,7 +435,7 @@ export default function PrevencionPage() {
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">🏥</div>
               <p className="text-sm text-[#8A7560]">Sin enfermedades registradas</p>
-              <button onClick={() => { setModal('enfermedad'); setForm({}) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <button onClick={() => { setModal('enfermedad'); setForm({}); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Agregar diagnóstico
               </button>
             </div>
@@ -431,6 +467,9 @@ export default function PrevencionPage() {
                   )}
                   {enf.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {enf.nota}</p>}
                   {enf.fecha_resolucion && <p className="text-xs text-[#4CAF7D] mt-2">Resuelta: {fmt(enf.fecha_resolucion)}</p>}
+                  {enf.foto_url && (
+                    <img src={enf.foto_url} alt={enf.diagnostico} className="w-full h-40 object-cover rounded-xl mt-2" />
+                  )}
                 </div>
               </div>
             )
@@ -449,7 +488,7 @@ export default function PrevencionPage() {
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">👁️</div>
               <p className="text-sm text-[#8A7560]">Sin observaciones registradas</p>
-              <button onClick={() => { setModal('obs'); setForm({}) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <button onClick={() => { setModal('obs'); setForm({}); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Agregar observación
               </button>
             </div>
@@ -468,6 +507,9 @@ export default function PrevencionPage() {
                     </div>
                     {o.descripcion && <p className="text-xs text-[#8A7560] mt-1 leading-relaxed">{o.descripcion}</p>}
                     <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
+                    {o.foto_url && (
+                      <img src={o.foto_url} alt={o.titulo} className="w-full h-40 object-cover rounded-xl mt-2" />
+                    )}
                   </div>
                 </div>
               </div>
@@ -614,6 +656,21 @@ export default function PrevencionPage() {
                 <input type="date" className={IC} value={form.proxima_revision || ''} onChange={e => u('proxima_revision', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Notas</label>
                 <textarea className={IC} rows={3} placeholder="Detalles del diagnóstico, tratamiento indicado..." value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
+              <div>
+                <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Foto (opcional)</label>
+                <div className="flex items-center gap-3">
+                  <label className="w-16 h-16 rounded-xl bg-[#FFFCF8] border border-[#EEE2D4] flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer">
+                    {fotoSaludPreview ? (
+                      <img src={fotoSaludPreview} alt="Vista previa" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xl">📷</span>
+                    )}
+                    <input type="file" accept="image/*" onChange={elegirFotoSalud} className="hidden" />
+                  </label>
+                  <p className="text-xs text-[#8A7560]">Toca para agregar una foto del diagnóstico o lesión.</p>
+                </div>
+                {errorFotoSalud && <p className="text-[11px] text-[#E05252] mt-1.5">{errorFotoSalud}</p>}
+              </div>
             </>}
 
             {modal === 'obs' && <>
@@ -628,6 +685,21 @@ export default function PrevencionPage() {
                 <textarea className={IC} rows={3} placeholder="Describe lo observado..." value={form.descripcion || ''} onChange={e => u('descripcion', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de inicio</label>
                 <input type="date" className={IC} value={form.fecha_inicio || ''} onChange={e => u('fecha_inicio', e.target.value)}/></div>
+              <div>
+                <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Foto (opcional)</label>
+                <div className="flex items-center gap-3">
+                  <label className="w-16 h-16 rounded-xl bg-[#FFFCF8] border border-[#EEE2D4] flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer">
+                    {fotoSaludPreview ? (
+                      <img src={fotoSaludPreview} alt="Vista previa" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xl">📷</span>
+                    )}
+                    <input type="file" accept="image/*" onChange={elegirFotoSalud} className="hidden" />
+                  </label>
+                  <p className="text-xs text-[#8A7560]">Toca para agregar una foto de lo que observaste.</p>
+                </div>
+                {errorFotoSalud && <p className="text-[11px] text-[#E05252] mt-1.5">{errorFotoSalud}</p>}
+              </div>
             </>}
 
             {modal === 'examen' && <>

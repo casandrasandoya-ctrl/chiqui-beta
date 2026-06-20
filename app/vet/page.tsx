@@ -60,6 +60,8 @@ export default async function VetPage({ searchParams }: Props) {
   const antis = datos.antiparasitarios || []
   const obs = datos.observaciones || []
   const examenes = datos.examenes || []
+  const enfermedades = datos.enfermedades || []
+  const medicamentos = datos.medicamentos || []
 
   // Generar URLs firmadas (validas 60 segundos) para los PDFs de examenes.
   // Estos archivos ya fueron confirmados por la funcion segura como
@@ -126,6 +128,9 @@ export default async function VetPage({ searchParams }: Props) {
                 <p className="font-bold text-sm">{o.titulo}</p>
                 {o.descripcion && <p className="text-sm text-[#8A7560] mt-0.5">{o.descripcion}</p>}
                 <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
+                {o.foto_url && (
+                  <img src={o.foto_url} alt={o.titulo} className="w-full h-40 object-cover rounded-xl mt-2" />
+                )}
               </div>
             ))}
           </div>
@@ -224,6 +229,54 @@ export default async function VetPage({ searchParams }: Props) {
                   <p className="text-xs text-[#8A7560] mt-0.5">{a.tipo} · {a.forma} · {fmt(a.fecha_aplicacion)}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {medicamentos.length > 0 && (
+          <div>
+            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-3">🩹 Medicamentos</h2>
+            <div className="space-y-2">
+              {medicamentos.map((med: any) => (
+                <div key={med.id} className="bg-[#FFFCF8] rounded-xl p-3 border border-[#EEE2D4]">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-sm">{med.nombre}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
+                      {med.estado === 'activo' ? 'Activo' : 'Finalizado'}
+                    </span>
+                  </div>
+                  {med.dosis && <p className="text-xs text-[#8A7560] mt-0.5">{med.dosis}{med.frecuencia ? ` · ${med.frecuencia}` : ''}</p>}
+                  <p className="text-xs text-[#8A7560] mt-0.5">Desde: {fmt(med.fecha_inicio)}{med.fecha_fin ? ` hasta ${fmt(med.fecha_fin)}` : ''}</p>
+                  {med.motivo && <p className="text-xs text-[#8A7560] mt-0.5">Motivo: {med.motivo}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {enfermedades.length > 0 && (
+          <div>
+            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-3">🏥 Enfermedades</h2>
+            <div className="space-y-2">
+              {enfermedades.map((enf: any) => {
+                const estadoColor: Record<string,string> = { activa: '#F07A30', cronica: '#E05252', resuelta: '#4CAF7D' }
+                const estadoLabel: Record<string,string> = { activa: 'Activa', cronica: 'Crónica', resuelta: 'Resuelta' }
+                return (
+                  <div key={enf.id} className="bg-[#FFFCF8] rounded-xl p-3 border border-[#EEE2D4]">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-sm">{enf.diagnostico}</p>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: `${estadoColor[enf.estado]}20`, color: estadoColor[enf.estado] }}>
+                        {estadoLabel[enf.estado] || enf.estado}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#8A7560] mt-0.5">Diagnosticada: {fmt(enf.fecha_diagnostico)}{enf.veterinario ? ` · ${enf.veterinario}` : ''}</p>
+                    {enf.nota && <p className="text-xs text-[#8A7560] mt-1 italic">📝 {enf.nota}</p>}
+                    {enf.foto_url && (
+                      <img src={enf.foto_url} alt={enf.diagnostico} className="w-full h-40 object-cover rounded-xl mt-2" />
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
