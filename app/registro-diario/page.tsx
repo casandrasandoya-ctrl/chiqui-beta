@@ -417,7 +417,7 @@ function RegistroContenido() {
             { value: 'vet', emoji: '🩺', label: 'Fue al veterinario' },
             { value: 'bano', emoji: '🛁', label: 'Se bañó' },
             { value: 'unas', emoji: '✂️', label: 'Corte de uñas' },
-            { value: 'alimento', emoji: '🛒', label: 'Compró alimento' },
+            { value: 'alimento', emoji: '🍖', label: 'Compré alimento' },
           ].map(c => {
             const activo = cuidados.has(c.value)
             return (

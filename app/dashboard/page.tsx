@@ -80,7 +80,7 @@ export default async function Dashboard({ searchParams }: Props) {
     ultVet && { label: 'Veterinario', emoji: '🩺', dias: diasDesde(ultVet.fecha) },
     ultBano && { label: 'Baño', emoji: '🛁', dias: diasDesde(ultBano.fecha) },
     ultUnas && { label: 'Corte de uñas', emoji: '✂️', dias: diasDesde(ultUnas.fecha) },
-    ultAlimento && { label: 'Compra de alimento', emoji: '🛒', dias: diasDesde(ultAlimento.fecha) },
+    ultAlimento && { label: 'Compra de alimento', emoji: '🍖', dias: diasDesde(ultAlimento.fecha) },
   ].filter(Boolean) as { label: string; emoji: string; dias: number }[]
 
   const color = regHoy?.estado_dia ? EC[regHoy.estado_dia] : '#4CAF7D'
