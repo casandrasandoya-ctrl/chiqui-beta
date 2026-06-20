@@ -7,6 +7,7 @@ import LinkVet from '@/components/LinkVet'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
+import FotoMascota from '@/components/FotoMascota'
 
 const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
 const SC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
@@ -32,6 +33,7 @@ interface Mascota {
   alergias?: string
   microchip?: string
   veterinaria?: string
+  foto_url?: string
 }
 
 export default function PerfilPage() {
@@ -130,8 +132,20 @@ export default function PerfilPage() {
 
       <div className="relative bg-gradient-to-b from-[#8C572F] to-[#F5EDE3] pt-8 pb-6 text-center">
         <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-9 h-9 object-contain absolute top-3 right-4 opacity-90" />
-        <div className="w-20 h-20 rounded-full bg-[#FFFCF8] border-2 border-[#4CAF7D] flex items-center justify-center text-4xl mx-auto mb-3">
-          {iconoPorEspecie(mascota?.especie)}
+        <div className="mx-auto mb-3" style={{ width: 80 }}>
+          {mascota && (
+            <FotoMascota
+              mascotaId={mascota.id}
+              especie={mascota.especie}
+              fotoUrl={mascota.foto_url}
+              size={80}
+              editable
+              onFotoActualizada={(nuevaUrl) => {
+                setMascota(prev => prev ? { ...prev, foto_url: nuevaUrl } : prev)
+                setMascotas(prev => prev.map(m => m.id === mascota.id ? { ...m, foto_url: nuevaUrl } : m))
+              }}
+            />
+          )}
         </div>
         <h1 className="font-heading text-xl font-extrabold">{mascota?.nombre}</h1>
         <p className="text-sm text-[#8A7560] mt-1">
