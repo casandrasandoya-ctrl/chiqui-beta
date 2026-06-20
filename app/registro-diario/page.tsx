@@ -550,7 +550,7 @@ function RegistroContenido() {
 
       {/* Mini-modal para vacuna/antiparasitario aplicado hoy */}
       {miniModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={cancelarMiniModal}>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={cancelarMiniModal}>
           <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-bold text-base">

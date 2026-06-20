@@ -613,7 +613,7 @@ export default function PrevencionPage() {
       {/* MODAL DE ACCIONES (editar/eliminar) — siempre centrado abajo,
           nunca se corta por la posicion de la tarjeta en la pantalla */}
       {menuAbierto && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setMenuAbierto(null)}>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setMenuAbierto(null)}>
           <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-2 pb-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-[#EEE2D4] rounded-full mx-auto mb-3 mt-1" />
             <button
@@ -646,7 +646,7 @@ export default function PrevencionPage() {
 
       {/* MODAL AGREGAR */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => { setModal(null); setEditandoId(null) }}>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => { setModal(null); setEditandoId(null) }}>
           <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-bold text-base">

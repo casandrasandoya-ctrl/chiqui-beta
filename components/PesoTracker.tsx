@@ -140,7 +140,7 @@ export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: stri
       )}
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setModal(false)}>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setModal(false)}>
           <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="font-heading font-bold text-base">⚖️ Registrar peso</h2>
