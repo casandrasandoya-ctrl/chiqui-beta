@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Nunito, Nunito_Sans } from 'next/font/google'
 import './globals.css'
+import RegistrarServiceWorker from '@/components/RegistrarServiceWorker'
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className={`${nunito.variable} ${nunitoSans.variable} font-body bg-[#F5EDE3] text-[#3D2B1F] min-h-screen`}>
+        <RegistrarServiceWorker />
         {children}
       </body>
     </html>
