@@ -62,6 +62,8 @@ export default function PrevencionPage() {
   const [tab, setTab] = useState<'peso' | 'vacunas' | 'anti' | 'medicamentos' | 'enfermedades' | 'obs' | 'examenes'>('peso')
   const [modal, setModal] = useState<'vacuna' | 'anti' | 'obs' | 'medicamento' | 'enfermedad' | 'examen' | null>(null)
   const [form, setForm] = useState<any>({})
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [menuAbierto, setMenuAbierto] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [archivoExamen, setArchivoExamen] = useState<File | null>(null)
   const [errorExamen, setErrorExamen] = useState('')
@@ -133,7 +135,11 @@ export default function PrevencionPage() {
     if (!user || !mascota) return
     const base = { mascota_id: mascota.id, user_id: user.id }
     if (modal === 'vacuna') {
-      await supabase.from('vacunas').insert({ ...base, ...form })
+      if (editandoId) {
+        await supabase.from('vacunas').update(form).eq('id', editandoId)
+      } else {
+        await supabase.from('vacunas').insert({ ...base, ...form })
+      }
     } else if (modal === 'anti') {
       await supabase.from('antiparasitarios').insert({ ...base, ...form })
     } else if (modal === 'obs') {
@@ -146,7 +152,7 @@ export default function PrevencionPage() {
       if (nuevaEnf && fotoSalud) await subirFotoSalud('enfermedades', nuevaEnf.id, user.id)
     }
     await cargarDatos(mascota.id)
-    setModal(null); setForm({}); setSaving(false)
+    setModal(null); setForm({}); setSaving(false); setEditandoId(null)
     setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('')
   }
 
@@ -234,6 +240,20 @@ export default function PrevencionPage() {
   }
 
   const u = (k: string, v: string) => setForm((p: any) => ({ ...p, [k]: v }))
+
+  function editarVacuna(v: any) {
+    setEditandoId(v.id)
+    setForm({ nombre: v.nombre, fecha_aplicacion: v.fecha_aplicacion, proxima_fecha: v.proxima_fecha || '', lote: v.lote || '', nota: v.nota || '' })
+    setModal('vacuna')
+    setMenuAbierto(null)
+  }
+
+  async function eliminarVacuna(id: string) {
+    setMenuAbierto(null)
+    if (!confirm('¿Eliminar esta vacuna? Esta acción no se puede deshacer.')) return
+    await supabase.from('vacunas').delete().eq('id', id)
+    if (mascota) await cargarDatos(mascota.id)
+  }
   const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
   const SC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
 
@@ -257,6 +277,7 @@ export default function PrevencionPage() {
               const modalMap: Record<string, any> = { vacunas:'vacuna', anti:'anti', medicamentos:'medicamento', enfermedades:'enfermedad', obs:'obs', examenes:'examen' }
               setModal(modalMap[tab]); setForm({}); setArchivoExamen(null); setErrorExamen('')
               setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('')
+              setEditandoId(null)
             }}
             className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl"
           >
@@ -300,7 +321,7 @@ export default function PrevencionPage() {
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">💉</div>
               <p className="text-sm text-[#8A7560]">Sin vacunas registradas</p>
-              <button onClick={() => { setModal('vacuna'); setForm({}) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <button onClick={() => { setModal('vacuna'); setForm({}); setEditandoId(null) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Agregar primera vacuna
               </button>
             </div>
@@ -317,13 +338,27 @@ export default function PrevencionPage() {
                       {v.lote && <p className="text-xs text-[#8A7560]">Lote: {v.lote}</p>}
                     </div>
                   </div>
-                  {v.proxima_fecha && (
-                    <div className="text-right">
-                      <p className="text-xs text-[#8A7560]">Próxima</p>
-                      <p className="text-xs font-bold" style={{ color: diasColor(v.proxima_fecha) }}>{dias(v.proxima_fecha)}</p>
-                      <p className="text-xs text-[#8A7560]">{fmt(v.proxima_fecha)}</p>
+                  <div className="flex items-start gap-1">
+                    {v.proxima_fecha && (
+                      <div className="text-right mr-1">
+                        <p className="text-xs text-[#8A7560]">Próxima</p>
+                        <p className="text-xs font-bold" style={{ color: diasColor(v.proxima_fecha) }}>{dias(v.proxima_fecha)}</p>
+                        <p className="text-xs text-[#8A7560]">{fmt(v.proxima_fecha)}</p>
+                      </div>
+                    )}
+                    <div className="relative">
+                      <button onClick={() => setMenuAbierto(menuAbierto === v.id ? null : v.id)} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
+                      {menuAbierto === v.id && (
+                        <>
+                          <div className="fixed inset-0 z-30" onClick={() => setMenuAbierto(null)} />
+                          <div className="absolute right-0 top-7 z-40 w-32 bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl overflow-hidden shadow-md">
+                            <button onClick={() => editarVacuna(v)} className="w-full px-3 py-2 text-left text-xs font-medium text-[#3D2B1F] hover:bg-[#FBEAD9]">✏️ Editar</button>
+                            <button onClick={() => eliminarVacuna(v.id)} className="w-full px-3 py-2 text-left text-xs font-medium text-[#E05252] hover:bg-[#FBEAD9]">🗑️ Eliminar</button>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
                 {v.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {v.nota}</p>}
               </div>
@@ -567,13 +602,13 @@ export default function PrevencionPage() {
 
       {/* MODAL AGREGAR */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setModal(null)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => { setModal(null); setEditandoId(null) }}>
           <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-bold text-base">
-                {modal === 'vacuna' ? '💉 Nueva vacuna' : modal === 'anti' ? '💊 Nuevo antiparasitario' : modal === 'medicamento' ? '🩹 Nuevo medicamento' : modal === 'enfermedad' ? '🏥 Nuevo diagnóstico' : modal === 'examen' ? '📄 Nuevo examen' : '👁️ Nueva observación'}
+                {modal === 'vacuna' ? (editandoId ? '💉 Editar vacuna' : '💉 Nueva vacuna') : modal === 'anti' ? '💊 Nuevo antiparasitario' : modal === 'medicamento' ? '🩹 Nuevo medicamento' : modal === 'enfermedad' ? '🏥 Nuevo diagnóstico' : modal === 'examen' ? '📄 Nuevo examen' : '👁️ Nueva observación'}
               </h2>
-              <button onClick={() => setModal(null)} className="text-[#8A7560] text-xl">✕</button>
+              <button onClick={() => { setModal(null); setEditandoId(null) }} className="text-[#8A7560] text-xl">✕</button>
             </div>
 
             {modal === 'vacuna' && <>
@@ -734,7 +769,7 @@ export default function PrevencionPage() {
               onClick={modal === 'examen' ? guardarExamen : guardar}
               disabled={saving || (modal !== 'examen' && (!form.nombre && !form.titulo && !form.diagnostico))}
               className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
-              {saving ? 'Guardando...' : 'Guardar'}
+              {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Guardar'}
             </button>
           </div>
         </div>
