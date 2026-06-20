@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Nunito, Nunito_Sans } from 'next/font/google'
 import './globals.css'
 
@@ -17,15 +17,29 @@ const nunitoSans = Nunito_Sans({
 export const metadata: Metadata = {
   title: 'CHIQUI Entre Señales',
   description: 'Tu compañero de observación y cuidado.',
-  manifest: '/manifest.json',
-  themeColor: '#0F1117',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'CHIQUI',
+  },
+  icons: {
+    icon: '/icon-512x512.png',
+    apple: '/apple-touch-icon.png',
+  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#8C572F',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className={`${nunito.variable} ${nunitoSans.variable} font-body bg-[#0F1117] text-[#F0EEE8] min-h-screen`}>
+      <body className={`${nunito.variable} ${nunitoSans.variable} font-body bg-[#F5EDE3] text-[#3D2B1F] min-h-screen`}>
         {children}
       </body>
     </html>
