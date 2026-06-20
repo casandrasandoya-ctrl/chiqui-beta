@@ -5,6 +5,8 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
+import SelectorMascota from '@/components/SelectorMascota'
+import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 
 const ESTADO_COLOR: Record<string, string> = {
   verde: '#4CAF7D',
@@ -25,6 +27,7 @@ const DIAS_SEMANA = ['L','M','M','J','V','S','D']
 export default function CalendarioPage() {
   const router = useRouter()
   const supabase = createClient()
+  const [mascotas, setMascotas] = useState<any[]>([])
   const [mascota, setMascota] = useState<any>(null)
   const [registros, setRegistros] = useState<Record<string, any>>({})
   const [pesos, setPesos] = useState<Record<string, number>>({})
@@ -37,14 +40,24 @@ export default function CalendarioPage() {
     async function cargar() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: m } = await supabase.from('mascotas').select('*').limit(1).single()
-      if (!m) { router.push('/mascota/nueva'); return }
-      setMascota(m)
-      await cargarRegistros(m.id, mes, año)
+      const { data: todasMascotas } = await supabase.from('mascotas').select('*').order('created_at', { ascending: true })
+      if (!todasMascotas || !todasMascotas.length) { router.push('/mascota/nueva'); return }
+      setMascotas(todasMascotas)
+      const activa = determinarMascotaActiva(todasMascotas)!
+      setMascota(activa)
+      await cargarRegistros(activa.id, mes, año)
       setLoading(false)
     }
     cargar()
   }, [])
+
+  async function cambiarMascota(nueva: any) {
+    setLoading(true)
+    setMascota(nueva)
+    setDiaSeleccionado(null)
+    await cargarRegistros(nueva.id, mes, año)
+    setLoading(false)
+  }
 
   async function cargarRegistros(mascotaId: string, m: number, a: number) {
     const ultimoDia = new Date(a, m + 1, 0).getDate()
@@ -106,6 +119,9 @@ export default function CalendarioPage() {
         </div>
         <button onClick={() => cambiarMes(1)} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg">›</button>
       </div>
+
+      {/* Selector de mascota */}
+      {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
 
       {/* Leyenda */}
       <div className="flex gap-4 px-5 py-2 overflow-x-auto scrollbar-none">

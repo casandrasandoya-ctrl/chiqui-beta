@@ -3,6 +3,8 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
+import SelectorMascota from '@/components/SelectorMascota'
+import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 
 interface DetalleSub { titulo: string; opciones: { value: string; emoji: string; label: string }[] }
 interface Opcion { value: string; emoji: string; label: string; detalle?: DetalleSub[] }
@@ -187,6 +189,7 @@ function RegistroContenido() {
   const searchParams = useSearchParams()
   const fechaUrl = searchParams.get('fecha')
   const supabase = createClient()
+  const [mascotas, setMascotas] = useState<any[]>([])
   const [mascotaId, setMascotaId] = useState('')
   const [mascotaNombre, setMascotaNombre] = useState('')
   const [especie, setEspecie] = useState('')
@@ -203,8 +206,10 @@ function RegistroContenido() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: m } = await supabase.from('mascotas').select('id,nombre,especie').limit(1).single()
-      if (!m) { router.push('/mascota/nueva'); return }
+      const { data: todasMascotas } = await supabase.from('mascotas').select('id,nombre,especie,raza').order('created_at', { ascending: true })
+      if (!todasMascotas || !todasMascotas.length) { router.push('/mascota/nueva'); return }
+      setMascotas(todasMascotas)
+      const m = determinarMascotaActiva(todasMascotas)!
       setMascotaId(m.id)
       setMascotaNombre(m.nombre)
       setEspecie(m.especie || '')
@@ -216,6 +221,24 @@ function RegistroContenido() {
     }
     init()
   }, [fechaUrl])
+
+  async function cambiarMascota(nueva: any) {
+    setCargando(true)
+    guardarMascotaActivaId(nueva.id)
+    setMascotaId(nueva.id)
+    setMascotaNombre(nueva.nombre)
+    setEspecie(nueva.especie || '')
+    // Limpiamos el progreso del formulario para no mezclar sintomas de
+    // una mascota con el envio hacia otra.
+    setSel({})
+    setDet({})
+    setNota('')
+    setAbierto('energia')
+    const hoy = fechaUrl || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0]
+    const { data: r } = await supabase.from('registros_diarios').select('id').eq('mascota_id', nueva.id).eq('fecha', hoy).single()
+    setYaRegistro(!!r)
+    setCargando(false)
+  }
 
   const CATS = getCategorias(especie)
 
@@ -277,6 +300,15 @@ function RegistroContenido() {
           <span className="text-[11px] text-[#8A7560] whitespace-nowrap">{completadas}/{CATS.length}</span>
         </div>
       </div>
+
+      {/* Selector de mascota */}
+      {mascotas.length > 0 && (
+        <SelectorMascota
+          mascotas={mascotas}
+          mascotaActiva={mascotas.find(m => m.id === mascotaId) || mascotas[0]}
+          onCambiar={cambiarMascota}
+        />
+      )}
 
       <div className="mx-4 mt-3 mb-1 bg-[#FBEAD9] border border-[#3DD6B5]/15 rounded-xl p-3 flex gap-2.5">
         <span className="text-lg flex-shrink-0">{especie === 'Gato' ? '🐱' : '🐶'}</span>
