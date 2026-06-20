@@ -7,7 +7,6 @@ import BottomNav from '@/components/BottomNav'
 import PesoTracker from '@/components/PesoTracker'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
-import { useBloquearScroll } from '@/utils/useBloquearScroll'
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 function fmt(f: string) { const d = new Date(f + 'T00:00:00'); return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}` }
@@ -72,11 +71,6 @@ export default function PrevencionPage() {
   const [fotoSalud, setFotoSalud] = useState<File | null>(null)
   const [fotoSaludPreview, setFotoSaludPreview] = useState<string | null>(null)
   const [errorFotoSalud, setErrorFotoSalud] = useState('')
-
-  // Bloquea el scroll del fondo mientras cualquiera de los dos modales
-  // (formulario de crear/editar, o el de acciones editar/eliminar) este
-  // abierto.
-  useBloquearScroll(!!modal || !!menuAbierto)
 
   useEffect(() => {
     async function init() {
@@ -620,7 +614,7 @@ export default function PrevencionPage() {
           nunca se corta por la posicion de la tarjeta en la pantalla */}
       {menuAbierto && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setMenuAbierto(null)}>
-          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-2 pb-5 max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-2 pb-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-[#EEE2D4] rounded-full mx-auto mb-3 mt-1" />
             <button
               onClick={() => {
@@ -653,7 +647,7 @@ export default function PrevencionPage() {
       {/* MODAL AGREGAR */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => { setModal(null); setEditandoId(null) }}>
-          <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-bold text-base">
                 {modal === 'vacuna' ? (editandoId ? '💉 Editar vacuna' : '💉 Nueva vacuna') : modal === 'anti' ? (editandoId ? '💊 Editar antiparasitario' : '💊 Nuevo antiparasitario') : modal === 'medicamento' ? '🩹 Nuevo medicamento' : modal === 'enfermedad' ? '🏥 Nuevo diagnóstico' : modal === 'examen' ? '📄 Nuevo examen' : '👁️ Nueva observación'}
