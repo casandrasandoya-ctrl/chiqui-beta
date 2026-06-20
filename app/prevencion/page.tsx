@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import PesoTracker from '@/components/PesoTracker'
+import SelectorMascota from '@/components/SelectorMascota'
+import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 function fmt(f: string) { const d = new Date(f + 'T00:00:00'); return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}` }
@@ -36,6 +38,7 @@ const MAX_ARCHIVO_BYTES = 8 * 1024 * 1024 // 8MB
 export default function PrevencionPage() {
   const router = useRouter()
   const supabase = createClient()
+  const [mascotas, setMascotas] = useState<any[]>([])
   const [mascota, setMascota] = useState<any>(null)
   const [vacunas, setVacunas] = useState<any[]>([])
   const [antis, setAntis] = useState<any[]>([])
@@ -56,14 +59,25 @@ export default function PrevencionPage() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: m } = await supabase.from('mascotas').select('*').limit(1).single()
-      if (!m) { router.push('/mascota/nueva'); return }
+      const { data: todasMascotas } = await supabase.from('mascotas').select('*').order('created_at', { ascending: true })
+      if (!todasMascotas || !todasMascotas.length) { router.push('/mascota/nueva'); return }
+      setMascotas(todasMascotas)
+      const m = determinarMascotaActiva(todasMascotas)!
       setMascota(m)
       await cargarDatos(m.id)
       setLoading(false)
     }
     init()
   }, [])
+
+  async function cambiarMascota(nueva: any) {
+    setLoading(true)
+    guardarMascotaActivaId(nueva.id)
+    setMascota(nueva)
+    setTab('peso')
+    await cargarDatos(nueva.id)
+    setLoading(false)
+  }
 
   async function cargarDatos(id: string) {
     const [v, a, o, med, enf, exa] = await Promise.all([
@@ -202,6 +216,9 @@ export default function PrevencionPage() {
           </button>
         )}
       </div>
+
+      {/* Selector de mascota */}
+      {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
 
       {/* Tabs */}
       <div className="flex px-4 gap-2 mb-4 overflow-x-auto">

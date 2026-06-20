@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
+import SelectorMascota from '@/components/SelectorMascota'
+import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 
 const ESTADO_COLOR: Record<string, string> = {
   verde: '#4CAF7D', amarillo: '#F5C842', naranjo: '#F07A30', rojo: '#E05252'
@@ -12,30 +14,45 @@ const ESTADO_COLOR: Record<string, string> = {
 export default function AnalisisPage() {
   const router = useRouter()
   const supabase = createClient()
+  const [mascotas, setMascotas] = useState<any[]>([])
   const [mascota, setMascota] = useState<any>(null)
   const [registros, setRegistros] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [periodo, setPeriodo] = useState(30)
 
+  async function cargarRegistros(mascotaId: string) {
+    const desde = new Date()
+    desde.setDate(desde.getDate() - 30)
+    const { data: r } = await supabase
+      .from('registros_diarios').select('*')
+      .eq('mascota_id', mascotaId)
+      .gte('fecha', desde.toISOString().split('T')[0])
+      .order('fecha', { ascending: false })
+    setRegistros(r || [])
+  }
+
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: m } = await supabase.from('mascotas').select('*').limit(1).single()
-      if (!m) { router.push('/mascota/nueva'); return }
+      const { data: todasMascotas } = await supabase.from('mascotas').select('*').order('created_at', { ascending: true })
+      if (!todasMascotas || !todasMascotas.length) { router.push('/mascota/nueva'); return }
+      setMascotas(todasMascotas)
+      const m = determinarMascotaActiva(todasMascotas)!
       setMascota(m)
-      const desde = new Date()
-      desde.setDate(desde.getDate() - 30)
-      const { data: r } = await supabase
-        .from('registros_diarios').select('*')
-        .eq('mascota_id', m.id)
-        .gte('fecha', desde.toISOString().split('T')[0])
-        .order('fecha', { ascending: false })
-      setRegistros(r || [])
+      await cargarRegistros(m.id)
       setLoading(false)
     }
     init()
   }, [])
+
+  async function cambiarMascota(nueva: any) {
+    setLoading(true)
+    guardarMascotaActivaId(nueva.id)
+    setMascota(nueva)
+    await cargarRegistros(nueva.id)
+    setLoading(false)
+  }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-[#8A7560]">Cargando...</div>
 
@@ -83,6 +100,9 @@ export default function AnalisisPage() {
           <p className="text-xs text-[#8A7560]">{mascota?.nombre} · últimos 30 días</p>
         </div>
       </div>
+
+      {/* Selector de mascota */}
+      {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
 
       {/* Insights Chiqui */}
       <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">

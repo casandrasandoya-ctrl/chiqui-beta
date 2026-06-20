@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import LinkVet from '@/components/LinkVet'
+import SelectorMascota from '@/components/SelectorMascota'
+import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 
 const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
 const SC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
@@ -34,6 +36,7 @@ interface Mascota {
 export default function PerfilPage() {
   const router = useRouter()
   const supabase = createClient()
+  const [mascotas, setMascotas] = useState<Mascota[]>([])
   const [mascota, setMascota] = useState<Mascota | null>(null)
   const [editando, setEditando] = useState(false)
   const [form, setForm] = useState<Partial<Mascota>>({})
@@ -47,14 +50,25 @@ export default function PerfilPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       setUserEmail(user.email || '')
-      const { data: m } = await supabase.from('mascotas').select('*').limit(1).single()
-      if (!m) { router.push('/mascota/nueva'); return }
+      const { data: todasMascotas } = await supabase.from('mascotas').select('*').order('created_at', { ascending: true })
+      if (!todasMascotas || !todasMascotas.length) { router.push('/mascota/nueva'); return }
+      setMascotas(todasMascotas)
+      const m = determinarMascotaActiva(todasMascotas)!
       setMascota(m)
       setForm(m)
       setLoading(false)
     }
     init()
   }, [])
+
+  function cambiarMascota(nueva: Mascota) {
+    guardarMascotaActivaId(nueva.id)
+    setMascota(nueva)
+    setForm(nueva)
+    // Cerramos el modo edicion al cambiar, para no terminar editando los
+    // datos de una mascota pensando que es otra.
+    setEditando(false)
+  }
 
   async function guardar() {
     if (!mascota) return
@@ -130,6 +144,9 @@ export default function PerfilPage() {
           </div>
         )}
       </div>
+
+      {/* Selector de mascota */}
+      {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
 
       <div className="grid grid-cols-3 gap-3 mx-4 mt-4 mb-4">
         <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
@@ -217,6 +234,9 @@ export default function PerfilPage() {
           <p className="text-xs text-[#8A7560]">Email</p>
           <p className="text-sm mt-0.5">{userEmail}</p>
         </div>
+        <button onClick={() => router.push('/mascota/nueva')} className="w-full px-4 py-3 text-left text-sm text-[#8C572F] font-semibold border-b border-[#EEE2D4]">
+          + Agregar otra mascota
+        </button>
         <button onClick={cerrarSesion} className="w-full px-4 py-3 text-left text-sm text-[#E05252] font-semibold">
           Cerrar sesión →
         </button>
