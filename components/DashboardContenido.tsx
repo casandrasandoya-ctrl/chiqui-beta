@@ -23,6 +23,7 @@ interface MascotaResumen {
   nombre: string
   especie: string
   raza?: string
+  foto_url?: string
 }
 
 interface Props {
@@ -97,9 +98,15 @@ export default function DashboardContenido({
       {/* HERO */}
       <div className="relative mx-4 mb-4 bg-[#8C572F] rounded-2xl p-5 overflow-hidden">
         <div className="flex items-start gap-3.5">
-          <div className="relative w-16 h-16 rounded-full bg-[#FFBD59] border-2 border-[#FFFCF8]/40 flex items-center justify-center text-4xl flex-shrink-0">
-            {iconoPorEspecie(m.especie)}
-          </div>
+          {m.foto_url ? (
+            <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[#FFFCF8]/40 flex-shrink-0">
+              <img src={m.foto_url} alt={m.nombre} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="relative w-16 h-16 rounded-full bg-[#FFBD59] border-2 border-[#FFFCF8]/40 flex items-center justify-center text-4xl flex-shrink-0">
+              {iconoPorEspecie(m.especie)}
+            </div>
+          )}
           <div className="flex-1 pt-0.5">
             <div className="font-heading text-lg font-extrabold leading-none text-[#FFFCF8]">{m.nombre}</div>
             <div className="text-xs text-[#F0DEC8] mt-1 mb-2">

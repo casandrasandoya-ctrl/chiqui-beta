@@ -31,7 +31,7 @@ export default async function Dashboard({ searchParams }: Props) {
   // mostrar como activa.
   const { data: mascotas } = await supabase
     .from('mascotas')
-    .select('id, nombre, especie, raza')
+    .select('id, nombre, especie, raza, foto_url')
     .order('created_at', { ascending: true })
 
   if (!mascotas || !mascotas.length) redirect('/mascota/nueva')

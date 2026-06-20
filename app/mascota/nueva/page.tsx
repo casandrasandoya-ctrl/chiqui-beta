@@ -28,6 +28,9 @@ export default function NuevaMascotaPage() {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [fotoArchivo, setFotoArchivo] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+  const [errorFoto, setErrorFoto] = useState('')
 
   const [form, setForm] = useState({
     nombre: '',
@@ -53,6 +56,22 @@ export default function NuevaMascotaPage() {
       return { ...prev, [key]: value }
     })
 
+  function elegirFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0]
+    if (!archivo) return
+    setErrorFoto('')
+    if (!archivo.type.startsWith('image/')) {
+      setErrorFoto('Solo se aceptan imágenes.')
+      return
+    }
+    if (archivo.size > 2 * 1024 * 1024) {
+      setErrorFoto('La imagen supera los 2MB. Intenta con una foto más liviana.')
+      return
+    }
+    setFotoArchivo(archivo)
+    setFotoPreview(URL.createObjectURL(archivo))
+  }
+
   async function handleSubmit() {
     setLoading(true)
     setError('')
@@ -70,6 +89,24 @@ export default function NuevaMascotaPage() {
       setError('Hubo un error guardando la mascota. Intenta de nuevo.')
       setLoading(false)
       return
+    }
+
+    // Si se eligio una foto antes de guardar, la subimos ahora que ya
+    // existe el id de la mascota (la foto no se podia subir antes porque
+    // el componente necesita ese id para construir la ruta del archivo).
+    if (fotoArchivo) {
+      const extension = fotoArchivo.name.split('.').pop() || 'jpg'
+      const path = `${user.id}/${nuevaMascota.id}.${extension}`
+      const { error: uploadError } = await supabase.storage
+        .from('fotos-mascotas')
+        .upload(path, fotoArchivo, { upsert: true })
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('fotos-mascotas').getPublicUrl(path)
+        await supabase.from('mascotas').update({ foto_url: `${urlData.publicUrl}?t=${Date.now()}` }).eq('id', nuevaMascota.id)
+      }
+      // Si falla la subida de la foto, no bloqueamos la creacion de la
+      // mascota -- ya quedo guardada, solo sin foto. La persona puede
+      // agregarla despues desde Perfil.
     }
 
     guardarMascotaActivaId(nuevaMascota.id)
@@ -220,6 +257,21 @@ export default function NuevaMascotaPage() {
                 Cuanto más sé de tu compañero, mejor puedo ayudarte a interpretar sus señales. Pero estos datos son opcionales y los puedes completar después.
               </p>
             </div>
+
+            <Field label="Foto de tu mascota" optional>
+              <div className="flex items-center gap-3">
+                <label className="w-16 h-16 rounded-full bg-[#FFFCF8] border-2 border-[#EEE2D4] flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer">
+                  {fotoPreview ? (
+                    <img src={fotoPreview} alt="Vista previa" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl">📷</span>
+                  )}
+                  <input type="file" accept="image/*" onChange={elegirFoto} className="hidden" />
+                </label>
+                <p className="text-xs text-[#8A7560]">Toca el círculo para elegir una foto desde tu cámara o galería.</p>
+              </div>
+              {errorFoto && <p className="text-[11px] text-[#E05252] mt-1.5">{errorFoto}</p>}
+            </Field>
 
             <Field label="Alergias conocidas" optional>
               <input className={inputClass} placeholder="ej. Pollo, trigo, ninguna..."
