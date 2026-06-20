@@ -21,21 +21,29 @@ export function useBloquearScroll(activo: boolean) {
       top: document.body.style.top,
       left: document.body.style.left,
       right: document.body.style.right,
-      width: document.body.style.width,
+      height: document.body.style.height,
+      overflow: document.body.style.overflow,
     }
 
+    // IMPORTANTE: no se fija "width: 100%" aqui, porque el body de esta
+    // app ya tiene max-width: 420px (definido en globals.css) para verse
+    // como una app movil centrada en pantallas grandes. Forzar
+    // width:100% chocaba con eso y rompia el calculo de alto disponible
+    // dentro de los modales (90vh dejaba de calcularse bien).
     document.body.style.position = 'fixed'
     document.body.style.top = `-${scrollY}px`
     document.body.style.left = '0'
     document.body.style.right = '0'
-    document.body.style.width = '100%'
+    document.body.style.height = '100%'
+    document.body.style.overflow = 'hidden'
 
     return () => {
       document.body.style.position = bodyEstilosOriginales.position
       document.body.style.top = bodyEstilosOriginales.top
       document.body.style.left = bodyEstilosOriginales.left
       document.body.style.right = bodyEstilosOriginales.right
-      document.body.style.width = bodyEstilosOriginales.width
+      document.body.style.height = bodyEstilosOriginales.height
+      document.body.style.overflow = bodyEstilosOriginales.overflow
       // Restauramos la posicion de scroll exacta donde estaba antes de
       // abrir el modal (position:fixed la habia "congelado" visualmente
       // en 0, pero el navegador no vuelve solo a donde estaba).
