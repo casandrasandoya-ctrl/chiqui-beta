@@ -2,19 +2,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { guardarMascotaActivaId } from '@/utils/mascotaActiva'
+import { iconoPorEspecie } from '@/utils/iconoEspecie'
 
 interface Mascota {
   id: string
   nombre: string
   especie: string
   raza?: string
-}
-
-const ICONO_ESPECIE: Record<string, string> = {
-  Perro: '🐶',
-  Gato: '🐱',
-  Conejo: '🐇',
-  Ave: '🐦',
 }
 
 export default function SelectorMascota({
@@ -35,7 +29,7 @@ export default function SelectorMascota({
     setAbierto(false)
   }
 
-  const icono = (especie: string) => ICONO_ESPECIE[especie] || '🐾'
+  const icono = iconoPorEspecie
 
   return (
     <div className="px-4 pb-3 relative">

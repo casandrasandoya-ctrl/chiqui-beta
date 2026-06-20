@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
+import { iconoPorEspecie } from '@/utils/iconoEspecie'
 
 interface DetalleSub { titulo: string; opciones: { value: string; emoji: string; label: string }[] }
 interface Opcion { value: string; emoji: string; label: string; detalle?: DetalleSub[] }
@@ -311,7 +312,7 @@ function RegistroContenido() {
       )}
 
       <div className="mx-4 mt-3 mb-1 bg-[#FBEAD9] border border-[#3DD6B5]/15 rounded-xl p-3 flex gap-2.5">
-        <span className="text-lg flex-shrink-0">{especie === 'Gato' ? '🐱' : '🐶'}</span>
+        <span className="text-lg flex-shrink-0">{iconoPorEspecie(especie)}</span>
         <p className="text-xs text-[#3D2B1F] leading-relaxed">
           Toca las categorías que apliquen hoy. Si algo fue distinto, aparecerán más opciones. No necesitas registrar todo.
         </p>

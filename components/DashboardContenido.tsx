@@ -4,6 +4,7 @@ import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
 import SelectorMascota from '@/components/SelectorMascota'
 import { guardarMascotaActivaId, obtenerMascotaActivaId } from '@/utils/mascotaActiva'
+import { iconoPorEspecie } from '@/utils/iconoEspecie'
 import { useEffect } from 'react'
 
 function calcEdad(f: string) {
@@ -89,7 +90,7 @@ export default function DashboardContenido({
 
       {/* Saludo / banner superior */}
       <div className="mx-4 mb-3 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5">
-        <span className="text-lg flex-shrink-0">🐶</span>
+        <span className="text-lg flex-shrink-0">{iconoPorEspecie(m.especie)}</span>
         <p className="text-xs font-semibold text-[#5C4A3A]">Hola, ¿cómo está tu compañero hoy?</p>
       </div>
 
@@ -97,7 +98,7 @@ export default function DashboardContenido({
       <div className="relative mx-4 mb-4 bg-[#8C572F] rounded-2xl p-5 overflow-hidden">
         <div className="flex items-start gap-3.5">
           <div className="relative w-16 h-16 rounded-full bg-[#FFBD59] border-2 border-[#FFFCF8]/40 flex items-center justify-center text-4xl flex-shrink-0">
-            🐶
+            {iconoPorEspecie(m.especie)}
           </div>
           <div className="flex-1 pt-0.5">
             <div className="font-heading text-lg font-extrabold leading-none text-[#FFFCF8]">{m.nombre}</div>
