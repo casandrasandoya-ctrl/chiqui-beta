@@ -56,14 +56,32 @@ export default async function Dashboard({ searchParams }: Props) {
   const m = mascota
   const hoy = new Date().toISOString().split('T')[0]
 
-  const [{ data: regHoy }, { data: vacunas }, { data: antis }, { data: obs }, { data: medsConControl }, { data: enfsConRevision }] = await Promise.all([
+  const [{ data: regHoy }, { data: vacunas }, { data: antis }, { data: obs }, { data: medsConControl }, { data: enfsConRevision }, { data: ultVet }, { data: ultBano }, { data: ultUnas }, { data: ultAlimento }] = await Promise.all([
     supabase.from('registros_diarios').select('estado_dia').eq('mascota_id', m.id).eq('fecha', hoy).single(),
     supabase.from('vacunas').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
     supabase.from('antiparasitarios').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
     supabase.from('observaciones').select('titulo,fecha_inicio').eq('mascota_id', m.id).eq('estado', 'activa').limit(1),
     supabase.from('medicamentos').select('nombre,proximo_control').eq('mascota_id', m.id).gte('proximo_control', hoy).order('proximo_control').limit(2),
     supabase.from('enfermedades').select('diagnostico,proxima_revision').eq('mascota_id', m.id).gte('proxima_revision', hoy).order('proxima_revision').limit(2),
+    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('fue_al_vet', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('se_bano', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('corte_unas', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('compro_alimento', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
   ])
+
+  // Calcula "hace cuántos días" a partir de una fecha (texto YYYY-MM-DD).
+  function diasDesde(fecha: string): number {
+    const hoyDate = new Date(hoy + 'T00:00:00')
+    const fechaDate = new Date(fecha + 'T00:00:00')
+    return Math.round((hoyDate.getTime() - fechaDate.getTime()) / 86400000)
+  }
+
+  const cuidadosRecientes = [
+    ultVet && { label: 'Veterinario', emoji: '🩺', dias: diasDesde(ultVet.fecha) },
+    ultBano && { label: 'Baño', emoji: '🛁', dias: diasDesde(ultBano.fecha) },
+    ultUnas && { label: 'Corte de uñas', emoji: '✂️', dias: diasDesde(ultUnas.fecha) },
+    ultAlimento && { label: 'Compra de alimento', emoji: '🛒', dias: diasDesde(ultAlimento.fecha) },
+  ].filter(Boolean) as { label: string; emoji: string; dias: number }[]
 
   const color = regHoy?.estado_dia ? EC[regHoy.estado_dia] : '#4CAF7D'
   const estadoLabel = regHoy?.estado_dia ? EL[regHoy.estado_dia] : 'Sin registro hoy'
@@ -103,6 +121,7 @@ export default async function Dashboard({ searchParams }: Props) {
       obsActiva={obsActiva}
       proximosItems={proximosItems}
       tieneRegistroHoy={!!regHoy}
+      cuidadosRecientes={cuidadosRecientes}
     />
   )
 }

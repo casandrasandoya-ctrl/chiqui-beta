@@ -198,6 +198,7 @@ function RegistroContenido() {
   const [det, setDet] = useState<Record<string,string[]>>({})
   const [fechaRegistro, setFechaRegistro] = useState('')
   const [nota, setNota] = useState('')
+  const [cuidados, setCuidados] = useState<Set<string>>(new Set())
   const [abierto, setAbierto] = useState('energia')
   const [loading, setLoading] = useState(false)
   const [cargando, setCargando] = useState(true)
@@ -234,6 +235,7 @@ function RegistroContenido() {
     setSel({})
     setDet({})
     setNota('')
+    setCuidados(new Set())
     setAbierto('energia')
     const hoy = fechaUrl || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0]
     const { data: r } = await supabase.from('registros_diarios').select('id').eq('mascota_id', nueva.id).eq('fecha', hoy).single()
@@ -242,6 +244,15 @@ function RegistroContenido() {
   }
 
   const CATS = getCategorias(especie)
+
+  function toggleCuidado(valor: string) {
+    setCuidados(prev => {
+      const nuevo = new Set(prev)
+      if (nuevo.has(valor)) nuevo.delete(valor)
+      else nuevo.add(valor)
+      return nuevo
+    })
+  }
 
   async function guardar() {
     if (!Object.keys(sel).length) return
@@ -259,6 +270,8 @@ function RegistroContenido() {
       pelaje: sel.pelaje || null, pelaje_detalle: det.pelaje?.join(', ') || null,
       conducta: sel.conducta || null, conducta_detalle: det.conducta?.join(', ') || null,
       movilidad: sel.movilidad || null, movilidad_detalle: det.movilidad?.join(', ') || null,
+      fue_al_vet: cuidados.has('vet'), se_bano: cuidados.has('bano'),
+      corte_unas: cuidados.has('unas'), compro_alimento: cuidados.has('alimento'),
     }, { onConflict: 'mascota_id,fecha' })
     router.push('/dashboard')
     router.refresh()
@@ -392,6 +405,36 @@ function RegistroContenido() {
             </div>
           )
         })}
+      </div>
+
+      {/* CUIDADOS BÁSICOS */}
+      <div className="mx-4 mt-4">
+        <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
+          Cuidados de hoy · opcional, puedes marcar varios
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { value: 'vet', emoji: '🩺', label: 'Fue al veterinario' },
+            { value: 'bano', emoji: '🛁', label: 'Se bañó' },
+            { value: 'unas', emoji: '✂️', label: 'Corte de uñas' },
+            { value: 'alimento', emoji: '🛒', label: 'Compró alimento' },
+          ].map(c => {
+            const activo = cuidados.has(c.value)
+            return (
+              <button
+                key={c.value}
+                onClick={() => toggleCuidado(c.value)}
+                className="flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
+                style={activo
+                  ? { background: '#FFBD5920', borderColor: '#FFBD59', borderWidth: '1.5px' }
+                  : { background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
+              >
+                <span className="text-base flex-shrink-0">{c.emoji}</span>
+                <span className="text-xs font-medium text-[#3D2B1F]">{c.label}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <div className="mx-4 mt-4">

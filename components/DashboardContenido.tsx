@@ -35,10 +35,11 @@ interface Props {
   obsActiva: { titulo: string; fecha_inicio: string } | null | undefined
   proximosItems: { label: string; sub: string; dias: string; color: string }[]
   tieneRegistroHoy: boolean
+  cuidadosRecientes: { label: string; emoji: string; dias: number }[]
 }
 
 export default function DashboardContenido({
-  mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy,
+  mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy, cuidadosRecientes,
 }: Props) {
   const router = useRouter()
   const today = new Date()
@@ -184,6 +185,28 @@ export default function DashboardContenido({
                   <span className="text-[10.5px] font-bold" style={{ color: item.color }}>{item.dias}</span>
                 </div>
                 <p className="text-[11px] text-[#8A7560] leading-tight">{item.sub}</p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* CUIDADOS RECIENTES */}
+      {cuidadosRecientes.length > 0 && (
+        <>
+          <div className="px-5 pb-2.5">
+            <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Cuidados recientes</span>
+          </div>
+          <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
+            {cuidadosRecientes.map(item => (
+              <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
+                <span className="text-lg flex-shrink-0">{item.emoji}</span>
+                <div>
+                  <p className="text-[12.5px] font-bold text-[#3D2B1F]">{item.label}</p>
+                  <p className="text-[11px] text-[#8A7560]">
+                    {item.dias === 0 ? 'Hoy' : item.dias === 1 ? 'Ayer' : `Hace ${item.dias} días`}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
