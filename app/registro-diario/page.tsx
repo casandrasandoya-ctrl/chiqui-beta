@@ -6,6 +6,7 @@ import BottomNav from '@/components/BottomNav'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
+import { useBloquearScroll } from '@/utils/useBloquearScroll'
 
 interface DetalleSub { titulo: string; opciones: { value: string; emoji: string; label: string }[] }
 interface Opcion { value: string; emoji: string; label: string; detalle?: DetalleSub[] }
@@ -200,6 +201,10 @@ function RegistroContenido() {
   const [nota, setNota] = useState('')
   const [cuidados, setCuidados] = useState<Set<string>>(new Set())
   const [miniModal, setMiniModal] = useState<'vacuna' | 'anti' | 'medicamento' | null>(null)
+
+  // Bloquea el scroll del fondo mientras el mini-formulario de
+  // vacuna/antiparasitario/medicamento esta abierto.
+  useBloquearScroll(!!miniModal)
   const [miniForm, setMiniForm] = useState<{ nombre: string; proxima_fecha: string; tipo: string }>({ nombre: '', proxima_fecha: '', tipo: 'interno' })
   const [miniError, setMiniError] = useState('')
   const [miniGuardando, setMiniGuardando] = useState(false)
@@ -551,11 +556,7 @@ function RegistroContenido() {
       {/* Mini-modal para vacuna/antiparasitario aplicado hoy */}
       {miniModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={cancelarMiniModal}>
-          <div
-            className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5 max-h-[90vh] overflow-y-auto"
-            style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 20px)' }}
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-bold text-base">
                 {miniModal === 'vacuna' ? '💉 Vacuna de hoy' : miniModal === 'anti' ? '🪱 Antiparasitario de hoy' : '💊 Medicamento de hoy'}

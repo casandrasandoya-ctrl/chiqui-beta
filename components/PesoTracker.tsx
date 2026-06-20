@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { useBloquearScroll } from '@/utils/useBloquearScroll'
 
 interface RegistroPeso {
   id: string
@@ -20,6 +21,10 @@ export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: stri
   const [historial, setHistorial] = useState<RegistroPeso[]>([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(false)
+
+  // Bloquea el scroll del fondo mientras el modal de registrar peso
+  // esta abierto.
+  useBloquearScroll(modal)
   const [nuevoPeso, setNuevoPeso] = useState('')
   const [nuevaFecha, setNuevaFecha] = useState(new Date().toISOString().split('T')[0])
   const [saving, setSaving] = useState(false)
@@ -141,11 +146,7 @@ export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: stri
 
       {modal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setModal(false)}>
-          <div
-            className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4"
-            style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 20px)' }}
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="font-heading font-bold text-base">⚖️ Registrar peso</h2>
               <button onClick={() => setModal(false)} className="text-[#8A7560] text-xl">✕</button>
