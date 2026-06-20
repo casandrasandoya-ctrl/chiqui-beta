@@ -56,7 +56,7 @@ export default async function Dashboard({ searchParams }: Props) {
   const m = mascota
   const hoy = new Date().toISOString().split('T')[0]
 
-  const [{ data: regHoy }, { data: vacunas }, { data: antis }, { data: obs }, { data: medsConControl }, { data: enfsConRevision }, { data: ultVet }, { data: ultBano }, { data: ultUnas }, { data: ultAlimento }] = await Promise.all([
+  const [{ data: regHoy }, { data: vacunas }, { data: antis }, { data: obs }, { data: medsConControl }, { data: enfsConRevision }, { data: ultVet }, { data: ultBano }, { data: ultUnas }, { data: ultAlimento }, { data: ultVacunaHoy }, { data: ultAntiHoy }] = await Promise.all([
     supabase.from('registros_diarios').select('estado_dia').eq('mascota_id', m.id).eq('fecha', hoy).single(),
     supabase.from('vacunas').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
     supabase.from('antiparasitarios').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
@@ -67,6 +67,8 @@ export default async function Dashboard({ searchParams }: Props) {
     supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('se_bano', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('corte_unas', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('compro_alimento', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('vacuna_hoy', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('registros_diarios').select('fecha').eq('mascota_id', m.id).eq('anti_hoy', true).order('fecha', { ascending: false }).limit(1).maybeSingle(),
   ])
 
   // Calcula "hace cuántos días" a partir de una fecha (texto YYYY-MM-DD).
@@ -81,6 +83,8 @@ export default async function Dashboard({ searchParams }: Props) {
     ultBano && { label: 'Baño', emoji: '🛁', dias: diasDesde(ultBano.fecha) },
     ultUnas && { label: 'Corte de uñas', emoji: '✂️', dias: diasDesde(ultUnas.fecha) },
     ultAlimento && { label: 'Compra de alimento', emoji: '🍖', dias: diasDesde(ultAlimento.fecha) },
+    ultVacunaHoy && { label: 'Vacuna', emoji: '💉', dias: diasDesde(ultVacunaHoy.fecha) },
+    ultAntiHoy && { label: 'Antiparasitario', emoji: '🪱', dias: diasDesde(ultAntiHoy.fecha) },
   ].filter(Boolean) as { label: string; emoji: string; dias: number }[]
 
   const color = regHoy?.estado_dia ? EC[regHoy.estado_dia] : '#4CAF7D'
