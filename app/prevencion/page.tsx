@@ -63,7 +63,7 @@ export default function PrevencionPage() {
   const [modal, setModal] = useState<'vacuna' | 'anti' | 'obs' | 'medicamento' | 'enfermedad' | 'examen' | null>(null)
   const [form, setForm] = useState<any>({})
   const [editandoId, setEditandoId] = useState<string | null>(null)
-  const [menuAbierto, setMenuAbierto] = useState<{ tipo: 'vacuna' | 'anti'; id: string } | null>(null)
+  const [menuAbierto, setMenuAbierto] = useState<{ tipo: 'vacuna' | 'anti' | 'medicamento' | 'enfermedad' | 'obs' | 'examen'; id: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const [archivoExamen, setArchivoExamen] = useState<File | null>(null)
   const [errorExamen, setErrorExamen] = useState('')
@@ -147,13 +147,27 @@ export default function PrevencionPage() {
         await supabase.from('antiparasitarios').insert({ ...base, ...form })
       }
     } else if (modal === 'obs') {
-      const { data: nuevaObs } = await supabase.from('observaciones').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0] }).select('id').single()
-      if (nuevaObs && fotoSalud) await subirFotoSalud('observaciones', nuevaObs.id, user.id)
+      if (editandoId) {
+        await supabase.from('observaciones').update(form).eq('id', editandoId)
+        if (fotoSalud) await subirFotoSalud('observaciones', editandoId, user.id)
+      } else {
+        const { data: nuevaObs } = await supabase.from('observaciones').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0] }).select('id').single()
+        if (nuevaObs && fotoSalud) await subirFotoSalud('observaciones', nuevaObs.id, user.id)
+      }
     } else if (modal === 'medicamento') {
-      await supabase.from('medicamentos').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0], indicado_por_vet: !!form.indicado_por_vet })
+      if (editandoId) {
+        await supabase.from('medicamentos').update({ ...form, indicado_por_vet: !!form.indicado_por_vet }).eq('id', editandoId)
+      } else {
+        await supabase.from('medicamentos').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0], indicado_por_vet: !!form.indicado_por_vet })
+      }
     } else if (modal === 'enfermedad') {
-      const { data: nuevaEnf } = await supabase.from('enfermedades').insert({ ...base, ...form, fecha_diagnostico: form.fecha_diagnostico || new Date().toISOString().split('T')[0] }).select('id').single()
-      if (nuevaEnf && fotoSalud) await subirFotoSalud('enfermedades', nuevaEnf.id, user.id)
+      if (editandoId) {
+        await supabase.from('enfermedades').update(form).eq('id', editandoId)
+        if (fotoSalud) await subirFotoSalud('enfermedades', editandoId, user.id)
+      } else {
+        const { data: nuevaEnf } = await supabase.from('enfermedades').insert({ ...base, ...form, fecha_diagnostico: form.fecha_diagnostico || new Date().toISOString().split('T')[0] }).select('id').single()
+        if (nuevaEnf && fotoSalud) await subirFotoSalud('enfermedades', nuevaEnf.id, user.id)
+      }
     }
     await cargarDatos(mascota.id)
     setModal(null); setForm({}); setSaving(false); setEditandoId(null)
@@ -270,6 +284,56 @@ export default function PrevencionPage() {
     setMenuAbierto(null)
     if (!confirm('¿Eliminar este antiparasitario? Esta acción no se puede deshacer.')) return
     await supabase.from('antiparasitarios').delete().eq('id', id)
+    if (mascota) await cargarDatos(mascota.id)
+  }
+
+  function editarMedicamento(med: any) {
+    setEditandoId(med.id)
+    setForm({
+      nombre: med.nombre, dosis: med.dosis || '', frecuencia: med.frecuencia || '',
+      motivo: med.motivo || '', fecha_inicio: med.fecha_inicio, fecha_fin: med.fecha_fin || '',
+      proximo_control: med.proximo_control || '', indicado_por_vet: med.indicado_por_vet ? 'true' : '',
+      nota: med.nota || '', estado: med.estado || 'activo',
+    })
+    setModal('medicamento')
+    setMenuAbierto(null)
+  }
+
+  async function eliminarMedicamento(id: string) {
+    setMenuAbierto(null)
+    if (!confirm('¿Eliminar este medicamento? Esta acción no se puede deshacer.')) return
+    await supabase.from('medicamentos').delete().eq('id', id)
+    if (mascota) await cargarDatos(mascota.id)
+  }
+
+  function editarEnfermedad(enf: any) {
+    setEditandoId(enf.id)
+    setForm({
+      diagnostico: enf.diagnostico, fecha_diagnostico: enf.fecha_diagnostico, estado: enf.estado || '',
+      veterinario: enf.veterinario || '', proxima_revision: enf.proxima_revision || '', nota: enf.nota || '',
+    })
+    setModal('enfermedad')
+    setMenuAbierto(null)
+  }
+
+  async function eliminarEnfermedad(id: string) {
+    setMenuAbierto(null)
+    if (!confirm('¿Eliminar esta enfermedad? Esta acción no se puede deshacer.')) return
+    await supabase.from('enfermedades').delete().eq('id', id)
+    if (mascota) await cargarDatos(mascota.id)
+  }
+
+  function editarObs(o: any) {
+    setEditandoId(o.id)
+    setForm({ titulo: o.titulo, tipo: o.tipo || '', descripcion: o.descripcion || '', fecha_inicio: o.fecha_inicio, estado: o.estado || 'activa' })
+    setModal('obs')
+    setMenuAbierto(null)
+  }
+
+  async function eliminarObs(id: string) {
+    setMenuAbierto(null)
+    if (!confirm('¿Eliminar esta observación? Esta acción no se puede deshacer.')) return
+    await supabase.from('observaciones').delete().eq('id', id)
     if (mascota) await cargarDatos(mascota.id)
   }
   const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
@@ -430,7 +494,7 @@ export default function PrevencionPage() {
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">🩹</div>
               <p className="text-sm text-[#8A7560]">Sin medicamentos registrados</p>
-              <button onClick={() => { setModal('medicamento'); setForm({}) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <button onClick={() => { setModal('medicamento'); setForm({}); setEditandoId(null) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Agregar medicamento
               </button>
             </div>
@@ -447,9 +511,12 @@ export default function PrevencionPage() {
                       <p className="text-xs text-[#8A7560]">Desde: {fmt(med.fecha_inicio)}{med.fecha_fin ? ` hasta ${fmt(med.fecha_fin)}` : ''}</p>
                     </div>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
-                    {med.estado === 'activo' ? 'Activo' : 'Finalizado'}
-                  </span>
+                  <div className="flex items-start gap-1">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
+                      {med.estado === 'activo' ? 'Activo' : 'Finalizado'}
+                    </span>
+                    <button onClick={() => setMenuAbierto({ tipo: 'medicamento', id: med.id })} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
+                  </div>
                 </div>
                 {med.motivo && <p className="text-xs text-[#8A7560] mt-2">Motivo: {med.motivo}</p>}
                 <div className="flex items-center gap-1.5 mt-2">
@@ -480,7 +547,7 @@ export default function PrevencionPage() {
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">🏥</div>
               <p className="text-sm text-[#8A7560]">Sin enfermedades registradas</p>
-              <button onClick={() => { setModal('enfermedad'); setForm({}); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <button onClick={() => { setModal('enfermedad'); setForm({}); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud(''); setEditandoId(null) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Agregar diagnóstico
               </button>
             </div>
@@ -500,9 +567,12 @@ export default function PrevencionPage() {
                         {enf.veterinario && <p className="text-xs text-[#8A7560]">Por: {enf.veterinario}</p>}
                       </div>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: `${estadoColor[enf.estado]}20`, color: estadoColor[enf.estado] }}>
-                      {estadoLabel[enf.estado] || enf.estado}
-                    </span>
+                    <div className="flex items-start gap-1">
+                      <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: `${estadoColor[enf.estado]}20`, color: estadoColor[enf.estado] }}>
+                        {estadoLabel[enf.estado] || enf.estado}
+                      </span>
+                      <button onClick={() => setMenuAbierto({ tipo: 'enfermedad', id: enf.id })} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
+                    </div>
                   </div>
                   {enf.proxima_revision && (
                     <div className="flex items-center gap-1.5 mt-2 bg-[#E05252]/10 rounded-lg px-2.5 py-1.5">
@@ -533,7 +603,7 @@ export default function PrevencionPage() {
             <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
               <div className="text-4xl mb-3">👁️</div>
               <p className="text-sm text-[#8A7560]">Sin observaciones registradas</p>
-              <button onClick={() => { setModal('obs'); setForm({}); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
+              <button onClick={() => { setModal('obs'); setForm({}); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud(''); setEditandoId(null) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">
                 + Agregar observación
               </button>
             </div>
@@ -546,9 +616,12 @@ export default function PrevencionPage() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <p className="font-bold text-sm">{o.titulo}</p>
+                    <div className="flex items-center gap-1">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${o.estado === 'activa' ? 'bg-[#F07A30]/20 text-[#F07A30]' : 'bg-[#4CAF7D]/20 text-[#4CAF7D]'}`}>
                         {o.estado === 'activa' ? 'Activa' : 'Resuelta'}
                       </span>
+                      <button onClick={() => setMenuAbierto({ tipo: 'obs', id: o.id })} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
+                    </div>
                     </div>
                     {o.descripcion && <p className="text-xs text-[#8A7560] mt-1 leading-relaxed">{o.descripcion}</p>}
                     <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
@@ -618,13 +691,12 @@ export default function PrevencionPage() {
             <div className="w-10 h-1 bg-[#EEE2D4] rounded-full mx-auto mb-3 mt-1" />
             <button
               onClick={() => {
-                if (menuAbierto.tipo === 'vacuna') {
-                  const v = vacunas.find((x: any) => x.id === menuAbierto.id)
-                  if (v) editarVacuna(v)
-                } else {
-                  const a = antis.find((x: any) => x.id === menuAbierto.id)
-                  if (a) editarAnti(a)
-                }
+                const { tipo, id } = menuAbierto
+                if (tipo === 'vacuna') { const v = vacunas.find((x: any) => x.id === id); if (v) editarVacuna(v) }
+                else if (tipo === 'anti') { const a = antis.find((x: any) => x.id === id); if (a) editarAnti(a) }
+                else if (tipo === 'medicamento') { const med = medicamentos.find((x: any) => x.id === id); if (med) editarMedicamento(med) }
+                else if (tipo === 'enfermedad') { const enf = enfermedades.find((x: any) => x.id === id); if (enf) editarEnfermedad(enf) }
+                else if (tipo === 'obs') { const o = obs.find((x: any) => x.id === id); if (o) editarObs(o) }
               }}
               className="w-full px-4 py-3.5 text-left text-sm font-medium text-[#3D2B1F] flex items-center gap-3"
             >
@@ -633,8 +705,12 @@ export default function PrevencionPage() {
             <div className="h-px bg-[#EEE2D4] mx-4" />
             <button
               onClick={() => {
-                if (menuAbierto.tipo === 'vacuna') eliminarVacuna(menuAbierto.id)
-                else eliminarAnti(menuAbierto.id)
+                const { tipo, id } = menuAbierto
+                if (tipo === 'vacuna') eliminarVacuna(id)
+                else if (tipo === 'anti') eliminarAnti(id)
+                else if (tipo === 'medicamento') eliminarMedicamento(id)
+                else if (tipo === 'enfermedad') eliminarEnfermedad(id)
+                else if (tipo === 'obs') eliminarObs(id)
               }}
               className="w-full px-4 py-3.5 text-left text-sm font-medium text-[#E05252] flex items-center gap-3"
             >
@@ -650,7 +726,7 @@ export default function PrevencionPage() {
           <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-bold text-base">
-                {modal === 'vacuna' ? (editandoId ? '💉 Editar vacuna' : '💉 Nueva vacuna') : modal === 'anti' ? (editandoId ? '💊 Editar antiparasitario' : '💊 Nuevo antiparasitario') : modal === 'medicamento' ? '🩹 Nuevo medicamento' : modal === 'enfermedad' ? '🏥 Nuevo diagnóstico' : modal === 'examen' ? '📄 Nuevo examen' : '👁️ Nueva observación'}
+                {modal === 'vacuna' ? (editandoId ? '💉 Editar vacuna' : '💉 Nueva vacuna') : modal === 'anti' ? (editandoId ? '💊 Editar antiparasitario' : '💊 Nuevo antiparasitario') : modal === 'medicamento' ? (editandoId ? '🩹 Editar medicamento' : '🩹 Nuevo medicamento') : modal === 'enfermedad' ? (editandoId ? '🏥 Editar diagnóstico' : '🏥 Nuevo diagnóstico') : modal === 'examen' ? '📄 Nuevo examen' : (editandoId ? '👁️ Editar observación' : '👁️ Nueva observación')}
               </h2>
               <button onClick={() => { setModal(null); setEditandoId(null) }} className="text-[#8A7560] text-xl">✕</button>
             </div>
