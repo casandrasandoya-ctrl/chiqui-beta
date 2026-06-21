@@ -8,6 +8,7 @@ import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
 import FotoMascota from '@/components/FotoMascota'
+import ConfiguracionNotificaciones from '@/components/ConfiguracionNotificaciones'
 
 const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
 const SC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
@@ -240,6 +241,8 @@ export default function PerfilPage() {
       </div>
 
       {mascota && <LinkVet mascotaId={mascota.id} />}
+
+      <ConfiguracionNotificaciones />
 
       <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <div className="px-4 py-3 border-b border-[#EEE2D4]">
