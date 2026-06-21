@@ -270,6 +270,21 @@ function RegistroContenido() {
 
   const CATS = getCategorias(especie)
 
+  // Marca todas las categorias de sintomas (CATS) como "normal" de una
+  // sola vez, EXCEPTO Paseo (que no tiene una opcion "normal", son rangos
+  // de duracion) y Cuidados (que es multi-seleccion aparte, no tiene
+  // sentido marcarla como "normal"). Despues de tocar este boton, las
+  // categorias individuales siguen siendo editables por si algo si
+  // cambio ese dia.
+  function marcarTodoNormal() {
+    const nuevoSel: Record<string, string> = { ...sel }
+    CATS.forEach(cat => {
+      if (cat.id === 'paseo') return
+      nuevoSel[cat.id] = 'normal'
+    })
+    setSel(nuevoSel)
+  }
+
   function toggleCuidado(valor: string) {
     // Vacuna, antiparasitario y medicamento necesitan datos adicionales
     // (nombre, tipo) antes de poder marcarse, asi que en vez de marcar
@@ -419,6 +434,18 @@ function RegistroContenido() {
           Toca las categorías que apliquen hoy. Si algo fue distinto, aparecerán más opciones. No necesitas registrar todo.
         </p>
       </div>
+
+      {/* Atajo: marcar todas las categorias de sintomas como normal de
+          una vez (no incluye Paseo ni Cuidados). Despues de tocarlo, se
+          puede seguir ajustando categorias individuales si algo cambio. */}
+      <button
+        onClick={marcarTodoNormal}
+        className="mx-4 mt-2 mb-1 w-[calc(100%-2rem)] bg-[#FFFCF8] border border-[#FFBD59]/50 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 text-left"
+      >
+        <span className="text-lg flex-shrink-0">🐶</span>
+        <p className="text-xs font-semibold text-[#7A4A2F] flex-1">¿Hoy no notaste nada raro? Solo aprieta "Todo normal".</p>
+        <span className="text-[#8C572F] text-xs font-bold flex-shrink-0">Todo normal</span>
+      </button>
 
       <div className="space-y-0 mt-2">
         {CATS.map(cat => {
