@@ -6,6 +6,7 @@ import SelectorMascota from '@/components/SelectorMascota'
 import { guardarMascotaActivaId, obtenerMascotaActivaId } from '@/utils/mascotaActiva'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
 import BannerNotificaciones from '@/components/BannerNotificaciones'
+import BannerInstalarApp from '@/components/BannerInstalarApp'
 import { useEffect, useState } from 'react'
 
 function calcEdad(f: string) {
@@ -98,6 +99,7 @@ export default function DashboardContenido({
         <p className="text-xs font-semibold text-[#5C4A3A]">Hola, ¿cómo está tu compañero hoy?</p>
       </div>
 
+      <BannerInstalarApp />
       <BannerNotificaciones />
 
       {/* HERO */}
