@@ -13,7 +13,6 @@ export default function RegistroPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
 
   async function handleRegistro(e: React.FormEvent) {
     e.preventDefault()
@@ -42,30 +41,22 @@ export default function RegistroPage() {
       return
     }
 
-    setSuccess(true)
-    setLoading(false)
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
-        <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-20 h-20 mb-2" />
-        <h1 className="text-2xl font-bold mb-3">¡Cuenta creada!</h1>
-        <p className="text-[#8A7560] text-sm leading-relaxed mb-8 max-w-xs">
-          Tu cuenta fue creada con éxito.
-        </p>
-        <Link href="/login" className="bg-[#FFBD59] text-[#1A1200] font-bold px-8 py-4 rounded-xl text-sm">
-          Ir al login →
-        </Link>
-      </div>
-    )
+    // Con "Confirm email" desactivado en este proyecto, signUp() deja a
+    // la persona YA LOGUEADA de inmediato (la sesion se crea junto con
+    // la cuenta) -- no hace falta pasar por /login otra vez. Antes, esta
+    // pantalla mostraba un boton "Ir al login" que era un paso
+    // redundante e innecesario: si ese segundo login fallaba por
+    // cualquier motivo, la persona quedaba bloqueada sin poder entrar,
+    // aunque su cuenta ya estuviera lista y con sesion activa.
+    router.push('/mascota/nueva')
+    router.refresh()
   }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
 
       <div className="text-center mb-10">
-        <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-24 h-24 mx-auto mb-2" />
+        <div className="text-5xl mb-3">🐶</div>
         <div className="text-2xl font-bold">Crear cuenta</div>
         <div className="text-sm text-[#FFBD59] font-semibold tracking-widest uppercase mt-1">CHIQUI Entre Señales</div>
       </div>
