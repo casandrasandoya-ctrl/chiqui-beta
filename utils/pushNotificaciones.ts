@@ -4,11 +4,11 @@ import { createClient } from '@/utils/supabase/client'
 // Convierte la clave publica VAPID (texto base64) al formato Uint8Array
 // que pide la API nativa del navegador. Sin esto, pushManager.subscribe
 // rechaza la clave.
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const rawData = window.atob(base64)
-  const outputArray = new Uint8Array(rawData.length)
+  const outputArray = new Uint8Array(new ArrayBuffer(rawData.length))
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i)
   }
