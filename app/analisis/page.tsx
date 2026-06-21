@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import SelectorMascota from '@/components/SelectorMascota'
@@ -338,14 +339,15 @@ export default function AnalisisPage() {
             const color = ESTADO_COLOR[r.estado_dia]
             const labels: Record<string,string> = { verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' }
             return (
-              <div key={r.id} className="flex items-center gap-3 px-4 py-3 border-b border-[#EEE2D4] last:border-0">
+              <Link key={r.id} href={`/registro-diario?fecha=${r.fecha}`} className="flex items-center gap-3 px-4 py-3 border-b border-[#EEE2D4] last:border-0">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}/>
                 <div className="flex-1">
                   <p className="text-xs font-semibold">{d.getDate()} {MESES[d.getMonth()]}</p>
                   <p className="text-xs mt-0.5" style={{ color }}>{labels[r.estado_dia]}</p>
                   {r.nota && <p className="text-[10px] text-[#8A7560] mt-0.5 italic">{r.nota}</p>}
                 </div>
-              </div>
+                <span className="text-[#8A7560] text-sm flex-shrink-0">›</span>
+              </Link>
             )
           })}
         </div>

@@ -204,9 +204,11 @@ export default function CalendarioPage() {
                   ['🍽️','Apetito',regDia.apetito],
                   ['💧','Agua',regDia.agua],
                   ['🫃','Digestión',regDia.digestion],
+                  ['💩','Heces',regDia.heces],
                   ['✨','Pelaje',regDia.pelaje],
                   ['🧠','Conducta',regDia.conducta],
                   ['🦴','Movilidad',regDia.movilidad],
+                  ['🐕‍🦺','Paseo',regDia.paseo],
                 ].map(([icon, label, val]) => val && (
                   <div key={label as string} className="bg-[#FBEAD9] rounded-xl p-2 text-center">
                     <div className="text-lg">{icon}</div>
@@ -216,10 +218,13 @@ export default function CalendarioPage() {
                 ))}
               </div>
               {regDia.nota && (
-                <div className="bg-[#FBEAD9] rounded-xl p-3 text-xs text-[#8A7560] italic">
+                <div className="bg-[#FBEAD9] rounded-xl p-3 text-xs text-[#8A7560] italic mb-3">
                   📝 {regDia.nota}
                 </div>
               )}
+              <Link href={`/registro-diario?fecha=${fechaKey(diaSeleccionado)}`} className="bg-[#FFFCF8] border border-[#EEE2D4] text-[#8C572F] font-bold px-6 py-2.5 rounded-xl text-sm inline-block">
+                ✏️ Editar este día
+              </Link>
             </div>
           ) : (
             <div className="p-6 text-center">
