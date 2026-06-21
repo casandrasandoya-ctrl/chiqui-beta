@@ -138,6 +138,44 @@ export default function AnalisisPage() {
   })
   const maxMinutosSemana = Math.max(...paseoUltimos7.map(p => p.minutos), 1)
 
+  // --- Normalidad por categoría (últimos 30 días) ---
+  // Para cada categoría, calcula el % de días donde el valor registrado
+  // fue exactamente "normal", sobre el total de días donde esa
+  // categoría SI tuvo algun valor (no sobre el total de registros, ya
+  // que algunas categorias pueden quedar sin tocar algunos dias).
+  const CATEGORIAS_NORMALIDAD = [
+    { campo: 'energia', label: 'Energía', icon: '⚡' },
+    { campo: 'animo', label: 'Ánimo', icon: '😄' },
+    { campo: 'apetito', label: 'Apetito', icon: '🍽️' },
+    { campo: 'agua', label: 'Agua', icon: '💧' },
+    { campo: 'digestion', label: 'Digestión', icon: '🫃' },
+    { campo: 'heces', label: 'Heces', icon: '💩' },
+    { campo: 'arenero', label: esPerro ? 'Orina' : 'Arenero', icon: '🚽' },
+    { campo: 'pelaje', label: 'Pelaje', icon: '✨' },
+    { campo: 'conducta', label: 'Conducta', icon: '🧠' },
+    { campo: 'movilidad', label: 'Movilidad', icon: '🦴' },
+  ]
+
+  const normalidadPorCategoria = CATEGORIAS_NORMALIDAD
+    .map(cat => {
+      const conValor = registros.filter(r => r[cat.campo])
+      if (conValor.length === 0) return null
+      const normales = conValor.filter(r => r[cat.campo] === 'normal').length
+      const pct = Math.round((normales / conValor.length) * 100)
+      return { ...cat, pct, dias: conValor.length }
+    })
+    .filter(Boolean) as { campo: string; label: string; icon: string; pct: number; dias: number }[]
+
+  // Ordenado de mas irregular (pct mas bajo) a menos, para que lo que
+  // merece mas atencion aparezca primero.
+  normalidadPorCategoria.sort((a, b) => a.pct - b.pct)
+
+  function colorNormalidad(pct: number): string {
+    if (pct >= 80) return '#4CAF7D'
+    if (pct >= 50) return '#F5C842'
+    return '#E05252'
+  }
+
   return (
     <div className="min-h-screen pb-24 fade-in">
 
@@ -266,6 +304,28 @@ export default function AnalisisPage() {
             ))}
           </div>
         </div>
+
+        {/* Normalidad por categoría */}
+        {normalidadPorCategoria.length > 0 && (
+          <>
+            <div className="px-5 mb-2">
+              <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Normalidad por categoría (30 días)</h2>
+            </div>
+            <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
+              {normalidadPorCategoria.map((cat, i) => (
+                <div key={cat.campo} className={`flex items-center gap-2.5 ${i < normalidadPorCategoria.length - 1 ? 'mb-2.5' : ''}`}>
+                  <span className="text-sm flex-shrink-0 w-5">{cat.icon}</span>
+                  <span className="text-xs text-[#3D2B1F] flex-1">{cat.label}</span>
+                  <div className="w-20 h-1.5 bg-[#EEE2D4] rounded-full overflow-hidden flex-shrink-0">
+                    <div className="h-full rounded-full" style={{ width: `${cat.pct}%`, background: colorNormalidad(cat.pct) }} />
+                  </div>
+                  <span className="text-[11px] text-[#8A7560] w-9 text-right flex-shrink-0">{cat.pct}%</span>
+                </div>
+              ))}
+              <p className="text-[10px] text-[#8A7560] mt-3 italic">% de días registrados como "Normal" en cada categoría.</p>
+            </div>
+          </>
+        )}
 
         {/* Historial reciente */}
         <div className="px-5 mb-2">
