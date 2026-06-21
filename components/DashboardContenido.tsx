@@ -100,7 +100,7 @@ export default function DashboardContenido({
       </div>
 
       <BannerInstalarApp />
-      <BannerNotificaciones />
+      <BannerNotificaciones mascotaId={m.id} />
 
       {/* HERO */}
       <Link href="/perfil" className="relative mx-4 mb-4 bg-[#8C572F] rounded-2xl p-5 overflow-hidden block">
