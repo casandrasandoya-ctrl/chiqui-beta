@@ -133,10 +133,8 @@ function getCategorias(especie: string): Categoria[] {
     {value:'caida_leve',emoji:'🍂',label:'Caída leve'},
     {value:'caida_excesiva',emoji:'🍂🍂',label:'Caída excesiva',detalle:[{titulo:'¿Dónde?',opciones:tiposZonaCuerpo}]},
     {value:'rasca',emoji:'🐾',label:'Se rasca',detalle:[{titulo:'¿Dónde?',opciones:tiposZonaCuerpo}]},
+    {value:'lame_exceso',emoji:'👅',label:'Se lame en exceso',detalle:[{titulo:'¿Dónde?',opciones:tiposZonaCuerpo}]},
   ]
-  if (esGato) {
-    pelajeOpciones.push({value:'lame_exceso',emoji:'👅',label:'Se lame en exceso',detalle:[{titulo:'¿Dónde?',opciones:tiposZonaCuerpo}]})
-  }
   const pelaje: Categoria = { id:'pelaje', nombre:'Pelaje y piel', icon:'✨', color:'#4CAF7D', opciones: pelajeOpciones }
 
   // Conducta: en gato, las causas de ansiedad/miedo cambian ("Otros gatos"
