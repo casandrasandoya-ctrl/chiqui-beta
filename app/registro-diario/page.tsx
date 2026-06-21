@@ -171,7 +171,20 @@ function getCategorias(especie: string): Categoria[] {
       {value:'costo_levantarse',emoji:'😓',label:'Le costó levantarse'},
     ]}
 
-  return [energia, animo, apetito, agua, digestion, arenero, pelaje, conducta, movilidad]
+  // Paseo: exclusivo de perros (los gatos y otras especies no suelen
+  // salir de paseo con correa).
+  const paseo: Categoria = { id:'paseo', nombre:'Paseo', icon:'🐕‍🦺', color:'#3DD6B5',
+    opciones:[
+      {value:'no_paseo',emoji:'🚫',label:'No paseó'},
+      {value:'10_30min',emoji:'🚶',label:'10 a 30 min'},
+      {value:'30min_1h',emoji:'🚶‍♂️',label:'30 min a 1 hora'},
+      {value:'1_2h',emoji:'🏃‍♂️',label:'1 a 2 horas'},
+      {value:'2_4h',emoji:'🏞️',label:'2 a 4 horas'},
+    ]}
+
+  const categorias = [energia, animo, apetito, agua, digestion, arenero, pelaje, conducta, movilidad]
+  if (especie === 'Perro') categorias.push(paseo)
+  return categorias
 }
 
 function calcEstado(sel: Record<string,string>): string {
@@ -328,6 +341,7 @@ function RegistroContenido() {
       pelaje: sel.pelaje || null, pelaje_detalle: det.pelaje?.join(', ') || null,
       conducta: sel.conducta || null, conducta_detalle: det.conducta?.join(', ') || null,
       movilidad: sel.movilidad || null, movilidad_detalle: det.movilidad?.join(', ') || null,
+      paseo: sel.paseo || null,
       fue_al_vet: cuidados.has('vet'), se_bano: cuidados.has('bano'),
       corte_unas: cuidados.has('unas'), compro_alimento: cuidados.has('alimento'),
       vacuna_hoy: cuidados.has('vacuna_hoy'), anti_hoy: cuidados.has('anti_hoy'),
