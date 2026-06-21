@@ -144,24 +144,24 @@ export default function AnalisisPage() {
   // categoría SI tuvo algun valor (no sobre el total de registros, ya
   // que algunas categorias pueden quedar sin tocar algunos dias).
   const CATEGORIAS_NORMALIDAD = [
-    { campo: 'energia', label: 'Energía', icon: '⚡' },
-    { campo: 'animo', label: 'Ánimo', icon: '😄' },
-    { campo: 'apetito', label: 'Apetito', icon: '🍽️' },
-    { campo: 'agua', label: 'Agua', icon: '💧' },
-    { campo: 'digestion', label: 'Digestión', icon: '🫃' },
-    { campo: 'heces', label: 'Heces', icon: '💩' },
-    { campo: 'arenero', label: esPerro ? 'Orina' : 'Arenero', icon: '🚽' },
-    { campo: 'pelaje', label: 'Pelaje', icon: '✨' },
-    { campo: 'conducta', label: 'Conducta', icon: '🧠' },
-    { campo: 'movilidad', label: 'Movilidad', icon: '🦴' },
+    { campo: 'energia', label: 'Energía', icon: '⚡', valoresPositivos: ['muy_alta', 'alta', 'normal'] },
+    { campo: 'animo', label: 'Ánimo', icon: '😄', valoresPositivos: ['muy_feliz', 'feliz', 'normal'] },
+    { campo: 'apetito', label: 'Apetito', icon: '🍽️', valoresPositivos: ['normal'] },
+    { campo: 'agua', label: 'Agua', icon: '💧', valoresPositivos: ['normal'] },
+    { campo: 'digestion', label: 'Digestión', icon: '🫃', valoresPositivos: ['normal'] },
+    { campo: 'heces', label: 'Heces', icon: '💩', valoresPositivos: ['normal'] },
+    { campo: 'arenero', label: esPerro ? 'Orina' : 'Arenero', icon: '🚽', valoresPositivos: ['normal'] },
+    { campo: 'pelaje', label: 'Pelaje', icon: '✨', valoresPositivos: ['brillante', 'normal'] },
+    { campo: 'conducta', label: 'Conducta', icon: '🧠', valoresPositivos: ['sociable', 'normal'] },
+    { campo: 'movilidad', label: 'Movilidad', icon: '🦴', valoresPositivos: ['normal'] },
   ]
 
   const normalidadPorCategoria = CATEGORIAS_NORMALIDAD
     .map(cat => {
       const conValor = registros.filter(r => r[cat.campo])
       if (conValor.length === 0) return null
-      const normales = conValor.filter(r => r[cat.campo] === 'normal').length
-      const pct = Math.round((normales / conValor.length) * 100)
+      const positivos = conValor.filter(r => cat.valoresPositivos.includes(r[cat.campo])).length
+      const pct = Math.round((positivos / conValor.length) * 100)
       return { ...cat, pct, dias: conValor.length }
     })
     .filter(Boolean) as { campo: string; label: string; icon: string; pct: number; dias: number }[]
