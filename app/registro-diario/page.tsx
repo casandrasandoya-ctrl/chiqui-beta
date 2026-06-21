@@ -90,6 +90,15 @@ function getCategorias(especie: string): Categoria[] {
           {value:'3_mas_veces',emoji:'⚠️',label:'+3 veces'},
         ]},
       ]},
+    ]}
+
+  // Heces / deposiciones: categoria propia, separada de Digestion, para
+  // poder registrar vomito Y diarrea el mismo dia sin que se pisen entre
+  // si (Digestion es de seleccion unica, asi que antes no se podian
+  // marcar ambas a la vez).
+  const heces: Categoria = { id:'heces', nombre:'Heces', icon:'💩', color:'#8C572F',
+    opciones:[
+      {value:'normal',emoji:'✅',label:'Normal'},
       {value:'diarrea',emoji:'💩',label:'Diarrea',detalle:[
         {titulo:'¿Cómo fueron las heces?',opciones:[
           {value:'blandas',emoji:'🟤',label:'Blandas'},
@@ -182,7 +191,7 @@ function getCategorias(especie: string): Categoria[] {
       {value:'2_4h',emoji:'🏞️',label:'2 a 4 horas'},
     ]}
 
-  const categorias = [energia, animo, apetito, agua, digestion, arenero, pelaje, conducta, movilidad]
+  const categorias = [energia, animo, apetito, agua, digestion, heces, arenero, pelaje, conducta, movilidad]
   if (especie === 'Perro') categorias.push(paseo)
   return categorias
 }
@@ -337,6 +346,7 @@ function RegistroContenido() {
       apetito: sel.apetito || null, apetito_detalle: det.apetito?.join(', ') || null,
       agua: sel.agua || null, agua_detalle: det.agua?.join(', ') || null,
       digestion: sel.digestion || null, digestion_detalle: det.digestion?.join(', ') || null,
+      heces: sel.heces || null, heces_detalle: det.heces?.join(', ') || null,
       arenero: sel.arenero || null, arenero_detalle: det.arenero?.join(', ') || null,
       pelaje: sel.pelaje || null, pelaje_detalle: det.pelaje?.join(', ') || null,
       conducta: sel.conducta || null, conducta_detalle: det.conducta?.join(', ') || null,
