@@ -112,7 +112,14 @@ export async function GET(request: Request) {
         try {
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-            payload
+            payload,
+            // urgency: 'high' le pide al servicio de push (FCM en Android,
+            // APNs en iOS) que intente entregar el mensaje de inmediato,
+            // incluso si el dispositivo esta en modo de ahorro de bateria
+            // (Doze). Sin esto, Android puede demorar la entrega visual
+            // hasta que la persona abra el telefono o la app -- que es
+            // justo lo que se observo en las pruebas.
+            { urgency: 'high' }
           )
           totalEnviados++
         } catch (err: any) {
