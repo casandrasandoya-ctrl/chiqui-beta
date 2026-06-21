@@ -110,7 +110,7 @@ export default function NuevaMascotaPage() {
     }
 
     guardarMascotaActivaId(nuevaMascota.id)
-    router.push(`/mascota/creada?nombre=${encodeURIComponent(form.nombre)}`)
+    router.push(`/mascota/vacuna-inicial?mascotaId=${nuevaMascota.id}&nombre=${encodeURIComponent(form.nombre)}`)
     router.refresh()
   }
 
