@@ -440,11 +440,17 @@ function RegistroContenido() {
           puede seguir ajustando categorias individuales si algo cambio. */}
       <button
         onClick={marcarTodoNormal}
-        className="mx-4 mt-2 mb-1 w-[calc(100%-2rem)] bg-[#FFFCF8] border border-[#FFBD59]/50 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 text-left"
+        className="mx-4 mt-2 mb-1 w-[calc(100%-2rem)] bg-[#FFBD59] rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left"
       >
-        <span className="text-lg flex-shrink-0">🐶</span>
-        <p className="text-xs font-semibold text-[#7A4A2F] flex-1">¿Hoy no notaste nada raro? Solo aprieta "Todo normal".</p>
-        <span className="text-[#8C572F] text-xs font-bold flex-shrink-0">Todo normal</span>
+        <span className="text-2xl flex-shrink-0">🐶</span>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-[#1A1200]">¿Hoy no notaste nada raro?</p>
+          <p className="text-[11px] text-[#1A1200]/70">Marca todo como normal en un toque</p>
+        </div>
+        <div className="bg-[#1A1200]/10 rounded-full px-3 py-2 flex items-center gap-1 flex-shrink-0">
+          <span className="text-[#1A1200] text-xs font-bold">Todo normal</span>
+          <span className="text-[#1A1200] text-sm">✓</span>
+        </div>
       </button>
 
       <div className="space-y-0 mt-2">
