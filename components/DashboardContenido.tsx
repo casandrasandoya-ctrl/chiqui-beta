@@ -38,10 +38,11 @@ interface Props {
   proximosItems: { label: string; sub: string; dias: string; color: string }[]
   tieneRegistroHoy: boolean
   cuidadosRecientes: { grupo: string; label: string; emoji: string; dias: number }[]
+  rachaPaseo: number | null
 }
 
 export default function DashboardContenido({
-  mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy, cuidadosRecientes,
+  mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy, cuidadosRecientes, rachaPaseo,
 }: Props) {
   const router = useRouter()
   const [cuidadosExpandido, setCuidadosExpandido] = useState(false)
@@ -198,7 +199,7 @@ export default function DashboardContenido({
       )}
 
       {/* CUIDADOS RECIENTES */}
-      {cuidadosRecientes.length > 0 && (
+      {(cuidadosRecientes.length > 0 || rachaPaseo !== null) && (
         <>
           <div className="flex items-center justify-between px-5 pb-2.5">
             <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Cuidados recientes</span>
@@ -211,7 +212,18 @@ export default function DashboardContenido({
 
           {!cuidadosExpandido ? (
             <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
-              {cuidadosRecientes.slice(0, 4).map(item => (
+              {rachaPaseo !== null && (
+                <div className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
+                  <span className="text-lg flex-shrink-0">🔥</span>
+                  <div>
+                    <p className="text-[12.5px] font-bold text-[#3D2B1F]">Racha de paseos</p>
+                    <p className="text-[11px] text-[#8A7560]">
+                      {rachaPaseo === 0 ? 'Sin racha activa' : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {cuidadosRecientes.slice(0, rachaPaseo !== null ? 3 : 4).map(item => (
                 <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
                   <span className="text-lg flex-shrink-0">{item.emoji}</span>
                   <div>
@@ -225,6 +237,22 @@ export default function DashboardContenido({
             </div>
           ) : (
             <div className="mx-4 mb-4 space-y-3">
+              {rachaPaseo !== null && (
+                <div>
+                  <p className="text-[11px] font-semibold text-[#CD7421] mb-1.5">Paseo</p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
+                      <span className="text-lg flex-shrink-0">🔥</span>
+                      <div>
+                        <p className="text-[12.5px] font-bold text-[#3D2B1F]">Racha de paseos</p>
+                        <p className="text-[11px] text-[#8A7560]">
+                          {rachaPaseo === 0 ? 'Sin racha activa' : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               {Array.from(new Set(cuidadosRecientes.map(c => c.grupo))).map(grupo => (
                 <div key={grupo}>
                   <p className="text-[11px] font-semibold text-[#CD7421] mb-1.5">{grupo}</p>

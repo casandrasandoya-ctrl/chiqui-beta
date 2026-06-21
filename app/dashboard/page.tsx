@@ -107,6 +107,36 @@ export default async function Dashboard({ searchParams }: Props) {
     })
     .filter(Boolean) as { grupo: string; label: string; emoji: string; dias: number }[]
 
+  // Racha de paseos consecutivos (solo para perros). Se calcula sobre
+  // los ultimos 30 dias de registros_diarios, contando hacia atras desde
+  // hoy y cortando apenas hay un dia sin paseo o sin registro -- misma
+  // logica que la racha que ya se muestra en Analisis.
+  let rachaPaseo: number | null = null
+  if (m.especie === 'Perro') {
+    const hace30 = new Date()
+    hace30.setDate(hace30.getDate() - 30)
+    const { data: registrosPaseo } = await supabase
+      .from('registros_diarios')
+      .select('fecha, paseo')
+      .eq('mascota_id', m.id)
+      .gte('fecha', hace30.toISOString().split('T')[0])
+
+    let racha = 0
+    const hoyDate = new Date()
+    for (let i = 0; i < 30; i++) {
+      const fecha = new Date(hoyDate)
+      fecha.setDate(fecha.getDate() - i)
+      const fechaStr = fecha.toISOString().split('T')[0]
+      const reg = registrosPaseo?.find(r => r.fecha === fechaStr)
+      if (reg && reg.paseo && reg.paseo !== 'no_paseo') {
+        racha++
+      } else {
+        break
+      }
+    }
+    rachaPaseo = racha
+  }
+
   const color = regHoy?.estado_dia ? EC[regHoy.estado_dia] : '#4CAF7D'
   const estadoLabel = regHoy?.estado_dia ? EL[regHoy.estado_dia] : 'Sin registro hoy'
 
@@ -146,6 +176,7 @@ export default async function Dashboard({ searchParams }: Props) {
       proximosItems={proximosItems}
       tieneRegistroHoy={!!regHoy}
       cuidadosRecientes={cuidadosRecientes}
+      rachaPaseo={rachaPaseo}
     />
   )
 }
