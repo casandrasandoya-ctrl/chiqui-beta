@@ -90,6 +90,54 @@ export default function AnalisisPage() {
 
   const ultimos7 = registros.slice(0, 7).reverse()
 
+  // --- Cálculos de Paseo (solo aplica a perros) ---
+  // Mapeo de cada rango de duración a minutos estimados (punto medio del
+  // rango), ya que el registro guarda un rango, no un numero exacto.
+  const MINUTOS_POR_PASEO: Record<string, number> = {
+    no_paseo: 0,
+    '10_30min': 20,
+    '30min_1h': 45,
+    '1_2h': 90,
+    '2_4h': 180,
+  }
+
+  const esPerro = mascota?.especie === 'Perro'
+
+  // Minutos totales estimados de paseo en los ultimos 30 dias (todo el
+  // periodo cargado).
+  const minutosPaseoMes = registros.reduce((acc, r) => acc + (MINUTOS_POR_PASEO[r.paseo] || 0), 0)
+  const horasPaseoMes = Math.floor(minutosPaseoMes / 60)
+  const minRestantesPaseoMes = minutosPaseoMes % 60
+
+  // Racha de dias CONSECUTIVOS paseados, contando hacia atras desde hoy.
+  // Se corta apenas hay un dia sin registro o con "no_paseo".
+  function calcularRachaPaseo(): number {
+    let racha = 0
+    const hoy = new Date()
+    for (let i = 0; i < 30; i++) {
+      const fecha = new Date(hoy)
+      fecha.setDate(fecha.getDate() - i)
+      const fechaStr = fecha.toISOString().split('T')[0]
+      const reg = registros.find(r => r.fecha === fechaStr)
+      if (reg && reg.paseo && reg.paseo !== 'no_paseo') {
+        racha++
+      } else {
+        break
+      }
+    }
+    return racha
+  }
+  const rachaPaseo = calcularRachaPaseo()
+
+  // Minutos de paseo por cada uno de los ultimos 7 dias, para el grafico.
+  const paseoUltimos7 = Array(7).fill(null).map((_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6 - i))
+    const fechaStr = d.toISOString().split('T')[0]
+    const reg = registros.find(r => r.fecha === fechaStr)
+    return { fecha: d, minutos: reg ? (MINUTOS_POR_PASEO[reg.paseo] || 0) : 0 }
+  })
+  const maxMinutosSemana = Math.max(...paseoUltimos7.map(p => p.minutos), 1)
+
   return (
     <div className="min-h-screen pb-24 fade-in">
 
@@ -145,6 +193,51 @@ export default function AnalisisPage() {
             </div>
           ))}
         </div>
+
+        {/* Paseo (solo perros) */}
+        {esPerro && (
+          <>
+            <div className="px-5 mb-2">
+              <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Paseo</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 mx-4 mb-3">
+              <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-sm">🔥</span>
+                  <span className="text-[10px] text-[#8A7560]">Racha de paseos</span>
+                </div>
+                <div className="font-bold text-lg text-[#3D2B1F]">{rachaPaseo} {rachaPaseo === 1 ? 'día' : 'días'}</div>
+              </div>
+              <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-sm">⏱️</span>
+                  <span className="text-[10px] text-[#8A7560]">Paseo este mes (estimado)</span>
+                </div>
+                <div className="font-bold text-lg text-[#3D2B1F]">{horasPaseoMes}h {minRestantesPaseoMes}m</div>
+              </div>
+            </div>
+
+            <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
+              <p className="text-xs font-semibold text-[#8A7560] mb-3">Paseo por día (últimos 7 días)</p>
+              <div className="flex items-end justify-between gap-1.5 h-16">
+                {paseoUltimos7.map((p, i) => {
+                  const diasSemana = ['D','L','M','M','J','V','S']
+                  const alturaPct = p.minutos > 0 ? Math.max((p.minutos / maxMinutosSemana) * 100, 8) : 4
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div
+                        className="w-full rounded-lg transition-all"
+                        style={{ height: `${alturaPct}%`, background: p.minutos > 0 ? '#FFBD59' : 'rgba(140,87,47,0.08)', minHeight: '4px' }}
+                      />
+                      <span className="text-[9px] text-[#8A7560]">{diasSemana[p.fecha.getDay()]}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="text-[10px] text-[#8A7560] mt-2 italic">Estimado a partir del rango de duración registrado cada día.</p>
+            </div>
+          </>
+        )}
 
         {/* Últimos 7 días visual */}
         <div className="px-5 mb-2">
