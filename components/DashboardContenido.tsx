@@ -47,6 +47,7 @@ export default function DashboardContenido({
 }: Props) {
   const router = useRouter()
   const [cuidadosExpandido, setCuidadosExpandido] = useState(false)
+  const [tooltipEtapa, setTooltipEtapa] = useState(false)
   const today = new Date()
   const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
   const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
@@ -135,13 +136,28 @@ export default function DashboardContenido({
         </div>
 
         <div className="grid grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-[#FFFCF8]/15">
-          <div className="text-center">
+          <div className="text-center relative">
             {(() => {
               const etapa = calcularEtapaVida(m.fecha_nacimiento, m.especie)
               return etapa ? (
                 <>
                   <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{etapa.emoji} {formatearEdad(etapa)}</div>
-                  <div className="text-[10px] text-[#D9B596] mt-0.5">{etapa.nombre}</div>
+                  <div className="flex items-center justify-center gap-1 mt-0.5">
+                    <span className="text-[10px] text-[#D9B596]">{etapa.nombre}</span>
+                    <button
+                      onClick={() => setTooltipEtapa(v => !v)}
+                      className="text-[#FFBD59] text-xs leading-none"
+                    >💡</button>
+                  </div>
+                  {tooltipEtapa && (
+                    <div
+                      className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-[60] bg-[#3D2B1F] text-[#FFFCF8] text-[11px] rounded-xl px-3 py-2.5 shadow-lg w-52 text-left leading-relaxed"
+                      onClick={() => setTooltipEtapa(false)}
+                    >
+                      {etapa.recomendacion}
+                      <div className="text-[9px] text-[#FFBD59]/70 mt-1">Toca para cerrar</div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
