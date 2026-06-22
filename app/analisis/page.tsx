@@ -21,13 +21,19 @@ export default function AnalisisPage() {
   const [loading, setLoading] = useState(true)
   const [periodo, setPeriodo] = useState(30)
 
+  // Misma funcion que en el dashboard: devuelve la fecha en zona horaria
+  // de Chile en vez de UTC, para que el calculo de racha sea correcto.
+  function fechaChile(date: Date = new Date()): string {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(date)
+  }
+
   async function cargarRegistros(mascotaId: string) {
     const desde = new Date()
     desde.setDate(desde.getDate() - 30)
     const { data: r } = await supabase
       .from('registros_diarios').select('*')
       .eq('mascota_id', mascotaId)
-      .gte('fecha', desde.toISOString().split('T')[0])
+      .gte('fecha', fechaChile(desde))
       .order('fecha', { ascending: false })
     setRegistros(r || [])
   }
@@ -118,7 +124,7 @@ export default function AnalisisPage() {
     for (let i = 0; i < 30; i++) {
       const fecha = new Date(hoy)
       fecha.setDate(fecha.getDate() - i)
-      const fechaStr = fecha.toISOString().split('T')[0]
+      const fechaStr = fechaChile(fecha)
       const reg = registros.find(r => r.fecha === fechaStr)
       if (reg && reg.paseo && reg.paseo !== 'no_paseo') {
         racha++
@@ -133,7 +139,7 @@ export default function AnalisisPage() {
   // Minutos de paseo por cada uno de los ultimos 7 dias, para el grafico.
   const paseoUltimos7 = Array(7).fill(null).map((_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i))
-    const fechaStr = d.toISOString().split('T')[0]
+    const fechaStr = fechaChile(d)
     const reg = registros.find(r => r.fecha === fechaStr)
     return { fecha: d, minutos: reg ? (MINUTOS_POR_PASEO[reg.paseo] || 0) : 0 }
   })

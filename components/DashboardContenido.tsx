@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav'
 import SelectorMascota from '@/components/SelectorMascota'
 import { guardarMascotaActivaId, obtenerMascotaActivaId } from '@/utils/mascotaActiva'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
+import { calcularEtapaVida, formatearEdad } from '@/utils/etapaVida'
 import BannerNotificaciones from '@/components/BannerNotificaciones'
 import BannerInstalarApp from '@/components/BannerInstalarApp'
 import { useEffect, useState } from 'react'
@@ -38,11 +39,10 @@ interface Props {
   proximosItems: { label: string; sub: string; dias: string; color: string }[]
   tieneRegistroHoy: boolean
   cuidadosRecientes: { grupo: string; label: string; emoji: string; dias: number }[]
-  rachaPaseo: number | null
 }
 
 export default function DashboardContenido({
-  mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy, cuidadosRecientes, rachaPaseo,
+  mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy, cuidadosRecientes,
 }: Props) {
   const router = useRouter()
   const [cuidadosExpandido, setCuidadosExpandido] = useState(false)
@@ -118,7 +118,12 @@ export default function DashboardContenido({
           <div className="flex-1 pt-0.5">
             <div className="font-heading text-lg font-extrabold leading-none text-[#FFFCF8]">{m.nombre}</div>
             <div className="text-xs text-[#F0DEC8] mt-1 mb-2">
-              {m.especie}{m.raza ? ` · ${m.raza}` : ''}{m.sexo ? ` · ${m.sexo}` : ''}{m.color ? ` · ${m.color}` : ''}
+              {m.especie}{m.raza ? ` · ${m.raza}` : ''}{m.sexo ? ` · ${m.sexo}` : ''}
+              {(() => {
+                const etapa = calcularEtapaVida(m.fecha_nacimiento, m.especie)
+                if (!etapa) return null
+                return ` · ${formatearEdad(etapa)} · ${etapa.emoji} ${etapa.nombre}`
+              })()}
             </div>
             <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: `${color}26`, border: `1px solid ${color}4D`, color: '#FFFCF8' }}>
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
@@ -130,8 +135,20 @@ export default function DashboardContenido({
 
         <div className="grid grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-[#FFFCF8]/15">
           <div className="text-center">
-            <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{m.fecha_nacimiento ? calcEdad(m.fecha_nacimiento) : '—'}</div>
-            <div className="text-[10px] text-[#D9B596] mt-0.5">Edad</div>
+            {(() => {
+              const etapa = calcularEtapaVida(m.fecha_nacimiento, m.especie)
+              return etapa ? (
+                <>
+                  <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{etapa.emoji} {formatearEdad(etapa)}</div>
+                  <div className="text-[10px] text-[#D9B596] mt-0.5">{etapa.nombre}</div>
+                </>
+              ) : (
+                <>
+                  <div className="font-heading text-base font-extrabold text-[#FFFCF8]">—</div>
+                  <div className="text-[10px] text-[#D9B596] mt-0.5">Etapa</div>
+                </>
+              )
+            })()}
           </div>
           <div className="text-center">
             <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{m.peso_actual ? `${m.peso_actual} kg` : '—'}</div>
@@ -199,7 +216,7 @@ export default function DashboardContenido({
       )}
 
       {/* CUIDADOS RECIENTES */}
-      {(cuidadosRecientes.length > 0 || rachaPaseo !== null) && (
+      {cuidadosRecientes.length > 0 && (
         <>
           <div className="flex items-center justify-between px-5 pb-2.5">
             <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Cuidados recientes</span>
@@ -212,18 +229,7 @@ export default function DashboardContenido({
 
           {!cuidadosExpandido ? (
             <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
-              {rachaPaseo !== null && (
-                <div className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
-                  <span className="text-lg flex-shrink-0">🔥</span>
-                  <div>
-                    <p className="text-[12.5px] font-bold text-[#3D2B1F]">Racha de paseos</p>
-                    <p className="text-[11px] text-[#8A7560]">
-                      {rachaPaseo === 0 ? 'Sin racha activa' : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {cuidadosRecientes.slice(0, rachaPaseo !== null ? 3 : 4).map(item => (
+              {cuidadosRecientes.slice(0, 4).map(item => (
                 <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
                   <span className="text-lg flex-shrink-0">{item.emoji}</span>
                   <div>
@@ -237,22 +243,6 @@ export default function DashboardContenido({
             </div>
           ) : (
             <div className="mx-4 mb-4 space-y-3">
-              {rachaPaseo !== null && (
-                <div>
-                  <p className="text-[11px] font-semibold text-[#CD7421] mb-1.5">Paseo</p>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
-                      <span className="text-lg flex-shrink-0">🔥</span>
-                      <div>
-                        <p className="text-[12.5px] font-bold text-[#3D2B1F]">Racha de paseos</p>
-                        <p className="text-[11px] text-[#8A7560]">
-                          {rachaPaseo === 0 ? 'Sin racha activa' : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
               {Array.from(new Set(cuidadosRecientes.map(c => c.grupo))).map(grupo => (
                 <div key={grupo}>
                   <p className="text-[11px] font-semibold text-[#CD7421] mb-1.5">{grupo}</p>
