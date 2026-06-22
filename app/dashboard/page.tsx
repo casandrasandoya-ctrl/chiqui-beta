@@ -54,7 +54,17 @@ export default async function Dashboard({ searchParams }: Props) {
   if (!mascota) redirect('/mascota/nueva')
 
   const m = mascota
-  const hoy = new Date().toISOString().split('T')[0]
+
+  // Funcion helper para obtener la fecha actual en zona horaria de Chile
+  // (America/Santiago). Usar toISOString() directamente devuelve UTC, lo
+  // que en Chile puede ser el dia anterior o siguiente segun la hora --
+  // ese era el bug que causaba que la racha de paseos apareciera en 0
+  // aunque el registro del dia si estuviera guardado.
+  function fechaChile(date: Date = new Date()): string {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(date)
+  }
+
+  const hoy = fechaChile()
 
   const [{ data: regHoy }, { data: vacunas }, { data: antis }, { data: obs }, { data: medsConControl }, { data: enfsConRevision }] = await Promise.all([
     supabase.from('registros_diarios').select('estado_dia').eq('mascota_id', m.id).eq('fecha', hoy).single(),
@@ -119,14 +129,14 @@ export default async function Dashboard({ searchParams }: Props) {
       .from('registros_diarios')
       .select('fecha, paseo')
       .eq('mascota_id', m.id)
-      .gte('fecha', hace30.toISOString().split('T')[0])
+      .gte('fecha', fechaChile(hace30))
 
     let racha = 0
     const hoyDate = new Date()
     for (let i = 0; i < 30; i++) {
       const fecha = new Date(hoyDate)
       fecha.setDate(fecha.getDate() - i)
-      const fechaStr = fecha.toISOString().split('T')[0]
+      const fechaStr = fechaChile(fecha)
       const reg = registrosPaseo?.find(r => r.fecha === fechaStr)
       if (reg && reg.paseo && reg.paseo !== 'no_paseo') {
         racha++
