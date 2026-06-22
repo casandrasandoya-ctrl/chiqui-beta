@@ -1,3 +1,4 @@
+import { calcularEtapaVida } from '@/utils/etapaVida'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import DashboardContenido from '@/components/DashboardContenido'
@@ -156,9 +157,17 @@ export default async function Dashboard({ searchParams }: Props) {
   const proximoMed = medsConControl?.[0]
   const proximaRevisionEnf = enfsConRevision?.[0]
 
+  const etapa = calcularEtapaVida(m.fecha_nacimiento, m.especie)
+
   // Tarjetas de "Próximos" en formato grid 2x2. Se incluye solo si hay
   // datos reales -- si no hay ninguno, no se muestra la sección entera.
   const proximosItems = [
+    // Si la mascota es Adulto Maduro o Senior, agregar automaticamente
+    // el recordatorio de chequeo preventivo, sin que la persona tenga
+    // que configurarlo manualmente.
+    (etapa?.alertaChequeo) && {
+      label: 'Chequeo preventivo', sub: etapa.nombre === 'Senior' ? 'Cada 6 meses' : 'Cada 6-12 meses', dias: '⚕️', color: '#8C572F',
+    },
     proximaVacuna && {
       label: 'Vacunas', sub: proximaVacuna.nombre, dias: diasR(proximaVacuna.proxima_fecha), color: '#3B8C5E',
     },
