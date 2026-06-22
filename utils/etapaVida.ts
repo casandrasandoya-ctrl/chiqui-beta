@@ -6,7 +6,6 @@
 
 export interface EtapaVida {
   nombre: string        // ej. "Adulto Maduro"
-  emoji: string         // ej. "🟡"
   color: string         // color hex para la etiqueta
   anos: number          // edad exacta en anos
   recomendacion: string // texto de recomendacion de chequeo
@@ -26,50 +25,43 @@ export function calcularEtapaVida(
 
   if (anos < 0) return null
 
-  const icono = especie === 'Gato' ? '🐱' : '🐶'
-
   if (anos < 1) return {
     nombre: 'Cachorro',
-    emoji: '🟢',
     color: '#4CAF7D',
-    anos: Math.floor(anos * 12) / 10, // meses
-    recomendacion: `Período clave: vacunación completa y desparasitación frecuente. Consultar con el veterinario el calendario de vacunas.`,
+    anos: Math.floor(anos * 12) / 10,
+    recomendacion: 'Período clave: vacunación completa y desparasitación frecuente. Consultar con el veterinario el calendario de vacunas.',
     alertaChequeo: false,
   }
 
   if (anos < 3) return {
     nombre: 'Joven',
-    emoji: '🟢',
     color: '#4CAF7D',
     anos: Math.floor(anos * 10) / 10,
-    recomendacion: `Chequeo anual de rutina recomendado. Buen momento para establecer hábitos de salud preventiva.`,
+    recomendacion: 'Chequeo anual de rutina recomendado. Buen momento para establecer hábitos de salud preventiva.',
     alertaChequeo: false,
   }
 
   if (anos < 7) return {
     nombre: 'Adulto',
-    emoji: '🔵',
     color: '#4AABDB',
     anos: Math.floor(anos * 10) / 10,
-    recomendacion: `Chequeo anual recomendado. Prestar atención al peso, la dentadura y el nivel de actividad.`,
+    recomendacion: 'Chequeo anual recomendado. Prestar atención al peso, la dentadura y el nivel de actividad.',
     alertaChequeo: false,
   }
 
   if (anos < 10) return {
     nombre: 'Adulto Maduro',
-    emoji: '🟡',
     color: '#F5C842',
     anos: Math.floor(anos * 10) / 10,
-    recomendacion: `Chequeo preventivo cada 6-12 meses recomendado. Incluir exámenes de sangre anuales para detección temprana.`,
+    recomendacion: 'Chequeo preventivo cada 6-12 meses recomendado. Incluir exámenes de sangre anuales para detección temprana.',
     alertaChequeo: true,
   }
 
   return {
     nombre: 'Senior',
-    emoji: '🟠',
     color: '#F07A30',
     anos: Math.floor(anos * 10) / 10,
-    recomendacion: `Chequeo preventivo cada 6 meses recomendado. Exámenes completos anuales (sangre, orina, presión arterial).`,
+    recomendacion: 'Chequeo preventivo cada 6 meses recomendado. Exámenes completos anuales (sangre, orina, presión arterial).',
     alertaChequeo: true,
   }
 }

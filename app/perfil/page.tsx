@@ -170,7 +170,7 @@ export default function PerfilPage() {
       {etapa && (
         <div className="mx-4 mt-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
           <div className="flex items-center gap-2.5 mb-2">
-            <span className="text-xl">{etapa.emoji}</span>
+            <span className="text-xl">🩺</span>
             <div>
               <p className="font-bold text-sm text-[#3D2B1F]">{etapa.nombre} · {formatearEdad(etapa)}</p>
               <p className="text-[10px] text-[#8A7560] uppercase tracking-wider">Etapa de vida</p>
