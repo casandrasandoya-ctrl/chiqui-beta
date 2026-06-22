@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import { Nunito, Nunito_Sans } from 'next/font/google'
+import { Suspense } from 'react'
 import './globals.css'
 import RegistrarServiceWorker from '@/components/RegistrarServiceWorker'
+import InstalarAutomatico from '@/components/InstalarAutomatico'
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -42,6 +44,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body className={`${nunito.variable} ${nunitoSans.variable} font-body bg-[#F5EDE3] text-[#3D2B1F] min-h-screen`}>
         <RegistrarServiceWorker />
+        <Suspense fallback={null}>
+          <InstalarAutomatico />
+        </Suspense>
         {children}
       </body>
     </html>
