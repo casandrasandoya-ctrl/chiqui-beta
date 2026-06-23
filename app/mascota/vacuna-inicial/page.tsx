@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import DatePickerModal from '@/components/DatePickerModal'
 
 function VacunaInicialContenido() {
   const searchParams = useSearchParams()
@@ -86,7 +87,7 @@ function VacunaInicialContenido() {
               />
               <div>
                 <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próxima vacunación · opcional</label>
-                <input type="date" className={inputClass} value={vacunaProxima} onChange={e => setVacunaProxima(e.target.value)} />
+                <DatePickerModal value={vacunaProxima} onChange={v => setVacunaProxima(v)} />
               </div>
               <button
                 onClick={guardarVacuna}
@@ -122,7 +123,7 @@ function VacunaInicialContenido() {
               </div>
               <div>
                 <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próxima dosis · opcional</label>
-                <input type="date" className={inputClass} value={antiProxima} onChange={e => setAntiProxima(e.target.value)} />
+                <DatePickerModal value={antiProxima} onChange={v => setAntiProxima(v)} />
               </div>
               <button
                 onClick={guardarAntiparasitario}

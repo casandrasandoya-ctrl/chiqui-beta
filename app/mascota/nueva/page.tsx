@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { guardarMascotaActivaId } from '@/utils/mascotaActiva'
+import DatePickerModal from '@/components/DatePickerModal'
 
 const ESPECIES = ['Perro', 'Gato', 'Conejo', 'Ave', 'Otro']
 
@@ -110,7 +111,7 @@ export default function NuevaMascotaPage() {
     }
 
     guardarMascotaActivaId(nuevaMascota.id)
-    router.push(`/mascota/vacuna-inicial?mascotaId=${nuevaMascota.id}&nombre=${encodeURIComponent(form.nombre)}`)
+    router.push(`/mascota/creada?nombre=${encodeURIComponent(form.nombre)}`)
     router.refresh()
   }
 
@@ -200,8 +201,7 @@ export default function NuevaMascotaPage() {
         {step === 2 && (
           <>
             <Field label="Fecha de nacimiento">
-              <input type="date" className={inputClass}
-                value={form.fecha_nacimiento} onChange={e => update('fecha_nacimiento', e.target.value)} />
+              <DatePickerModal value={form.fecha_nacimiento} onChange={v => update('fecha_nacimiento', v)} />
             </Field>
 
             <Field label="Color / pelaje">
