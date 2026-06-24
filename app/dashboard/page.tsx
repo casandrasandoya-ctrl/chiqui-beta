@@ -159,12 +159,47 @@ export default async function Dashboard({ searchParams }: Props) {
 
   const etapa = calcularEtapaVida(m.fecha_nacimiento, m.especie)
 
+  // Revision corporal: consultar la ultima para saber si corresponde
+  // mostrar el recordatorio segun la etapa de vida.
+  // Adulto/Adulto Maduro: cada 90 dias | Senior: cada 30 dias
+  let mostrarRevisionCorporal = false
+  let diasParaRevision = 0
+  if (etapa && etapa.anos >= 5) {
+    const intervalo = etapa.nombre === 'Senior' ? 30 : 90
+    const { data: ultimaRevision } = await supabase
+      .from('revisiones_corporales')
+      .select('fecha')
+      .eq('mascota_id', m.id)
+      .order('fecha', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (!ultimaRevision) {
+      mostrarRevisionCorporal = true
+      diasParaRevision = 0
+    } else {
+      const diasDesdeUltima = Math.floor(
+        (new Date().getTime() - new Date(ultimaRevision.fecha + 'T00:00:00').getTime())
+        / (1000 * 60 * 60 * 24)
+      )
+      diasParaRevision = intervalo - diasDesdeUltima
+      mostrarRevisionCorporal = diasDesdeUltima >= intervalo
+    }
+  }
+
   // Tarjetas de "Próximos" en formato grid 2x2. Se incluye solo si hay
   // datos reales -- si no hay ninguno, no se muestra la sección entera.
   const proximosItems = [
+    // Revision corporal periodica (desde los 5 anos)
+    mostrarRevisionCorporal && {
+      label: 'Revisión corporal',
+      sub: etapa?.nombre === 'Senior' ? 'Cada 30 días' : 'Cada 3 meses',
+      dias: '🔍',
+      color: '#8C572F',
+      url: `/revision-corporal?mascotaId=${m.id}&nombre=${encodeURIComponent(m.nombre)}`,
+    },
     // Si la mascota es Adulto Maduro o Senior, agregar automaticamente
-    // el recordatorio de chequeo preventivo, sin que la persona tenga
-    // que configurarlo manualmente.
+    // el recordatorio de chequeo preventivo.
     (etapa?.alertaChequeo) && {
       label: 'Chequeo preventivo', sub: etapa.nombre === 'Senior' ? 'Cada 6 meses' : 'Cada 6-12 meses', dias: '⚕️', color: '#8C572F',
     },
@@ -180,7 +215,7 @@ export default async function Dashboard({ searchParams }: Props) {
     proximaRevisionEnf && {
       label: 'Enfermedades', sub: proximaRevisionEnf.diagnostico, dias: diasR(proximaRevisionEnf.proxima_revision), color: '#E05252',
     },
-  ].filter(Boolean) as { label: string; sub: string; dias: string; color: string }[]
+  ].filter(Boolean) as { label: string; sub: string; dias: string; color: string; url?: string }[]
 
   const edad = m.fecha_nacimiento ? calcEdad(m.fecha_nacimiento) : null
 

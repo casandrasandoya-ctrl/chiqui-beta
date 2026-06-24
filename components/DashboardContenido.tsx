@@ -36,7 +36,7 @@ interface Props {
   color: string
   estadoLabel: string
   obsActiva: { titulo: string; fecha_inicio: string } | null | undefined
-  proximosItems: { label: string; sub: string; dias: string; color: string }[]
+  proximosItems: { label: string; sub: string; dias: string; color: string; url?: string }[]
   tieneRegistroHoy: boolean
   cuidadosRecientes: { grupo: string; label: string; emoji: string; dias: number }[]
   rachaPaseo: number | null
@@ -241,15 +241,27 @@ export default function DashboardContenido({
             <Link href="/prevencion" className="text-xs text-[#CD7421] font-semibold">Ver todo</Link>
           </div>
           <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
-            {proximosItems.map(item => (
-              <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3">
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-[12.5px] font-bold text-[#3D2B1F]">{item.label}</p>
-                  <span className="text-[10.5px] font-bold" style={{ color: item.color }}>{item.dias}</span>
+            {proximosItems.map(item => {
+              const contenido = (
+                <>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[12.5px] font-bold text-[#3D2B1F]">{item.label}</p>
+                    <span className="text-[10.5px] font-bold" style={{ color: item.color }}>{item.dias}</span>
+                  </div>
+                  <p className="text-[11px] text-[#8A7560] leading-tight">{item.sub}</p>
+                  {item.url && <p className="text-[10px] text-[#CD7421] font-semibold mt-1.5">Tocar para iniciar →</p>}
+                </>
+              )
+              return item.url ? (
+                <Link key={item.label} href={item.url} className="bg-[#FFFCF8] border border-[#FFBD59]/40 rounded-2xl p-3 block">
+                  {contenido}
+                </Link>
+              ) : (
+                <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3">
+                  {contenido}
                 </div>
-                <p className="text-[11px] text-[#8A7560] leading-tight">{item.sub}</p>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </>
       )}
