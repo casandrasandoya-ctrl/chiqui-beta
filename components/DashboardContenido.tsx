@@ -95,11 +95,31 @@ export default function DashboardContenido({
         onCambiar={cambiarMascota}
       />
 
-      {/* Saludo / banner superior */}
-      <div className="mx-4 mb-3 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5">
-        <span className="text-lg flex-shrink-0">{iconoPorEspecie(m.especie)}</span>
-        <p className="text-xs font-semibold text-[#5C4A3A]">Hola, ¿cómo está tu compañero hoy?</p>
-      </div>
+      {/* Saludo con Chiqui — pañoleta cambia según el estado del día:
+          roja = sin registro hoy, azul = registró (normal),
+          verde = registró y todo bien (verde), amarilla = precaución */}
+      {(() => {
+        let imagen = '/chiqui-roja.png'
+        let mensaje = `¡Hola! ¿Cómo estuvo ${m.nombre} hoy? Aún no has registrado.`
+        if (tieneRegistroHoy) {
+          if (color === '#4CAF7D') {
+            imagen = '/chiqui-verde.png'
+            mensaje = `¡Todo registrado hoy! ${m.nombre} está muy bien. 🐾`
+          } else if (color === '#F5C842' || color === '#F07A30') {
+            imagen = '/chiqui-amarilla.png'
+            mensaje = `Registrado. Hay algo que merece atención en ${m.nombre} hoy.`
+          } else {
+            imagen = '/chiqui-azul.png'
+            mensaje = `¡Gracias por observar a ${m.nombre} hoy!`
+          }
+        }
+        return (
+          <div className="mx-4 mb-3 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-3 py-2.5 flex items-center gap-2.5">
+            <img src={imagen} alt="Chiqui" className="w-12 h-12 flex-shrink-0 object-contain" />
+            <p className="text-xs font-semibold text-[#5C4A3A] leading-snug">{mensaje}</p>
+          </div>
+        )
+      })()}
 
       <BannerInstalarApp />
       <BannerNotificaciones mascotaId={m.id} />
