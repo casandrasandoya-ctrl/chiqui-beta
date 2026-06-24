@@ -7,7 +7,6 @@ import BottomNav from '@/components/BottomNav'
 import PesoTracker from '@/components/PesoTracker'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
-import DatePickerModal from '@/components/DatePickerModal'
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 function fmt(f: string) { const d = new Date(f + 'T00:00:00'); return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}` }
@@ -59,8 +58,18 @@ export default function PrevencionPage() {
   const [medicamentos, setMedicamentos] = useState<any[]>([])
   const [enfermedades, setEnfermedades] = useState<any[]>([])
   const [examenes, setExamenes] = useState<any[]>([])
+  const [revisiones, setRevisiones] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'peso' | 'vacunas' | 'anti' | 'medicamentos' | 'enfermedades' | 'obs' | 'examenes'>('peso')
+  const [seccionesAbiertas, setSeccionesAbiertas] = useState<Set<string>>(new Set(['peso']))
+
+  function toggleSeccion(s: string) {
+    setSeccionesAbiertas(prev => {
+      const nuevo = new Set(prev)
+      if (nuevo.has(s)) { nuevo.delete(s) } else { nuevo.add(s) }
+      return nuevo
+    })
+  }
+  function estaAbierta(s: string) { return seccionesAbiertas.has(s) }
   const [modal, setModal] = useState<'vacuna' | 'anti' | 'obs' | 'medicamento' | 'enfermedad' | 'examen' | null>(null)
   const [form, setForm] = useState<any>({})
   const [editandoId, setEditandoId] = useState<string | null>(null)
@@ -92,19 +101,20 @@ export default function PrevencionPage() {
     setLoading(true)
     guardarMascotaActivaId(nueva.id)
     setMascota(nueva)
-    setTab('peso')
+    setSeccionesAbiertas(new Set(['peso']))
     await cargarDatos(nueva.id)
     setLoading(false)
   }
 
   async function cargarDatos(id: string) {
-    const [v, a, o, med, enf, exa] = await Promise.all([
+    const [v, a, o, med, enf, exa, rev] = await Promise.all([
       supabase.from('vacunas').select('*').eq('mascota_id', id).order('fecha_aplicacion', { ascending: false }),
       supabase.from('antiparasitarios').select('*').eq('mascota_id', id).order('fecha_aplicacion', { ascending: false }),
       supabase.from('observaciones').select('*').eq('mascota_id', id).order('created_at', { ascending: false }),
       supabase.from('medicamentos').select('*').eq('mascota_id', id).order('fecha_inicio', { ascending: false }),
       supabase.from('enfermedades').select('*').eq('mascota_id', id).order('fecha_diagnostico', { ascending: false }),
       supabase.from('examenes').select('*').eq('mascota_id', id).order('fecha', { ascending: false }),
+      supabase.from('revisiones_corporales').select('*').eq('mascota_id', id).order('fecha', { ascending: false }),
     ])
     setVacunas(v.data || [])
     setAntis(a.data || [])
@@ -112,6 +122,7 @@ export default function PrevencionPage() {
     setMedicamentos(med.data || [])
     setEnfermedades(enf.data || [])
     setExamenes(exa.data || [])
+    setRevisiones(rev.data || [])
   }
 
   function elegirFotoSalud(e: React.ChangeEvent<HTMLInputElement>) {
@@ -308,30 +319,35 @@ export default function PrevencionPage() {
       {/* Selector de mascota */}
       {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
 
-      {/* Tabs */}
-      <div className="flex px-4 gap-2 mb-4 overflow-x-auto">
-        {[['peso','⚖️ Peso'],['vacunas','💉 Vacunas'],['anti','💊 Antipar.'],['medicamentos','🩹 Medicamentos'],['enfermedades','🏥 Enfermedades'],['obs','👁️ Obs.'],['examenes','📄 Exámenes']].map(([t, l]) => (
-          <button key={t} onClick={() => setTab(t as any)}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${tab === t ? 'bg-[#FFBD59] text-[#1A1200]' : 'bg-[#FFFCF8] text-[#8A7560]'}`}>
-            {l}
-          </button>
-        ))}
-      </div>
 
+      {/* SECCIONES EN ACORDEÓN */}
       {/* PESO */}
-      {tab === 'peso' && mascota && (
-        <>
+      <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+        <button onClick={() => toggleSeccion('peso')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+          <span className="font-bold text-sm text-[#3D2B1F]">⚖️ Peso</span>
+          <span className="text-[#8A7560] text-lg">{estaAbierta('peso') ? '⌃' : '⌄'}</span>
+        </button>
+        {estaAbierta('peso') && !!mascota && (
+          <div className="border-t border-[#EEE2D4]">
+<>
           <div className="mx-4 mb-3 bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
             <span className="text-base flex-shrink-0">🐾</span>
             <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí puedes contarme cuánto pesa tu compañero cada vez que lo controlen, así vemos juntos cómo va cambiando.</p>
           </div>
           <PesoTracker mascotaId={mascota.id} pesoActual={mascota.peso_actual} />
         </>
-      )}
-
+          </div>
+        )}
+      </div>
       {/* VACUNAS */}
-      {tab === 'vacunas' && (
-        <div className="mx-4 space-y-3">
+      <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+        <button onClick={() => toggleSeccion('vacunas')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+          <span className="font-bold text-sm text-[#3D2B1F]">💉 Vacunas</span>
+          <span className="text-[#8A7560] text-lg">{estaAbierta('vacunas') ? '⌃' : '⌄'}</span>
+        </button>
+        {estaAbierta('vacunas') && (
+          <div className="border-t border-[#EEE2D4]">
+<div className="mx-4 space-y-3">
           <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
             <span className="text-base flex-shrink-0">🐾</span>
             <p className="text-xs text-[#7A4A2F] leading-relaxed">Cuéntame qué vacunas le han puesto y cuándo toca la próxima. ¡Así nunca se les olvida!</p>
@@ -373,11 +389,18 @@ export default function PrevencionPage() {
             </div>
           ))}
         </div>
-      )}
-
+          </div>
+        )}
+      </div>
       {/* ANTIPARASITARIOS */}
-      {tab === 'anti' && (
-        <div className="mx-4 space-y-3">
+      <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+        <button onClick={() => toggleSeccion('anti')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+          <span className="font-bold text-sm text-[#3D2B1F]">💊 Antiparasitarios</span>
+          <span className="text-[#8A7560] text-lg">{estaAbierta('anti') ? '⌃' : '⌄'}</span>
+        </button>
+        {estaAbierta('anti') && (
+          <div className="border-t border-[#EEE2D4]">
+<div className="mx-4 space-y-3">
           <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
             <span className="text-base flex-shrink-0">🐾</span>
             <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí van los antiparasitarios de tu compañero, internos y externos, con su fecha y la próxima dosis.</p>
@@ -418,11 +441,18 @@ export default function PrevencionPage() {
             </div>
           ))}
         </div>
-      )}
-
+          </div>
+        )}
+      </div>
       {/* MEDICAMENTOS */}
-      {tab === 'medicamentos' && (
-        <div className="mx-4 space-y-3">
+      <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+        <button onClick={() => toggleSeccion('medicamentos')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+          <span className="font-bold text-sm text-[#3D2B1F]">🩹 Medicamentos</span>
+          <span className="text-[#8A7560] text-lg">{estaAbierta('medicamentos') ? '⌃' : '⌄'}</span>
+        </button>
+        {estaAbierta('medicamentos') && (
+          <div className="border-t border-[#EEE2D4]">
+<div className="mx-4 space-y-3">
           <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
             <span className="text-base flex-shrink-0">🐾</span>
             <p className="text-xs text-[#7A4A2F] leading-relaxed">Si tu compañero está tomando algún remedio, cuéntame cuál, cuánto, y cada cuánto. Así no se les pasa una toma.</p>
@@ -468,11 +498,18 @@ export default function PrevencionPage() {
             </div>
           ))}
         </div>
-      )}
-
+          </div>
+        )}
+      </div>
       {/* ENFERMEDADES */}
-      {tab === 'enfermedades' && (
-        <div className="mx-4 space-y-3">
+      <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+        <button onClick={() => toggleSeccion('enfermedades')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+          <span className="font-bold text-sm text-[#3D2B1F]">🏥 Enfermedades</span>
+          <span className="text-[#8A7560] text-lg">{estaAbierta('enfermedades') ? '⌃' : '⌄'}</span>
+        </button>
+        {estaAbierta('enfermedades') && (
+          <div className="border-t border-[#EEE2D4]">
+<div className="mx-4 space-y-3">
           <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
             <span className="text-base flex-shrink-0">🐾</span>
             <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí va su historial médico: diagnósticos, lesiones, cómo ha ido evolucionando. Pueden agregar una foto si ayuda a verlo mejor.</p>
@@ -521,11 +558,18 @@ export default function PrevencionPage() {
             )
           })}
         </div>
-      )}
-
+          </div>
+        )}
+      </div>
       {/* OBSERVACIONES */}
-      {tab === 'obs' && (
-        <div className="mx-4 space-y-3">
+      <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+        <button onClick={() => toggleSeccion('obs')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+          <span className="font-bold text-sm text-[#3D2B1F]">👁️ Observaciones</span>
+          <span className="text-[#8A7560] text-lg">{estaAbierta('obs') ? '⌃' : '⌄'}</span>
+        </button>
+        {estaAbierta('obs') && (
+          <div className="border-t border-[#EEE2D4]">
+<div className="mx-4 space-y-3">
           <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
             <span className="text-base flex-shrink-0">🐾</span>
             <p className="text-xs text-[#7A4A2F] leading-relaxed">¿Notaste algo raro en tu compañero? Una herida, un cambio de ánimo, lo que sea. Cuéntamelo aquí, con foto si quieres, para no olvidarlo.</p>
@@ -562,11 +606,18 @@ export default function PrevencionPage() {
             </div>
           ))}
         </div>
-      )}
-
+          </div>
+        )}
+      </div>
       {/* EXÁMENES */}
-      {tab === 'examenes' && (
-        <div className="mx-4 space-y-3">
+      <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+        <button onClick={() => toggleSeccion('examenes')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+          <span className="font-bold text-sm text-[#3D2B1F]">📄 Exámenes</span>
+          <span className="text-[#8A7560] text-lg">{estaAbierta('examenes') ? '⌃' : '⌄'}</span>
+        </button>
+        {estaAbierta('examenes') && (
+          <div className="border-t border-[#EEE2D4]">
+<div className="mx-4 space-y-3">
           <div className="bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
             <span className="text-base flex-shrink-0">🐾</span>
             <p className="text-xs text-[#7A4A2F] leading-relaxed">Suban los exámenes en PDF de tu compañero: hemogramas, análisis, lo que le hayan hecho. Todo junto, sin buscar entre papeles.</p>
@@ -609,9 +660,43 @@ export default function PrevencionPage() {
             )
           })}
         </div>
+          </div>
+        )}
+      </div>
+
+      {/* REVISIÓN CORPORAL */}
+      {revisiones.length > 0 && (
+        <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+          <button onClick={() => toggleSeccion('revisiones')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+            <span className="font-bold text-sm text-[#3D2B1F]">🔍 Revisiones Corporales</span>
+            <span className="text-[#8A7560] text-lg">{estaAbierta('revisiones') ? '⌃' : '⌄'}</span>
+          </button>
+          {estaAbierta('revisiones') && (
+            <div className="border-t border-[#EEE2D4]">
+              {revisiones.map((rev, i) => {
+                const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+                const d = new Date(rev.fecha + 'T00:00:00')
+                const conAlgo = rev.resultado === 'con_observacion'
+                return (
+                  <div key={rev.id} className={`px-4 py-3 ${i < revisiones.length-1 ? 'border-b border-[#EEE2D4]' : ''}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold text-[#3D2B1F]">
+                        {d.getDate()} {MESES[d.getMonth()]} {d.getFullYear()}
+                      </p>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${conAlgo ? 'bg-[#F5C842]/20 text-[#8C6A00]' : 'bg-[#4CAF7D]/15 text-[#3B8C5E]'}`}>
+                        {conAlgo ? '⚠ Con observación' : '✓ Todo normal'}
+                      </span>
+                    </div>
+                    {rev.nota && <p className="text-[11px] text-[#8A7560] italic">{rev.nota}</p>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       )}
 
-      {/* MODAL DE ACCIONES (editar/eliminar) — siempre centrado abajo,
+            {/* MODAL DE ACCIONES (editar/eliminar) — siempre centrado abajo,
           nunca se corta por la posicion de la tarjeta en la pantalla */}
       {menuAbierto && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setMenuAbierto(null)}>
@@ -660,9 +745,9 @@ export default function PrevencionPage() {
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nombre de la vacuna *</label>
                 <input className={IC} placeholder="ej. Séxtuple, Antirrábica..." value={form.nombre || ''} onChange={e => u('nombre', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de aplicación *</label>
-                <DatePickerModal value={form.fecha_aplicacion || ''} onChange={v => u('fecha_aplicacion', v)} /></div>
+                <input type="date" className={IC} value={form.fecha_aplicacion || ''} onChange={e => u('fecha_aplicacion', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próxima vacunación</label>
-                <DatePickerModal value={form.proxima_fecha || ''} onChange={v => u('proxima_fecha', v)} /></div>
+                <input type="date" className={IC} value={form.proxima_fecha || ''} onChange={e => u('proxima_fecha', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Lote / Serie</label>
                 <input className={IC} placeholder="ej. A16301" value={form.lote || ''} onChange={e => u('lote', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nota</label>
@@ -683,9 +768,9 @@ export default function PrevencionPage() {
                   <option>pastilla</option><option>liquido</option><option>collar</option><option>otro</option>
                 </select></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de aplicación *</label>
-                <DatePickerModal value={form.fecha_aplicacion || ''} onChange={v => u('fecha_aplicacion', v)} /></div>
+                <input type="date" className={IC} value={form.fecha_aplicacion || ''} onChange={e => u('fecha_aplicacion', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próxima dosis</label>
-                <DatePickerModal value={form.proxima_fecha || ''} onChange={v => u('proxima_fecha', v)} /></div>
+                <input type="date" className={IC} value={form.proxima_fecha || ''} onChange={e => u('proxima_fecha', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nota</label>
                 <input className={IC} placeholder="Observación opcional" value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
             </>}
@@ -701,12 +786,12 @@ export default function PrevencionPage() {
                 <input className={IC} placeholder="ej. Infección de oído" value={form.motivo || ''} onChange={e => u('motivo', e.target.value)}/></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de inicio *</label>
-                  <DatePickerModal value={form.fecha_inicio || ''} onChange={v => u('fecha_inicio', v)} /></div>
+                  <input type="date" className={IC} value={form.fecha_inicio || ''} onChange={e => u('fecha_inicio', e.target.value)}/></div>
                 <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de término</label>
-                  <DatePickerModal value={form.fecha_fin || ''} onChange={v => u('fecha_fin', v)} /></div>
+                  <input type="date" className={IC} value={form.fecha_fin || ''} onChange={e => u('fecha_fin', e.target.value)}/></div>
               </div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próximo control</label>
-                <DatePickerModal value={form.proximo_control || ''} onChange={v => u('proximo_control', v)} /></div>
+                <input type="date" className={IC} value={form.proximo_control || ''} onChange={e => u('proximo_control', e.target.value)}/></div>
               <button type="button" onClick={() => u('indicado_por_vet', form.indicado_por_vet ? '' : 'true')}
                 className="w-full flex items-center gap-3 bg-[#FBEAD9] rounded-xl px-4 py-3 border border-[#EEE2D4]">
                 <div className="w-5 h-5 rounded-md flex items-center justify-center text-xs flex-shrink-0" style={{ background: form.indicado_por_vet ? '#4AABDB' : 'transparent', border: form.indicado_por_vet ? 'none' : '1.5px solid #8A7560' }}>
@@ -722,7 +807,7 @@ export default function PrevencionPage() {
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Diagnóstico *</label>
                 <input className={IC} placeholder="ej. Displasia de cadera, Gastritis" value={form.diagnostico || ''} onChange={e => u('diagnostico', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de diagnóstico *</label>
-                <DatePickerModal value={form.fecha_diagnostico || ''} onChange={v => u('fecha_diagnostico', v)} /></div>
+                <input type="date" className={IC} value={form.fecha_diagnostico || ''} onChange={e => u('fecha_diagnostico', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Estado *</label>
                 <select className={SC} value={form.estado || ''} onChange={e => u('estado', e.target.value)}>
                   <option value="">Seleccionar...</option>
@@ -733,7 +818,7 @@ export default function PrevencionPage() {
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Veterinario tratante</label>
                 <input className={IC} placeholder="ej. Dr. González, Clínica X" value={form.veterinario || ''} onChange={e => u('veterinario', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próxima revisión</label>
-                <DatePickerModal value={form.proxima_revision || ''} onChange={v => u('proxima_revision', v)} /></div>
+                <input type="date" className={IC} value={form.proxima_revision || ''} onChange={e => u('proxima_revision', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Notas</label>
                 <textarea className={IC} rows={3} placeholder="Detalles del diagnóstico, tratamiento indicado..." value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
               <div>
@@ -764,7 +849,7 @@ export default function PrevencionPage() {
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Descripción</label>
                 <textarea className={IC} rows={3} placeholder="Describe lo observado..." value={form.descripcion || ''} onChange={e => u('descripcion', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de inicio</label>
-                <DatePickerModal value={form.fecha_inicio || ''} onChange={v => u('fecha_inicio', v)} /></div>
+                <input type="date" className={IC} value={form.fecha_inicio || ''} onChange={e => u('fecha_inicio', e.target.value)}/></div>
               <div>
                 <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Foto (opcional)</label>
                 <div className="flex items-center gap-3">
@@ -793,7 +878,7 @@ export default function PrevencionPage() {
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nombre del examen</label>
                 <input className={IC} placeholder="ej. Control anual, Chequeo pre-cirugía" value={form.nombre || ''} onChange={e => u('nombre', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha del examen *</label>
-                <DatePickerModal value={form.fecha || ''} onChange={v => u('fecha', v)} /></div>
+                <input type="date" className={IC} value={form.fecha || ''} onChange={e => u('fecha', e.target.value)}/></div>
               <div>
                 <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Archivo PDF *</label>
                 <input

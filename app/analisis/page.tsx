@@ -20,6 +20,8 @@ export default function AnalisisPage() {
   const [registros, setRegistros] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [periodo, setPeriodo] = useState(30)
+  const [abiertaNormalidad, setAbiertaNormalidad] = useState(true)
+  const [abiertoRecientes, setAbiertoRecientes] = useState(true)
 
   // Misma funcion que en el dashboard: devuelve la fecha en zona horaria
   // de Chile en vez de UTC, para que el calculo de racha sea correcto.
@@ -312,50 +314,58 @@ export default function AnalisisPage() {
           </div>
         </div>
 
-        {/* Normalidad por categoría */}
+        {/* Normalidad por categoría — desplegable */}
         {normalidadPorCategoria.length > 0 && (
-          <>
-            <div className="px-5 mb-2">
-              <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Normalidad por categoría (30 días)</h2>
-            </div>
-            <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
-              {normalidadPorCategoria.map((cat, i) => (
-                <div key={cat.campo} className={`flex items-center gap-2.5 ${i < normalidadPorCategoria.length - 1 ? 'mb-2.5' : ''}`}>
-                  <span className="text-sm flex-shrink-0 w-5">{cat.icon}</span>
-                  <span className="text-xs text-[#3D2B1F] flex-1">{cat.label}</span>
-                  <div className="w-20 h-1.5 bg-[#EEE2D4] rounded-full overflow-hidden flex-shrink-0">
-                    <div className="h-full rounded-full" style={{ width: `${cat.pct}%`, background: colorNormalidad(cat.pct) }} />
+          <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+            <button onClick={() => setAbiertaNormalidad(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+              <span className="font-bold text-sm text-[#3D2B1F]">📊 Normalidad por categoría</span>
+              <span className="text-[#8A7560] text-lg">{abiertaNormalidad ? '⌃' : '⌄'}</span>
+            </button>
+            {abiertaNormalidad && (
+              <div className="border-t border-[#EEE2D4] p-4">
+                {normalidadPorCategoria.map((cat, i) => (
+                  <div key={cat.campo} className={`flex items-center gap-2.5 ${i < normalidadPorCategoria.length - 1 ? 'mb-2.5' : ''}`}>
+                    <span className="text-sm flex-shrink-0 w-5">{cat.icon}</span>
+                    <span className="text-xs text-[#3D2B1F] flex-1">{cat.label}</span>
+                    <div className="w-20 h-1.5 bg-[#EEE2D4] rounded-full overflow-hidden flex-shrink-0">
+                      <div className="h-full rounded-full" style={{ width: `${cat.pct}%`, background: colorNormalidad(cat.pct) }} />
+                    </div>
+                    <span className="text-[11px] text-[#8A7560] w-9 text-right flex-shrink-0">{cat.pct}%</span>
                   </div>
-                  <span className="text-[11px] text-[#8A7560] w-9 text-right flex-shrink-0">{cat.pct}%</span>
-                </div>
-              ))}
-              <p className="text-[10px] text-[#8A7560] mt-3 italic">% de días registrados como "Normal" en cada categoría.</p>
-            </div>
-          </>
+                ))}
+                <p className="text-[10px] text-[#8A7560] mt-3 italic">% de días registrados como "Normal" en cada categoría.</p>
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Historial reciente */}
-        <div className="px-5 mb-2">
-          <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Registros recientes</h2>
-        </div>
-        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
-          {registros.slice(0, 10).map(r => {
-            const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-            const d = new Date(r.fecha + 'T00:00:00')
-            const color = ESTADO_COLOR[r.estado_dia]
-            const labels: Record<string,string> = { verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' }
-            return (
-              <Link key={r.id} href={`/registro-diario?fecha=${r.fecha}`} className="flex items-center gap-3 px-4 py-3 border-b border-[#EEE2D4] last:border-0">
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}/>
-                <div className="flex-1">
-                  <p className="text-xs font-semibold">{d.getDate()} {MESES[d.getMonth()]}</p>
-                  <p className="text-xs mt-0.5" style={{ color }}>{labels[r.estado_dia]}</p>
-                  {r.nota && <p className="text-[10px] text-[#8A7560] mt-0.5 italic">{r.nota}</p>}
-                </div>
-                <span className="text-[#8A7560] text-sm flex-shrink-0">›</span>
-              </Link>
-            )
-          })}
+        {/* Registros recientes — desplegable */}
+        <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+          <button onClick={() => setAbiertoRecientes(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+            <span className="font-bold text-sm text-[#3D2B1F]">📋 Registros recientes</span>
+            <span className="text-[#8A7560] text-lg">{abiertoRecientes ? '⌃' : '⌄'}</span>
+          </button>
+          {abiertoRecientes && (
+            <div className="border-t border-[#EEE2D4]">
+              {registros.slice(0, 10).map(r => {
+                const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+                const d = new Date(r.fecha + 'T00:00:00')
+                const color = ESTADO_COLOR[r.estado_dia]
+                const labels: Record<string,string> = { verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' }
+                return (
+                  <Link key={r.id} href={`/registro-diario?fecha=${r.fecha}`} className="flex items-center gap-3 px-4 py-3 border-b border-[#EEE2D4] last:border-0">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}/>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold">{d.getDate()} {MESES[d.getMonth()]}</p>
+                      <p className="text-xs mt-0.5" style={{ color }}>{labels[r.estado_dia]}</p>
+                      {r.nota && <p className="text-[10px] text-[#8A7560] mt-0.5 italic">{r.nota}</p>}
+                    </div>
+                    <span className="text-[#8A7560] text-sm flex-shrink-0">›</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </div>
       </>}
 
