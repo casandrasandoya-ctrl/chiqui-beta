@@ -333,7 +333,13 @@ export default function PrevencionPage() {
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('vacunas')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
           <span className="font-bold text-sm text-[#3D2B1F]">💉 Vacunas</span>
-          <span className="text-[#8A7560] text-lg">{estaAbierta('vacunas') ? '⌃' : '⌄'}</span>
+          <div className="flex items-center gap-2">
+            <span
+              onClick={(e) => { e.stopPropagation(); setModal('vacuna'); setForm({}); setEditandoId(null); setArchivoExamen(null); setErrorExamen(''); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }}
+              className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg"
+            >+ Agregar</span>
+            <span className="text-[#8A7560] text-lg">{estaAbierta('vacunas') ? '⌃' : '⌄'}</span>
+          </div>
         </button>
         {estaAbierta('vacunas') && (
           <div className="border-t border-[#EEE2D4]">
@@ -386,7 +392,13 @@ export default function PrevencionPage() {
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('anti')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
           <span className="font-bold text-sm text-[#3D2B1F]">💊 Antiparasitarios</span>
-          <span className="text-[#8A7560] text-lg">{estaAbierta('anti') ? '⌃' : '⌄'}</span>
+          <div className="flex items-center gap-2">
+            <span
+              onClick={(e) => { e.stopPropagation(); setModal('anti'); setForm({}); setEditandoId(null); setArchivoExamen(null); setErrorExamen(''); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }}
+              className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg"
+            >+ Agregar</span>
+            <span className="text-[#8A7560] text-lg">{estaAbierta('anti') ? '⌃' : '⌄'}</span>
+          </div>
         </button>
         {estaAbierta('anti') && (
           <div className="border-t border-[#EEE2D4]">
@@ -438,7 +450,13 @@ export default function PrevencionPage() {
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('medicamentos')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
           <span className="font-bold text-sm text-[#3D2B1F]">🩹 Medicamentos</span>
-          <span className="text-[#8A7560] text-lg">{estaAbierta('medicamentos') ? '⌃' : '⌄'}</span>
+          <div className="flex items-center gap-2">
+            <span
+              onClick={(e) => { e.stopPropagation(); setModal('medicamento'); setForm({}); setEditandoId(null); setArchivoExamen(null); setErrorExamen(''); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }}
+              className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg"
+            >+ Agregar</span>
+            <span className="text-[#8A7560] text-lg">{estaAbierta('medicamentos') ? '⌃' : '⌄'}</span>
+          </div>
         </button>
         {estaAbierta('medicamentos') && (
           <div className="border-t border-[#EEE2D4]">
@@ -495,7 +513,13 @@ export default function PrevencionPage() {
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('enfermedades')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
           <span className="font-bold text-sm text-[#3D2B1F]">🏥 Enfermedades</span>
-          <span className="text-[#8A7560] text-lg">{estaAbierta('enfermedades') ? '⌃' : '⌄'}</span>
+          <div className="flex items-center gap-2">
+            <span
+              onClick={(e) => { e.stopPropagation(); setModal('enfermedad'); setForm({}); setEditandoId(null); setArchivoExamen(null); setErrorExamen(''); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }}
+              className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg"
+            >+ Agregar</span>
+            <span className="text-[#8A7560] text-lg">{estaAbierta('enfermedades') ? '⌃' : '⌄'}</span>
+          </div>
         </button>
         {estaAbierta('enfermedades') && (
           <div className="border-t border-[#EEE2D4]">
@@ -555,7 +579,13 @@ export default function PrevencionPage() {
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('obs')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
           <span className="font-bold text-sm text-[#3D2B1F]">👁️ Observaciones</span>
-          <span className="text-[#8A7560] text-lg">{estaAbierta('obs') ? '⌃' : '⌄'}</span>
+          <div className="flex items-center gap-2">
+            <span
+              onClick={(e) => { e.stopPropagation(); setModal('obs'); setForm({}); setEditandoId(null); setArchivoExamen(null); setErrorExamen(''); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }}
+              className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg"
+            >+ Agregar</span>
+            <span className="text-[#8A7560] text-lg">{estaAbierta('obs') ? '⌃' : '⌄'}</span>
+          </div>
         </button>
         {estaAbierta('obs') && (
           <div className="border-t border-[#EEE2D4]">
@@ -603,7 +633,13 @@ export default function PrevencionPage() {
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('examenes')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
           <span className="font-bold text-sm text-[#3D2B1F]">📄 Exámenes</span>
-          <span className="text-[#8A7560] text-lg">{estaAbierta('examenes') ? '⌃' : '⌄'}</span>
+          <div className="flex items-center gap-2">
+            <span
+              onClick={(e) => { e.stopPropagation(); setModal('examen'); setForm({}); setEditandoId(null); setArchivoExamen(null); setErrorExamen(''); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }}
+              className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg"
+            >+ Agregar</span>
+            <span className="text-[#8A7560] text-lg">{estaAbierta('examenes') ? '⌃' : '⌄'}</span>
+          </div>
         </button>
         {estaAbierta('examenes') && (
           <div className="border-t border-[#EEE2D4]">
