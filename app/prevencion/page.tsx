@@ -301,18 +301,8 @@ export default function PrevencionPage() {
             <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
           </div>
         </div>
-        {tab !== 'peso' && (
-          <button
-            onClick={() => {
-              const modalMap: Record<string, any> = { vacunas:'vacuna', anti:'anti', medicamentos:'medicamento', enfermedades:'enfermedad', obs:'obs', examenes:'examen' }
-              setModal(modalMap[tab]); setForm({}); setArchivoExamen(null); setErrorExamen('')
-              setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('')
-              setEditandoId(null)
-            }}
-            className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl"
-          >
-            + Agregar
-          </button>
+        {false && (
+          <button className="hidden">+ Agregar</button>
         )}
       </div>
 
