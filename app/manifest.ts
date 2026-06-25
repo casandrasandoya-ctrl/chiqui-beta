@@ -2,15 +2,18 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: 'cl.chiqui.entresenhales',
     name: 'CHIQUI Entre Señales',
     short_name: 'CHIQUI',
-    description: 'Tu compañero de observación y cuidado para la salud de tu mascota.',
+    description: 'Tu compañero de observación y cuidado para la salud de tu mascota. Registra síntomas, vacunas, paseos y más.',
     start_url: '/dashboard',
     scope: '/',
     display: 'standalone',
     background_color: '#F5EDE3',
     theme_color: '#8C572F',
     orientation: 'portrait',
+    categories: ['health', 'lifestyle', 'utilities'],
+    prefer_related_applications: false,
     icons: [
       {
         src: '/icon-192x192.png',
@@ -29,6 +32,29 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',
+      },
+    ],
+    screenshots: [
+      {
+        src: '/screenshots/dashboard.png',
+        sizes: '1080x1920',
+        type: 'image/png',
+        label: 'Dashboard principal de CHIQUI',
+        form_factor: 'narrow',
+      },
+      {
+        src: '/screenshots/registro.png',
+        sizes: '1080x1920',
+        type: 'image/png',
+        label: 'Registro diario de síntomas',
+        form_factor: 'narrow',
+      },
+      {
+        src: '/screenshots/prevencion.png',
+        sizes: '1080x1920',
+        type: 'image/png',
+        label: 'Prevención y vacunas',
+        form_factor: 'narrow',
       },
     ],
   }
