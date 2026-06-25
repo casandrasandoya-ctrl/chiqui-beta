@@ -241,48 +241,12 @@ function RegistroContenido() {
       setEspecie(m.especie || '')
       const hoy = fechaUrl || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0]
       setFechaRegistro(hoy)
-      const { data: r } = await supabase.from('registros_diarios').select('*').eq('mascota_id', m.id).eq('fecha', hoy).maybeSingle()
-      if (r) {
-        setYaRegistro(true)
-        cargarRegistroExistente(r)
-      }
+      const { data: r } = await supabase.from('registros_diarios').select('id').eq('mascota_id', m.id).eq('fecha', hoy).single()
+      if (r) setYaRegistro(true)
       setCargando(false)
     }
     init()
   }, [fechaUrl])
-
-  // Reconstruye el estado del formulario (sel, det, nota, cuidados) a
-  // partir de un registro ya guardado, para poder EDITARLO en vez de
-  // solo bloquear la pantalla. El mapeo es el inverso exacto de como se
-  // guarda en guardar().
-  function cargarRegistroExistente(r: any) {
-    const nuevoSel: Record<string, string> = {}
-    const nuevoDet: Record<string, string[]> = {}
-    const campos = ['energia', 'animo', 'apetito', 'agua', 'digestion', 'heces', 'arenero', 'pelaje', 'conducta', 'movilidad', 'paseo']
-    campos.forEach(campo => {
-      if (r[campo]) nuevoSel[campo] = r[campo]
-      const detalleCampo = `${campo}_detalle`
-      if (r[detalleCampo]) nuevoDet[campo] = String(r[detalleCampo]).split(', ').filter(Boolean)
-    })
-    setSel(nuevoSel)
-    setDet(nuevoDet)
-    setNota(r.nota || '')
-
-    const cuidadosExistentes = new Set<string>()
-    const mapaCuidados: Record<string, string> = {
-      fue_al_vet: 'vet', se_bano: 'bano', corte_unas: 'unas', compro_alimento: 'alimento',
-      vacuna_hoy: 'vacuna_hoy', anti_hoy: 'anti_hoy', medicamento_hoy: 'medicamento_hoy',
-      limpieza_dental: 'limpieza_dental', limpieza_oidos: 'limpieza_oidos',
-      tratamiento_dermatologico: 'tratamiento_dermatologico',
-      cambio_alimento: 'cambio_alimento', probo_alimento_nuevo: 'probo_alimento_nuevo',
-      control_peso: 'control_peso', procedimiento_cirugia: 'procedimiento_cirugia',
-      seguimiento_lesion: 'seguimiento_lesion',
-    }
-    Object.entries(mapaCuidados).forEach(([columna, valor]) => {
-      if (r[columna]) cuidadosExistentes.add(valor)
-    })
-    setCuidados(cuidadosExistentes)
-  }
 
   async function cambiarMascota(nueva: any) {
     setCargando(true)
@@ -299,13 +263,8 @@ function RegistroContenido() {
     setMiniModal(null)
     setAbierto('energia')
     const hoy = fechaUrl || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0]
-    const { data: r } = await supabase.from('registros_diarios').select('*').eq('mascota_id', nueva.id).eq('fecha', hoy).maybeSingle()
-    if (r) {
-      setYaRegistro(true)
-      cargarRegistroExistente(r)
-    } else {
-      setYaRegistro(false)
-    }
+    const { data: r } = await supabase.from('registros_diarios').select('id').eq('mascota_id', nueva.id).eq('fecha', hoy).single()
+    setYaRegistro(!!r)
     setCargando(false)
   }
 
@@ -414,7 +373,7 @@ function RegistroContenido() {
       medicamento_hoy: cuidados.has('medicamento_hoy'),
       limpieza_dental: cuidados.has('limpieza_dental'), limpieza_oidos: cuidados.has('limpieza_oidos'),
       tratamiento_dermatologico: cuidados.has('tratamiento_dermatologico'),
-      cambio_alimento: cuidados.has('cambio_alimento'), probo_alimento_nuevo: cuidados.has('probo_alimento_nuevo'),
+      cambio_alimento: cuidados.has('cambio_alimento'), probo_alimento_nuevo: cuidados.has('probo_alimento_nuevo'), cargo_dispensador: cuidados.has('cargo_dispensador'),
       control_peso: cuidados.has('control_peso'), procedimiento_cirugia: cuidados.has('procedimiento_cirugia'),
       seguimiento_lesion: cuidados.has('seguimiento_lesion'),
     }, { onConflict: 'mascota_id,fecha' })
@@ -424,6 +383,18 @@ function RegistroContenido() {
 
   if (cargando) return <div className="min-h-screen flex items-center justify-center text-[#8A7560]">Cargando...</div>
 
+  if (yaRegistro) return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center pb-24">
+      <div className="text-5xl mb-4">✅</div>
+      <h2 className="text-xl font-bold mb-2">Ya registraste hoy</h2>
+      <p className="text-[#8A7560] text-sm mb-8">El registro de {mascotaNombre} para hoy ya está guardado.</p>
+      <button onClick={() => router.push('/dashboard')} className="bg-[#FFBD59] text-[#1A1200] font-bold px-8 py-4 rounded-xl">
+        Ir al inicio →
+      </button>
+      <BottomNav />
+    </div>
+  )
+
   const completadas = Object.keys(sel).length
 
   return (
@@ -432,15 +403,12 @@ function RegistroContenido() {
         <div className="flex items-center gap-3 mb-2">
           <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg flex-shrink-0">←</button>
           <div className="flex-1">
-            <p className="text-xs text-[#8A7560] capitalize">
-              {fechaRegistro && new Date(fechaRegistro + 'T00:00:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'})}
-              {yaRegistro && ' · editando'}
-            </p>
+            <p className="text-xs text-[#8A7560] capitalize">{fechaRegistro && new Date(fechaRegistro + 'T00:00:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'})}</p>
             <h1 className="font-heading text-base font-extrabold">¿Cómo estuvo {mascotaNombre}?</h1>
           </div>
           <button onClick={guardar} disabled={loading || !completadas}
             className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40 flex-shrink-0">
-            {loading ? '...' : yaRegistro ? 'Guardar cambios' : 'Guardar'}
+            {loading ? '...' : 'Guardar'}
           </button>
         </div>
         <div className="flex items-center gap-2.5">
@@ -587,6 +555,7 @@ function RegistroContenido() {
           { titulo: 'Alimentación', items: [
             { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
             { value: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó un alimento nuevo' },
+            { value: 'cargo_dispensador', emoji: '🤖', label: 'Cargué el dispensador de comida/agua' },
           ]},
           { titulo: 'Eventos importantes', items: [
             { value: 'control_peso', emoji: '⚖️', label: 'Control de peso' },
@@ -630,7 +599,7 @@ function RegistroContenido() {
       <div className="mx-4 mt-4">
         <button onClick={guardar} disabled={loading || !completadas}
           className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
-          {loading ? 'Guardando...' : yaRegistro ? 'Guardar cambios ✓' : 'Guardar registro de hoy ✓'}
+          {loading ? 'Guardando...' : 'Guardar registro de hoy ✓'}
         </button>
         {!completadas && <p className="text-center text-xs text-[#8A7560] mt-2">Selecciona al menos una categoría para guardar</p>}
       </div>
