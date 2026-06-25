@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import './globals.css'
 import RegistrarServiceWorker from '@/components/RegistrarServiceWorker'
 import InstalarAutomatico from '@/components/InstalarAutomatico'
+import ClientWrapper from '@/components/ClientWrapper'
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -47,7 +48,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Suspense fallback={null}>
           <InstalarAutomatico />
         </Suspense>
-        {children}
+        <ClientWrapper>
+          {children}
+        </ClientWrapper>
       </body>
     </html>
   )
