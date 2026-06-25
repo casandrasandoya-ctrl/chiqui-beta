@@ -21,6 +21,25 @@ const ESTADO_BG: Record<string, string> = {
   rojo: 'rgba(226,93,93,0.18)',
 }
 
+// Calcula los puntos de cuidados para mostrar en el calendario.
+// Cada grupo de cuidados tiene un color distinto — maximo 5 puntos
+// (uno por grupo), para no saturar la celda del dia.
+function puntosDelDia(reg: any): string[] {
+  if (!reg) return []
+  const puntos: string[] = []
+  // Vet / Prevención medica
+  if (reg.fue_al_vet) puntos.push('#8C572F')
+  // Vacuna, antiparasitario, medicamento
+  if (reg.vacuna_hoy || reg.anti_hoy || reg.medicamento_hoy) puntos.push('#4AABDB')
+  // Higiene (baño, uñas, oídos, dental, dermatológico)
+  if (reg.se_bano || reg.corte_unas || reg.limpieza_dental || reg.limpieza_oidos || reg.tratamiento_dermatologico) puntos.push('#4CAF7D')
+  // Alimentación (comida, dispensador, cambio de alimento)
+  if (reg.alimento || reg.cambio_alimento || reg.probo_alimento_nuevo || reg.cargo_dispensador) puntos.push('#FFBD59')
+  // Eventos importantes (cirugía, peso, lesión)
+  if (reg.control_peso || reg.procedimiento_cirugia || reg.seguimiento_lesion) puntos.push('#F07A30')
+  return puntos
+}
+
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DIAS_SEMANA = ['L','M','M','J','V','S','D']
 
@@ -66,7 +85,7 @@ export default function CalendarioPage() {
     const [{ data }, { data: pesoData }] = await Promise.all([
       supabase
         .from('registros_diarios')
-        .select('fecha, estado_dia, nota, energia, animo, apetito, agua, digestion, pelaje, conducta, movilidad')
+        .select('fecha, estado_dia, nota, energia, animo, apetito, agua, digestion, pelaje, conducta, movilidad, heces, paseo, fue_al_vet, se_bano, corte_unas, limpieza_dental, limpieza_oidos, tratamiento_dermatologico, vacuna_hoy, anti_hoy, medicamento_hoy, cambio_alimento, probo_alimento_nuevo, alimento, cargo_dispensador, control_peso, procedimiento_cirugia, seguimiento_lesion')
         .eq('mascota_id', mascotaId)
         .gte('fecha', inicio)
         .lte('fecha', fin),
@@ -165,7 +184,19 @@ export default function CalendarioPage() {
               <span className="text-sm font-bold leading-none" style={{ color: reg ? ESTADO_COLOR[reg.estado_dia] : esHoy(d) ? '#FFBD59' : '#8A7560' }}>
                 {d}
               </span>
-              {reg?.nota && <div className="w-1 h-1 rounded-full bg-[#FFBD59]"/>}
+              {/* Puntos de cuidados — uno por grupo, debajo del número */}
+              {(() => {
+                const puntos = puntosDelDia(reg)
+                if (puntos.length === 0) return null
+                return (
+                  <div className="flex gap-0.5 justify-center mt-0.5">
+                    {puntos.map((color, i) => (
+                      <div key={i} className="w-1 h-1 rounded-full" style={{ background: color }} />
+                    ))}
+                  </div>
+                )
+              })()}
+              {reg?.nota && !puntosDelDia(reg).length && <div className="w-1 h-1 rounded-full bg-[#FFBD59] mt-0.5"/>}
             </button>
           )
         })}
