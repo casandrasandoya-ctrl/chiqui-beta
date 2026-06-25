@@ -85,7 +85,7 @@ export default function CalendarioPage() {
     const [{ data }, { data: pesoData }] = await Promise.all([
       supabase
         .from('registros_diarios')
-        .select('fecha, estado_dia, nota, energia, animo, apetito, agua, digestion, pelaje, conducta, movilidad, heces, paseo, fue_al_vet, se_bano, corte_unas, limpieza_dental, limpieza_oidos, tratamiento_dermatologico, vacuna_hoy, anti_hoy, medicamento_hoy, cambio_alimento, probo_alimento_nuevo, alimento, cargo_dispensador, control_peso, procedimiento_cirugia, seguimiento_lesion')
+        .select('*')
         .eq('mascota_id', mascotaId)
         .gte('fecha', inicio)
         .lte('fecha', fin),
