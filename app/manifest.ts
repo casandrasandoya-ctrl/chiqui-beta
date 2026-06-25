@@ -39,22 +39,16 @@ export default function manifest(): MetadataRoute.Manifest {
         src: '/screenshots/dashboard.png',
         sizes: '1080x1920',
         type: 'image/png',
-        label: 'Dashboard principal de CHIQUI',
-        form_factor: 'narrow',
       },
       {
         src: '/screenshots/registro.png',
         sizes: '1080x1920',
         type: 'image/png',
-        label: 'Registro diario de síntomas',
-        form_factor: 'narrow',
       },
       {
         src: '/screenshots/prevencion.png',
         sizes: '1080x1920',
         type: 'image/png',
-        label: 'Prevención y vacunas',
-        form_factor: 'narrow',
       },
     ],
   }
