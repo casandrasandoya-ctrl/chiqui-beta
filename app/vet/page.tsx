@@ -1,26 +1,83 @@
-import { createVetClient } from '@/utils/supabase/vet-client'
+import { createVetClient } from '@/utils/supabase/vet'
 
 interface Props {
   searchParams: { token?: string }
 }
 
-const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-function fmt(f: string) { const d = new Date(f + 'T00:00:00'); return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}` }
+function calcEdad(f: string): string {
+  const d = new Date(f + 'T00:00:00')
+  const hoy = new Date()
+  const anos = Math.floor((hoy.getTime() - d.getTime()) / (1000*60*60*24*365.25))
+  const meses = Math.floor((hoy.getTime() - d.getTime()) / (1000*60*60*24*30.44))
+  return anos >= 1 ? `${anos} ${anos===1?'año':'años'}` : `${meses} meses`
+}
+
+function fmt(f: string): string {
+  if (!f) return '—'
+  const d = new Date(f + 'T00:00:00')
+  const ms = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+  return `${d.getDate()} ${ms[d.getMonth()]} ${d.getFullYear()}`
+}
+
 const EC: Record<string,string> = { verde:'#4CAF7D', amarillo:'#F5C842', naranjo:'#F07A30', rojo:'#E05252' }
 const EL: Record<string,string> = { verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' }
 
-const CATEGORIAS_EXAMEN: Record<string, { label: string; icon: string }> = {
-  hemograma: { label: 'Hemograma', icon: '🩸' },
-  bioquimico: { label: 'Perfil bioquímico', icon: '🧪' },
-  orina: { label: 'Orina', icon: '🚽' },
-  corazon: { label: 'Corazón', icon: '❤️' },
-  otro: { label: 'Otro', icon: '📄' },
+const CAMPOS_SALUD = [
+  ['Energía','energia'],['Ánimo','animo'],['Apetito','apetito'],['Agua','agua'],
+  ['Digestión','digestion'],['Heces','heces'],['Pelaje','pelaje'],
+  ['Conducta','conducta'],['Movilidad','movilidad'],
+]
+
+const CATEGORIAS_EXAMEN: Record<string,{icon:string,label:string}> = {
+  hemograma: { icon:'🩸', label:'Hemograma' },
+  bioquimica: { icon:'🧪', label:'Perfil bioquímico' },
+  orina: { icon:'💛', label:'Examen de orina' },
+  imagen: { icon:'📷', label:'Imagen (Rx / Eco)' },
+  corazon: { icon:'❤️', label:'Examen cardíaco' },
+  otro: { icon:'📄', label:'Otro examen' },
 }
 
-function calcEdad(f: string): string {
-  const h = new Date(), n = new Date(f)
-  const m = (h.getFullYear() - n.getFullYear()) * 12 + (h.getMonth() - n.getMonth())
-  return m < 12 ? `${m} meses` : `${Math.floor(m/12)} años${m%12>0?` ${m%12} meses`:''}`
+// Detecta senales anormales en los ultimos 7 dias para el motivo de consulta
+function detectarMotivosConsulta(registros: any[]): string[] {
+  const hace7 = new Date()
+  hace7.setDate(hace7.getDate() - 7)
+  const recientes = registros.filter(r => new Date(r.fecha + 'T00:00:00') >= hace7)
+
+  const senales: Set<string> = new Set()
+  const CAMPOS_LABEL: Record<string,Record<string,string>> = {
+    energia: { baja:'Energía baja', muy_baja:'Energía muy baja' },
+    animo: { triste:'Ánimo decaído', ansioso:'Ansiedad', agresivo:'Agresividad' },
+    apetito: { poco:'Poco apetito', nada:'Sin apetito', excesivo:'Apetito excesivo' },
+    agua: { poco:'Poca ingesta de agua', mucho:'Ingesta excesiva de agua', nada:'Sin ingesta de agua' },
+    digestion: { vomito:'Vómito', diarrea:'Diarrea', constipacion:'Constipación', gases:'Gases' },
+    heces: { diarrea:'Diarrea', diarrea_con_sangre:'Diarrea con sangre', estreñimiento:'Estreñimiento' },
+    pelaje: { caida_excesiva:'Caída excesiva de pelo', rasca:'Se rasca', lame_exceso:'Se lame en exceso', opaco:'Pelaje opaco' },
+    conducta: { agresivo:'Cambios de conducta (agresivo)', ansioso:'Ansiedad', escondite:'Se esconde', letargico:'Letárgico' },
+    movilidad: { cojera:'Cojera', rigidez:'Rigidez', dolor_aparente:'Dolor aparente', no_salta:'Dificultad para saltar' },
+  }
+  for (const r of recientes) {
+    for (const [campo, valoresLabel] of Object.entries(CAMPOS_LABEL)) {
+      const val = r[campo]
+      if (val && valoresLabel[val]) senales.add(valoresLabel[val])
+    }
+    if (r.estado_dia === 'rojo' || r.estado_dia === 'naranjo') senales.add('Días con estado de alerta reciente')
+  }
+  return Array.from(senales).slice(0, 6)
+}
+
+// Seccion desplegable para el vet (Server Component — solo HTML/CSS)
+function SeccionVet({ titulo, children, abiertaPorDefecto = false }: { titulo: string, children: React.ReactNode, abiertaPorDefecto?: boolean }) {
+  return (
+    <details open={abiertaPorDefecto} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+      <summary className="flex items-center justify-between px-4 py-3.5 cursor-pointer list-none">
+        <span className="font-bold text-sm text-[#3D2B1F]">{titulo}</span>
+        <span className="text-[#8A7560] text-lg select-none">⌄</span>
+      </summary>
+      <div className="border-t border-[#EEE2D4] px-4 py-3">
+        {children}
+      </div>
+    </details>
+  )
 }
 
 export default async function VetPage({ searchParams }: Props) {
@@ -36,11 +93,7 @@ export default async function VetPage({ searchParams }: Props) {
     )
   }
 
-  // Cliente especial con service_role: no depende de sesion ni cookies.
-  // La seguridad real la aplica la funcion obtener_datos_veterinario,
-  // que valida el token antes de devolver cualquier dato.
   const supabase = createVetClient()
-
   const { data: datos, error } = await supabase
     .rpc('obtener_datos_veterinario', { token_param: token })
 
@@ -63,9 +116,8 @@ export default async function VetPage({ searchParams }: Props) {
   const enfermedades = datos.enfermedades || []
   const medicamentos = datos.medicamentos || []
 
-  // Generar URLs firmadas (validas 60 segundos) para los PDFs de examenes.
-  // Estos archivos ya fueron confirmados por la funcion segura como
-  // pertenecientes a esta mascota especifica, asi que es seguro firmarlos.
+  const motivosConsulta = detectarMotivosConsulta(registros)
+
   const examenesConUrl = await Promise.all(
     examenes.map(async (ex: any) => {
       const { data: signed } = await supabase.storage
@@ -78,9 +130,10 @@ export default async function VetPage({ searchParams }: Props) {
   return (
     <div className="min-h-screen bg-[#F5EDE3] text-[#3D2B1F] pb-12 max-w-lg mx-auto">
 
+      {/* Header */}
       <div className="bg-gradient-to-b from-[#8C572F] to-[#F5EDE3] text-white px-5 pt-8 pb-6">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">🐶</span>
+          <span className="text-xl">🐾</span>
           <div>
             <div className="text-xs font-bold text-[#FFBD59] tracking-widest uppercase">CHIQUI Entre Señales</div>
             <div className="text-xs text-white/80">Vista veterinaria · Solo lectura</div>
@@ -100,8 +153,9 @@ export default async function VetPage({ searchParams }: Props) {
         )}
       </div>
 
-      <div className="px-5 py-5 space-y-5">
+      <div className="px-5 py-5 space-y-3">
 
+        {/* Ficha del paciente */}
         <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4]">
           <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-3">Ficha del paciente</h2>
           <div className="grid grid-cols-2 gap-3">
@@ -120,65 +174,47 @@ export default async function VetPage({ searchParams }: Props) {
           </div>
         </div>
 
-        {obs.length > 0 && (
-          <div className="bg-[#FBEAD9] rounded-2xl p-4 border border-[#F07A30]/20">
-            <h2 className="font-bold text-xs text-[#F07A30] uppercase tracking-wider mb-3">⚠️ Observaciones activas</h2>
-            {obs.map((o: any) => (
-              <div key={o.id} className="mb-3 last:mb-0">
-                <p className="font-bold text-sm">{o.titulo}</p>
-                {o.descripcion && <p className="text-sm text-[#8A7560] mt-0.5">{o.descripcion}</p>}
-                <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
-                {o.foto_url && (
-                  <img src={o.foto_url} alt={o.titulo} className="w-full h-40 object-cover rounded-xl mt-2" />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {examenesConUrl.length > 0 && (
-          <div>
-            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-3">📄 Exámenes</h2>
-            <div className="space-y-2">
-              {examenesConUrl.map((ex: any) => {
-                const cat = CATEGORIAS_EXAMEN[ex.categoria] || CATEGORIAS_EXAMEN.otro
-                return (
-                  <div key={ex.id} className="bg-[#FFFCF8] rounded-xl p-3 border border-[#EEE2D4]">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-lg">{cat.icon}</span>
-                        <div>
-                          <p className="font-semibold text-sm">{ex.nombre || cat.label}</p>
-                          <p className="text-xs text-[#8A7560]">{cat.label} · {fmt(ex.fecha)}</p>
-                        </div>
-                      </div>
-                    </div>
-                    {ex.nota && <p className="text-xs text-[#8A7560] mt-2 italic">📝 {ex.nota}</p>}
-                    {ex.signedUrl ? (
-                      <a
-                        href={ex.signedUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full mt-3 bg-[#8C572F]/10 text-[#8C572F] font-bold py-2 rounded-xl text-sm inline-flex items-center justify-center"
-                      >
-                        📄 Ver / descargar PDF
-                      </a>
-                    ) : (
-                      <p className="text-xs text-[#8A7560] mt-2">No se pudo generar el enlace al archivo.</p>
-                    )}
-                  </div>
-                )
-              })}
+        {/* Posible motivo de consulta — automatico desde los ultimos 7 dias */}
+        {motivosConsulta.length > 0 && (
+          <div className="bg-[#FBEAD9] rounded-2xl p-4 border border-[#CD7421]/30">
+            <h2 className="font-bold text-xs text-[#CD7421] uppercase tracking-wider mb-2">
+              🩺 Posible motivo de consulta
+            </h2>
+            <p className="text-[11px] text-[#8A7560] mb-2">Detectado en los últimos 7 días:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {motivosConsulta.map(m => (
+                <span key={m} className="bg-[#FFFCF8] border border-[#CD7421]/30 text-[#8C572F] text-xs font-semibold px-2.5 py-1 rounded-full">
+                  {m}
+                </span>
+              ))}
             </div>
           </div>
         )}
 
+        {/* Observaciones — siempre primera, abierta por defecto */}
+        {obs.length > 0 && (
+          <SeccionVet titulo={`👁️ Observaciones (${obs.length})`} abiertaPorDefecto={true}>
+            <div className="space-y-3">
+              {obs.map((o: any) => (
+                <div key={o.id} className="pb-3 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+                  <p className="font-bold text-sm">{o.titulo}</p>
+                  {o.descripcion && <p className="text-sm text-[#8A7560] mt-0.5">{o.descripcion}</p>}
+                  <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
+                  {o.foto_url && (
+                    <img src={o.foto_url} alt={o.titulo} className="w-full h-40 object-cover rounded-xl mt-2" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </SeccionVet>
+        )}
+
+        {/* Registros recientes */}
         {registros.length > 0 && (
-          <div>
-            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-3">Registros recientes ({registros.length})</h2>
+          <SeccionVet titulo={`📋 Registros recientes (${registros.length})`}>
             <div className="space-y-2">
               {registros.map((r: any) => (
-                <div key={r.id} className="bg-[#FFFCF8] rounded-xl p-3 border border-[#EEE2D4]">
+                <div key={r.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-sm font-semibold">{fmt(r.fecha)}</p>
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${EC[r.estado_dia]}20`, color: EC[r.estado_dia] }}>
@@ -186,7 +222,7 @@ export default async function VetPage({ searchParams }: Props) {
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                    {[['Energía','energia'],['Ánimo','animo'],['Apetito','apetito'],['Agua','agua'],['Digestión','digestion'],['Pelaje','pelaje'],['Conducta','conducta'],['Movilidad','movilidad']].filter(([,k]) => r[k] && r[k] !== 'normal').map(([label, key]) => (
+                    {CAMPOS_SALUD.filter(([,k]) => r[k] && r[k] !== 'normal').map(([label, key]) => (
                       <span key={key} className="text-xs text-[#8A7560]">
                         <span className="font-medium text-[#3D2B1F]">{label}:</span> {r[key].replace(/_/g,' ')}
                       </span>
@@ -196,15 +232,15 @@ export default async function VetPage({ searchParams }: Props) {
                 </div>
               ))}
             </div>
-          </div>
+          </SeccionVet>
         )}
 
+        {/* Vacunas */}
         {vacunas.length > 0 && (
-          <div>
-            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-3">💉 Vacunas</h2>
+          <SeccionVet titulo={`💉 Vacunas (${vacunas.length})`}>
             <div className="space-y-2">
               {vacunas.map((v: any) => (
-                <div key={v.id} className="bg-[#FFFCF8] rounded-xl p-3 border border-[#EEE2D4]">
+                <div key={v.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-sm">{v.nombre}</p>
                     {v.proxima_fecha && <p className="text-xs text-[#8A7560]">Próxima: {fmt(v.proxima_fecha)}</p>}
@@ -213,35 +249,35 @@ export default async function VetPage({ searchParams }: Props) {
                 </div>
               ))}
             </div>
-          </div>
+          </SeccionVet>
         )}
 
+        {/* Antiparasitarios */}
         {antis.length > 0 && (
-          <div>
-            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-3">💊 Antiparasitarios</h2>
+          <SeccionVet titulo={`💊 Antiparasitarios (${antis.length})`}>
             <div className="space-y-2">
               {antis.map((a: any) => (
-                <div key={a.id} className="bg-[#FFFCF8] rounded-xl p-3 border border-[#EEE2D4]">
+                <div key={a.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-sm">{a.nombre}</p>
                     {a.proxima_fecha && <p className="text-xs text-[#8A7560]">Próxima: {fmt(a.proxima_fecha)}</p>}
                   </div>
-                  <p className="text-xs text-[#8A7560] mt-0.5">{a.tipo} · {a.forma} · {fmt(a.fecha_aplicacion)}</p>
+                  <p className="text-xs text-[#8A7560] mt-0.5">{a.tipo} · {fmt(a.fecha_aplicacion)}</p>
                 </div>
               ))}
             </div>
-          </div>
+          </SeccionVet>
         )}
 
+        {/* Medicamentos */}
         {medicamentos.length > 0 && (
-          <div>
-            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-3">🩹 Medicamentos</h2>
+          <SeccionVet titulo={`🩹 Medicamentos (${medicamentos.length})`}>
             <div className="space-y-2">
               {medicamentos.map((med: any) => (
-                <div key={med.id} className="bg-[#FFFCF8] rounded-xl p-3 border border-[#EEE2D4]">
+                <div key={med.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-sm">{med.nombre}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
                       {med.estado === 'activo' ? 'Activo' : 'Finalizado'}
                     </span>
                   </div>
@@ -251,21 +287,21 @@ export default async function VetPage({ searchParams }: Props) {
                 </div>
               ))}
             </div>
-          </div>
+          </SeccionVet>
         )}
 
+        {/* Enfermedades */}
         {enfermedades.length > 0 && (
-          <div>
-            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-3">🏥 Enfermedades</h2>
+          <SeccionVet titulo={`🏥 Enfermedades (${enfermedades.length})`}>
             <div className="space-y-2">
               {enfermedades.map((enf: any) => {
-                const estadoColor: Record<string,string> = { activa: '#F07A30', cronica: '#E05252', resuelta: '#4CAF7D' }
-                const estadoLabel: Record<string,string> = { activa: 'Activa', cronica: 'Crónica', resuelta: 'Resuelta' }
+                const estadoColor: Record<string,string> = { activa:'#F07A30', cronica:'#E05252', resuelta:'#4CAF7D' }
+                const estadoLabel: Record<string,string> = { activa:'Activa', cronica:'Crónica', resuelta:'Resuelta' }
                 return (
-                  <div key={enf.id} className="bg-[#FFFCF8] rounded-xl p-3 border border-[#EEE2D4]">
+                  <div key={enf.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
                     <div className="flex items-center justify-between">
                       <p className="font-semibold text-sm">{enf.diagnostico}</p>
-                      <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: `${estadoColor[enf.estado]}20`, color: estadoColor[enf.estado] }}>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: `${estadoColor[enf.estado]}20`, color: estadoColor[enf.estado] }}>
                         {estadoLabel[enf.estado] || enf.estado}
                       </span>
                     </div>
@@ -278,7 +314,36 @@ export default async function VetPage({ searchParams }: Props) {
                 )
               })}
             </div>
-          </div>
+          </SeccionVet>
+        )}
+
+        {/* Exámenes */}
+        {examenesConUrl.length > 0 && (
+          <SeccionVet titulo={`📄 Exámenes (${examenesConUrl.length})`}>
+            <div className="space-y-2">
+              {examenesConUrl.map((ex: any) => {
+                const cat = CATEGORIAS_EXAMEN[ex.categoria] || CATEGORIAS_EXAMEN.otro
+                return (
+                  <div key={ex.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{cat.icon}</span>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">{ex.nombre || cat.label}</p>
+                        <p className="text-xs text-[#8A7560]">{cat.label} · {fmt(ex.fecha)}</p>
+                      </div>
+                    </div>
+                    {ex.nota && <p className="text-xs text-[#8A7560] mt-1 italic">📝 {ex.nota}</p>}
+                    {ex.signedUrl && (
+                      <a href={ex.signedUrl} target="_blank" rel="noopener noreferrer"
+                        className="w-full mt-2 bg-[#8C572F]/10 text-[#8C572F] font-bold py-2 rounded-xl text-sm inline-flex items-center justify-center">
+                        📄 Ver / descargar PDF
+                      </a>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </SeccionVet>
         )}
 
         <div className="text-center pt-4 border-t border-[#EEE2D4]">
