@@ -1,4 +1,4 @@
-import { createVetClient } from '@/utils/supabase/vet'
+import { createVetClient } from '@/utils/supabase/vet-client'
 
 interface Props {
   searchParams: { token?: string }
