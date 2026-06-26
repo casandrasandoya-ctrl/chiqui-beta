@@ -174,13 +174,13 @@ export default async function VetPage({ searchParams }: Props) {
           </div>
         </div>
 
-        {/* Posible motivo de consulta — automatico desde los ultimos 7 dias */}
-        {motivosConsulta.length > 0 && (
-          <div className="bg-[#FBEAD9] rounded-2xl p-4 border border-[#CD7421]/30">
-            <h2 className="font-bold text-xs text-[#CD7421] uppercase tracking-wider mb-2">
-              🩺 Posible motivo de consulta
-            </h2>
-            <p className="text-[11px] text-[#8A7560] mb-2">Detectado en los últimos 7 días:</p>
+        {/* Posible motivo de consulta — siempre visible */}
+        <div className="bg-[#FBEAD9] rounded-2xl p-4 border border-[#CD7421]/30">
+          <h2 className="font-bold text-xs text-[#CD7421] uppercase tracking-wider mb-2">
+            🩺 Posible motivo de consulta
+          </h2>
+          <p className="text-[11px] text-[#8A7560] mb-2">Basado en los últimos 7 días:</p>
+          {motivosConsulta.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {motivosConsulta.map(m => (
                 <span key={m} className="bg-[#FFFCF8] border border-[#CD7421]/30 text-[#8C572F] text-xs font-semibold px-2.5 py-1 rounded-full">
@@ -188,8 +188,13 @@ export default async function VetPage({ searchParams }: Props) {
                 </span>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-base">✅</span>
+              <p className="text-sm font-semibold text-[#4CAF7D]">Sin alertas recientes — posible control de rutina</p>
+            </div>
+          )}
+        </div>
 
         {/* Observaciones — siempre primera, abierta por defecto */}
         {obs.length > 0 && (
