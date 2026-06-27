@@ -48,7 +48,7 @@ export default function RegistroPage() {
     // redundante e innecesario: si ese segundo login fallaba por
     // cualquier motivo, la persona quedaba bloqueada sin poder entrar,
     // aunque su cuenta ya estuviera lista y con sesion activa.
-    router.push('/mascota/nueva')
+    router.push('/bienvenida')
     router.refresh()
   }
 
