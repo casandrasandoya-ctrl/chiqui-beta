@@ -274,7 +274,7 @@ function RegistroContenido() {
       vacuna_hoy: 'vacuna_hoy', anti_hoy: 'anti_hoy', medicamento_hoy: 'medicamento_hoy',
       limpieza_dental: 'limpieza_dental', limpieza_oidos: 'limpieza_oidos',
       tratamiento_dermatologico: 'tratamiento_dermatologico',
-      cambio_alimento: 'cambio_alimento', probo_alimento_nuevo: 'probo_alimento_nuevo',
+      cambio_alimento: 'cambio_alimento', probo_alimento_nuevo: 'probo_alimento_nuevo', cargo_dispensador: 'cargo_dispensador',
       control_peso: 'control_peso', procedimiento_cirugia: 'procedimiento_cirugia',
       seguimiento_lesion: 'seguimiento_lesion',
     }
@@ -414,7 +414,7 @@ function RegistroContenido() {
       medicamento_hoy: cuidados.has('medicamento_hoy'),
       limpieza_dental: cuidados.has('limpieza_dental'), limpieza_oidos: cuidados.has('limpieza_oidos'),
       tratamiento_dermatologico: cuidados.has('tratamiento_dermatologico'),
-      cambio_alimento: cuidados.has('cambio_alimento'), probo_alimento_nuevo: cuidados.has('probo_alimento_nuevo'),
+      cambio_alimento: cuidados.has('cambio_alimento'), probo_alimento_nuevo: cuidados.has('probo_alimento_nuevo'), cargo_dispensador: cuidados.has('cargo_dispensador'),
       control_peso: cuidados.has('control_peso'), procedimiento_cirugia: cuidados.has('procedimiento_cirugia'),
       seguimiento_lesion: cuidados.has('seguimiento_lesion'),
     }, { onConflict: 'mascota_id,fecha' })
@@ -587,6 +587,7 @@ function RegistroContenido() {
           { titulo: 'Alimentación', items: [
             { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
             { value: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó un alimento nuevo' },
+            { value: 'cargo_dispensador', emoji: '🤖', label: 'Cargué el dispensador de comida/agua' },
           ]},
           { titulo: 'Eventos importantes', items: [
             { value: 'control_peso', emoji: '⚖️', label: 'Control de peso' },
