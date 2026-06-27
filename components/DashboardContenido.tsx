@@ -36,7 +36,7 @@ interface Props {
   color: string
   estadoLabel: string
   obsActiva: { titulo: string; fecha_inicio: string } | null | undefined
-  proximosItems: { label: string; sub: string; dias: string; color: string; url?: string }[]
+  proximosItems: { label: string; sub: string; dias: string; color: string }[]
   tieneRegistroHoy: boolean
   cuidadosRecientes: { grupo: string; label: string; emoji: string; dias: number }[]
   rachaPaseo: number | null
@@ -194,21 +194,35 @@ export default function DashboardContenido({
             <div className="text-[10px] text-[#D9B596] mt-0.5">Peso actual</div>
           </div>
           <div className="text-center">
-            <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{m.castrado ? 'Esterilizado/a' : 'Entero/a'}</div>
+            <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{m.castrado ? 'Castrado' : 'Entero'}</div>
             <div className="text-[10px] text-[#D9B596] mt-0.5">Estado</div>
           </div>
         </div>
       </Link>
 
-      {/* MENSAJE / ESTADO DEL DÍA */}
-      <div className="mx-4 mb-3 bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5">
-        <span className="text-lg flex-shrink-0">🐾</span>
-        <p className="text-xs leading-relaxed font-semibold text-[#7A4A2F]">
-          {!tieneRegistroHoy
-            ? `¿Cómo estuvo ${m.nombre} hoy? Registra sus señales del día.`
-            : 'Todo registrado el día de hoy. Gracias por observar.'}
-        </p>
-      </div>
+      {/* PREGUNTA ROTATIVA — mismas preguntas del splash, refuerzan
+          el habito de registrar cada vez que el usuario entra al dashboard */}
+      {(() => {
+        const PREGUNTAS = [
+          `Si esta noche algo cambia en ${m.nombre}, ¿tendrías el historial para contarle al vet?`,
+          `¿Recuerdas cuándo comió bien por última vez?`,
+          `¿Notaste algo distinto hoy, o todo igual que ayer?`,
+          `Si el vet pregunta "¿hace cuánto tiene eso?"... ¿sabrías responder?`,
+          `¿Cuándo fue su último paseo? ¿Y el anterior?`,
+        ]
+        // Rotar por dia de la semana para que cambie cada dia pero sea
+        // consistente durante el mismo dia (no cambia al recargar)
+        const hoy = new Date()
+        const idx = (hoy.getFullYear() * 366 + hoy.getMonth() * 31 + hoy.getDate()) % PREGUNTAS.length
+        return (
+          <div className="mx-4 mb-3 bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5">
+            <span className="text-lg flex-shrink-0">💭</span>
+            <p className="text-xs leading-relaxed text-[#7A4A2F] italic">
+              {PREGUNTAS[idx]}
+            </p>
+          </div>
+        )
+      })()}
 
       {/* ALERT BANNER - observación activa */}
       {obsActiva && (
@@ -241,27 +255,15 @@ export default function DashboardContenido({
             <Link href="/prevencion" className="text-xs text-[#CD7421] font-semibold">Ver todo</Link>
           </div>
           <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
-            {proximosItems.map(item => {
-              const contenido = (
-                <>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-[12.5px] font-bold text-[#3D2B1F]">{item.label}</p>
-                    <span className="text-[10.5px] font-bold" style={{ color: item.color }}>{item.dias}</span>
-                  </div>
-                  <p className="text-[11px] text-[#8A7560] leading-tight">{item.sub}</p>
-                  {item.url && <p className="text-[10px] text-[#CD7421] font-semibold mt-1.5">Tocar para iniciar →</p>}
-                </>
-              )
-              return item.url ? (
-                <Link key={item.label} href={item.url} className="bg-[#FFFCF8] border border-[#FFBD59]/40 rounded-2xl p-3 block">
-                  {contenido}
-                </Link>
-              ) : (
-                <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3">
-                  {contenido}
+            {proximosItems.map(item => (
+              <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[12.5px] font-bold text-[#3D2B1F]">{item.label}</p>
+                  <span className="text-[10.5px] font-bold" style={{ color: item.color }}>{item.dias}</span>
                 </div>
-              )
-            })}
+                <p className="text-[11px] text-[#8A7560] leading-tight">{item.sub}</p>
+              </div>
+            ))}
           </div>
         </>
       )}
