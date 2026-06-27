@@ -4,23 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { guardarMascotaActivaId } from '@/utils/mascotaActiva'
-import UnirseComoCotutor from '@/components/UnirseComoCotutor'
 
 const ESPECIES = ['Perro', 'Gato', 'Conejo', 'Ave', 'Otro']
-
-const RAZAS_PERRO = [
-  'Mestizo', 'Poodle', 'Pastor Alemán', 'Yorkshire Terrier', 'Dachshund',
-  'Fox Terrier', 'Beagle', 'Labrador Retriever', 'Golden Retriever',
-  'Chihuahua', 'Boxer', 'Galgo', 'Pug', 'Maltés', 'French Bulldog',
-  'Bulldog Inglés', 'Border Collie', 'Schnauzer', 'Husky Siberiano',
-  'Rottweiler', 'Otro',
-]
-
-const RAZAS_GATO = [
-  'Mestizo', 'Doméstico pelo corto', 'Doméstico pelo largo', 'Siamés',
-  'Persa', 'Maine Coon', 'Ragdoll', 'Bengalí', 'Esfinge (Sphynx)',
-  'Británico de pelo corto', 'Angora', 'Otro',
-]
 
 export default function NuevaMascotaPage() {
   const router = useRouter()
@@ -115,10 +100,7 @@ export default function NuevaMascotaPage() {
     router.refresh()
   }
 
-  const mostrarSelectorRaza = form.especie === 'Perro' || form.especie === 'Gato'
-  const razas = form.especie === 'Perro' ? RAZAS_PERRO : form.especie === 'Gato' ? RAZAS_GATO : []
-
-  const paso1Completo = !!form.nombre && !!form.especie && !!form.sexo && (!mostrarSelectorRaza || !!form.raza)
+  const paso1Completo = !!form.nombre && !!form.especie && !!form.sexo
 
   return (
     <div className="min-h-screen pb-8 fade-in">
@@ -166,17 +148,14 @@ export default function NuevaMascotaPage() {
               </div>
             </Field>
 
-            {mostrarSelectorRaza && (
-              <Field label="Raza">
-                <select className={selectClass} value={form.raza} onChange={e => update('raza', e.target.value)}>
-                  <option value="">Seleccionar...</option>
-                  {razas.map(r => <option key={r}>{r}</option>)}
-                </select>
-                {!form.raza && (
-                  <p className="text-[11px] text-[#8A7560] mt-1.5">Elige una raza para continuar. Si no sabes cuál, selecciona "Mestizo" u "Otro".</p>
-                )}
-              </Field>
-            )}
+            <Field label="Raza" optional>
+              <input
+                className={inputClass}
+                placeholder="ej. Pastor Australiano, Mestizo, Kelpie..."
+                value={form.raza}
+                onChange={e => update('raza', e.target.value)}
+              />
+            </Field>
 
             <Field label="Sexo">
               <div className="flex gap-2">
@@ -299,16 +278,6 @@ export default function NuevaMascotaPage() {
             <button onClick={() => setStep(2)} className="w-full text-[#8A7560] text-sm py-2">
               ← Volver
             </button>
-
-            {/* Separador */}
-            <div className="flex items-center gap-3 my-1">
-              <div className="flex-1 h-px bg-[#EEE2D4]" />
-              <span className="text-xs text-[#8A7560]">o</span>
-              <div className="flex-1 h-px bg-[#EEE2D4]" />
-            </div>
-
-            {/* Opción alternativa para co-tutor */}
-            <UnirseComoCotutor />
           </>
         )}
 
