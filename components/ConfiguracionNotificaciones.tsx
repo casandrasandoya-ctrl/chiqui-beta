@@ -96,7 +96,7 @@ export default function ConfiguracionNotificaciones() {
     <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
       <div className="px-4 py-3 border-b border-[#EEE2D4]">
         <h2 className="font-bold text-sm">🔔 Recordatorio diario</h2>
-        <p className="text-xs text-[#8A7560] mt-0.5">Te avisamos si no has registrado a tu mascota hoy</p>
+        <p className="text-xs text-[#8A7560] mt-0.5">Si hoy aún no has observado cómo estuvo tu mascota, te enviamos un recordatorio para que no se pierda ninguna señal.</p>
       </div>
 
       <div className="p-4">
