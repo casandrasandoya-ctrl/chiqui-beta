@@ -144,6 +144,10 @@ export default function DashboardContenido({
 
       {/* HERO */}
       <Link href="/perfil" className="relative mx-4 mb-4 bg-[#8C572F] rounded-2xl p-5 overflow-hidden block">
+        {/* Indicador clickeable — esquina superior derecha */}
+        <span className="absolute top-3.5 right-4 text-[11px] font-semibold text-[#FFBD59]/90">
+          Mi perfil →
+        </span>
         <div className="flex items-start gap-3.5">
           {m.foto_url ? (
             <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[#FFFCF8]/40 flex-shrink-0">
@@ -169,7 +173,6 @@ export default function DashboardContenido({
               {estadoLabel}
             </div>
           </div>
-          <span className="text-[#FFFCF8]/50 text-xl pt-1">›</span>
         </div>
 
         <div className="grid grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-[#FFFCF8]/15">
@@ -194,7 +197,7 @@ export default function DashboardContenido({
             <div className="text-[10px] text-[#D9B596] mt-0.5">Peso actual</div>
           </div>
           <div className="text-center">
-            <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{m.castrado ? 'Castrado' : 'Entero'}</div>
+            <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{m.castrado ? 'Esterilizado/a' : 'Entero/a'}</div>
             <div className="text-[10px] text-[#D9B596] mt-0.5">Estado</div>
           </div>
         </div>
