@@ -27,28 +27,39 @@ export default async function Dashboard({ searchParams }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Traemos TODAS las mascotas del usuario (liviano: solo lo necesario
-  // para el selector), para saber cuales existen y poder elegir cual
-  // mostrar como activa.
+  // Traer mascotas propias
   const { data: mascotasPropias } = await supabase
     .from('mascotas')
     .select('id, nombre, especie, raza, foto_url')
     .order('created_at', { ascending: true })
 
-  // Tambien traemos las mascotas compartidas con este usuario como co-tutor
-  const { data: mascotasCompartidasRaw } = await supabase
-    .rpc('obtener_mascotas_compartidas')
+  // Traer mascotas compartidas via join directo (sin RPC)
+  // Busca en mascota_cotutores donde cotutor_user_id = usuario actual
+  const { data: cotutorRows } = await supabase
+    .from('mascota_cotutores')
+    .select('mascota_id')
+    .eq('cotutor_user_id', user.id)
+    .eq('estado', 'activo')
 
-  const mascotasCompartidas = (mascotasCompartidasRaw as any[] || [])
-    .map((m: any) => ({ id: m.id, nombre: m.nombre, especie: m.especie, raza: m.raza, foto_url: m.foto_url }))
+  const idsMascotasCompartidas = (cotutorRows || []).map((r: any) => r.mascota_id)
+
+  const { data: mascotasCompartidasRaw } = idsMascotasCompartidas.length > 0
+    ? await supabase
+        .from('mascotas')
+        .select('id, nombre, especie, raza, foto_url')
+        .in('id', idsMascotasCompartidas)
+    : { data: [] }
+
+  const mascotasCompartidas = (mascotasCompartidasRaw || []) as any[]
 
   const mascotas = [
     ...(mascotasPropias || []),
-    ...(mascotasCompartidas || []).filter(
-      mc => !(mascotasPropias || []).find(mp => mp.id === mc.id)
+    ...mascotasCompartidas.filter(
+      (mc: any) => !(mascotasPropias || []).find((mp: any) => mp.id === mc.id)
     ),
   ]
 
+  // Si no tiene mascotas propias ni compartidas, va a crear una
   if (!mascotas || !mascotas.length) redirect('/mascota/nueva')
 
   // La mascota activa es la indicada por el parametro ?mascota=ID en la
