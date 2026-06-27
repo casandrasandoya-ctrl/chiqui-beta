@@ -77,7 +77,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
     <div className="mb-4">
       {/* Header */}
       <div className="px-5 mb-2.5 flex items-center gap-2">
-        <span className="text-base">🐾</span>
+        <span className="text-base">🐶🤓</span>
         <span className="font-bold text-xs text-[#3D2B1F] uppercase tracking-wider">Chiqui te cuenta</span>
       </div>
 
