@@ -9,6 +9,9 @@ import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascota
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
 import FotoMascota from '@/components/FotoMascota'
 import ConfiguracionNotificaciones from '@/components/ConfiguracionNotificaciones'
+import { calcularEtapaVida, formatearEdad } from '@/utils/etapaVida'
+import GestionCotutor from '@/components/GestionCotutor'
+import UnirseComoCotutor from '@/components/UnirseComoCotutor'
 
 const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
 const SC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
@@ -116,6 +119,7 @@ export default function PerfilPage() {
   )
 
   const edad = mascota?.fecha_nacimiento ? calcEdad(mascota.fecha_nacimiento) : ''
+  const etapa = mascota?.fecha_nacimiento ? calcularEtapaVida(mascota.fecha_nacimiento, mascota.especie) : null
 
   const datos: [string, string][] = [
     ['Especie', mascota?.especie || '-'],
@@ -163,6 +167,22 @@ export default function PerfilPage() {
 
       {/* Selector de mascota */}
       {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
+
+      {/* Etapa de vida */}
+      {etapa && (
+        <div className="mx-4 mt-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
+          <div className="flex items-center gap-2.5 mb-2">
+            <span className="text-xl">🩺</span>
+            <div>
+              <p className="font-bold text-sm text-[#3D2B1F]">{etapa.nombre} · {formatearEdad(etapa)}</p>
+              <p className="text-[10px] text-[#8A7560] uppercase tracking-wider">Etapa de vida</p>
+            </div>
+          </div>
+          <p className="text-xs text-[#5C4A3A] leading-relaxed bg-[#FBEAD9] rounded-xl px-3 py-2.5">
+            💡 {etapa.recomendacion}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-3 mx-4 mt-4 mb-4">
         <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
@@ -241,6 +261,18 @@ export default function PerfilPage() {
       </div>
 
       {mascota && <LinkVet key={mascota.id} mascotaId={mascota.id} />}
+
+      {/* Co-tutor — gestión para el dueño */}
+      {mascota && (
+        <GestionCotutor
+          key={mascota.id}
+          mascotaId={mascota.id}
+          mascotaNombre={mascota.nombre}
+        />
+      )}
+
+      {/* Unirse como co-tutor — para quien tiene un código */}
+      <UnirseComoCotutor />
 
       <ConfiguracionNotificaciones />
 

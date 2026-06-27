@@ -30,10 +30,22 @@ export default async function Dashboard({ searchParams }: Props) {
   // Traemos TODAS las mascotas del usuario (liviano: solo lo necesario
   // para el selector), para saber cuales existen y poder elegir cual
   // mostrar como activa.
-  const { data: mascotas } = await supabase
+  const { data: mascotasPropias } = await supabase
     .from('mascotas')
     .select('id, nombre, especie, raza, foto_url')
     .order('created_at', { ascending: true })
+
+  // Tambien traemos las mascotas compartidas con este usuario como co-tutor
+  const { data: mascotasCompartidas } = await supabase
+    .rpc('obtener_mascotas_compartidas')
+    .select('id, nombre, especie, raza, foto_url')
+
+  const mascotas = [
+    ...(mascotasPropias || []),
+    ...(mascotasCompartidas || []).filter(
+      mc => !(mascotasPropias || []).find(mp => mp.id === mc.id)
+    ),
+  ]
 
   if (!mascotas || !mascotas.length) redirect('/mascota/nueva')
 
