@@ -60,7 +60,7 @@ export default async function Dashboard({ searchParams }: Props) {
   ]
 
   // Si no tiene mascotas propias ni compartidas, va a crear una
-  if (!mascotas || !mascotas.length) redirect('/mascota/nueva')
+  if (!mascotas || !mascotas.length) redirect('/bienvenida')
 
   // La mascota activa es la indicada por el parametro ?mascota=ID en la
   // URL (que el selector del lado del cliente controla), o si no viene

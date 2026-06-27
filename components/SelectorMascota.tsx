@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { guardarMascotaActivaId } from '@/utils/mascotaActiva'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
+import UnirseComoCotutor from '@/components/UnirseComoCotutor'
 
 interface Mascota {
   id: string
@@ -88,6 +89,9 @@ export default function SelectorMascota({
               <div className="w-8 h-8 rounded-full bg-[#FFBD59] flex items-center justify-center text-base flex-shrink-0 text-white">+</div>
               <span className="font-semibold text-[13px] text-[#8C572F]">Agregar otra mascota</span>
             </button>
+            <div className="px-3 pb-3">
+              <UnirseComoCotutor />
+            </div>
           </div>
         </>
       )}
