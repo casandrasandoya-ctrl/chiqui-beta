@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import PesoTracker from '@/components/PesoTracker'
+import RespiracionTracker from '@/components/RespiracionTracker'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 
@@ -325,6 +326,7 @@ export default function PrevencionPage() {
             <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí puedes contarme cuánto pesa tu compañero cada vez que lo controlen, así vemos juntos cómo va cambiando.</p>
           </div>
           <PesoTracker mascotaId={mascota.id} pesoActual={mascota.peso_actual} />
+          <RespiracionTracker mascotaId={mascota.id} especie={mascota.especie} />
         </>
           </div>
         )}
