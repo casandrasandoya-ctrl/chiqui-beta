@@ -88,7 +88,7 @@ export default function RespiracionTracker({ mascotaId, especie }: Props) {
   }
 
   const ultimo = registros[0]
-  const rangoActual = ultimo ? getRango(ultimo.rpm) : null
+  const rangoActual = ultimo ? getRango(ultimo.rpm, especie) : null
 
   // Calcular max para el gráfico
   const maxRpm = Math.max(...registros.map(r => r.rpm), 45)
@@ -170,7 +170,7 @@ export default function RespiracionTracker({ mascotaId, especie }: Props) {
               />
             </div>
             {rpm && parseInt(rpm) > 0 && (() => {
-              const r = getRango(parseInt(rpm))
+              const r = getRango(parseInt(rpm), especie)
               return (
                 <div className="flex-shrink-0 text-center">
                   <div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ background: r.bg }}>
@@ -181,8 +181,8 @@ export default function RespiracionTracker({ mascotaId, especie }: Props) {
             })()}
           </div>
           {rpm && parseInt(rpm) > 0 && (
-            <p className="text-xs leading-relaxed" style={{ color: getRango(parseInt(rpm)).color }}>
-              {getRango(parseInt(rpm)).texto}
+            <p className="text-xs leading-relaxed" style={{ color: getRango(parseInt(rpm), especie).color }}>
+              {getRango(parseInt(rpm), especie).texto}
             </p>
           )}
           <input
@@ -233,7 +233,7 @@ export default function RespiracionTracker({ mascotaId, especie }: Props) {
             {/* Barras */}
             <div className="absolute inset-0 flex items-end gap-1 px-1">
               {[...registros].reverse().map((r, i) => {
-                const rang = getRango(r.rpm)
+                const rang = getRango(r.rpm, especie)
                 const h = Math.max(4, (r.rpm / maxRpm) * 100)
                 return (
                   <div key={r.id} className="flex-1 flex flex-col items-center gap-0.5">
@@ -271,7 +271,7 @@ export default function RespiracionTracker({ mascotaId, especie }: Props) {
       {registros.length > 0 && (
         <div className="space-y-1.5">
           {registros.map(r => {
-            const rang = getRango(r.rpm)
+            const rang = getRango(r.rpm, especie)
             return (
               <div key={r.id} className="flex items-center gap-2.5 py-1.5 border-b border-[#EEE2D4] last:border-0">
                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: rang.color }} />
