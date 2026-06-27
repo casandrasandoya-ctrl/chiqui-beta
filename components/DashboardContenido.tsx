@@ -9,6 +9,7 @@ import { calcularEtapaVida, formatearEdad } from '@/utils/etapaVida'
 import BannerNotificaciones from '@/components/BannerNotificaciones'
 import BannerInstalarApp from '@/components/BannerInstalarApp'
 import { useEffect, useState } from 'react'
+import ChiquiTeCuenta from '@/components/ChiquiTeCuenta'
 
 function calcEdad(f: string) {
   const h = new Date(), n = new Date(f)
@@ -348,6 +349,9 @@ export default function DashboardContenido({
           )}
         </>
       )}
+
+      {/* CHIQUI TE CUENTA — carrusel de datos curiosos, cambia cada dia */}
+      <ChiquiTeCuenta especie={m.especie} />
 
       <BottomNav />
     </div>
