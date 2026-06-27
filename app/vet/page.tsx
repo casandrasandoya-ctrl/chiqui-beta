@@ -144,7 +144,7 @@ export default async function VetPage({ searchParams }: Props) {
           {mascota.especie}{mascota.raza ? ` · ${mascota.raza}` : ''}
           {mascota.fecha_nacimiento ? ` · ${calcEdad(mascota.fecha_nacimiento)}` : ''}
           {mascota.sexo ? ` · ${mascota.sexo}` : ''}
-          {mascota.castrado ? ' · Castrado/a' : ''}
+          {mascota.castrado ? ' · Esterilizado/a' : ''}
         </p>
         {mascota.alergias && (
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E05252]/20 text-white">

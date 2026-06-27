@@ -194,7 +194,7 @@ export default function DashboardContenido({
             <div className="text-[10px] text-[#D9B596] mt-0.5">Peso actual</div>
           </div>
           <div className="text-center">
-            <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{m.castrado ? 'Castrado' : 'Entero'}</div>
+            <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{m.castrado ? 'Esterilizado/a' : 'Entero/a'}</div>
             <div className="text-[10px] text-[#D9B596] mt-0.5">Estado</div>
           </div>
         </div>

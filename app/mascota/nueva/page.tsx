@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { guardarMascotaActivaId } from '@/utils/mascotaActiva'
-import DatePickerModal from '@/components/DatePickerModal'
 
 const ESPECIES = ['Perro', 'Gato', 'Conejo', 'Ave', 'Otro']
 
@@ -201,7 +200,8 @@ export default function NuevaMascotaPage() {
         {step === 2 && (
           <>
             <Field label="Fecha de nacimiento">
-              <DatePickerModal value={form.fecha_nacimiento} onChange={v => update('fecha_nacimiento', v)} />
+              <input type="date" className={inputClass}
+                value={form.fecha_nacimiento} onChange={e => update('fecha_nacimiento', e.target.value)} />
             </Field>
 
             <Field label="Color / pelaje">
@@ -209,7 +209,7 @@ export default function NuevaMascotaPage() {
                 value={form.color} onChange={e => update('color', e.target.value)} />
             </Field>
 
-            <Field label="¿Está castrado/a?">
+            <Field label="¿Está esterilizado/a?">
               <div className="flex gap-2">
                 {[['Sí', true], ['No', false]].map(([label, val]) => (
                   <button key={String(label)} onClick={() => update('castrado', val as boolean)}
