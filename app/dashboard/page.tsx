@@ -36,9 +36,11 @@ export default async function Dashboard({ searchParams }: Props) {
     .order('created_at', { ascending: true })
 
   // Tambien traemos las mascotas compartidas con este usuario como co-tutor
-  const { data: mascotasCompartidas } = await supabase
+  const { data: mascotasCompartidasRaw } = await supabase
     .rpc('obtener_mascotas_compartidas')
-    .select('id, nombre, especie, raza, foto_url')
+
+  const mascotasCompartidas = (mascotasCompartidasRaw as any[] || [])
+    .map((m: any) => ({ id: m.id, nombre: m.nombre, especie: m.especie, raza: m.raza, foto_url: m.foto_url }))
 
   const mascotas = [
     ...(mascotasPropias || []),
