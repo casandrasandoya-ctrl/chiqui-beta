@@ -22,10 +22,17 @@ function getRango(rpm: number, especie: string) {
   return { ...rango, textoFinal: rango.texto(especie) }
 }
 
-function fmt(fecha: string) {
+function fmt(fecha: string, conAnio = false) {
   const d = new Date(fecha + 'T00:00:00')
   const ms = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-  return `${d.getDate()} ${ms[d.getMonth()]}`
+  const base = `${d.getDate()} ${ms[d.getMonth()]}`
+  return conAnio ? `${base} ${d.getFullYear()}` : base
+}
+
+function abarcanMasDeUnAnio(fechas: string[]) {
+  if (fechas.length < 2) return false
+  const anios = new Set(fechas.map(f => new Date(f + 'T00:00:00').getFullYear()))
+  return anios.size > 1
 }
 
 interface Props {
@@ -286,10 +293,17 @@ export default function RespiracionTracker({ mascotaId, especie }: Props) {
   )
 }
 
-function fmt(fecha: string) {
+function fmt(fecha: string, conAnio = false) {
   const d = new Date(fecha + 'T00:00:00')
   const ms = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-  return `${d.getDate()} ${ms[d.getMonth()]}`
+  const base = `${d.getDate()} ${ms[d.getMonth()]}`
+  return conAnio ? `${base} ${d.getFullYear()}` : base
+}
+
+function abarcanMasDeUnAnio(fechas: string[]) {
+  if (fechas.length < 2) return false
+  const anios = new Set(fechas.map(f => new Date(f + 'T00:00:00').getFullYear()))
+  return anios.size > 1
 }
 
 interface Props {

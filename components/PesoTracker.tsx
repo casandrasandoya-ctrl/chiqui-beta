@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { useBloquearScroll } from '@/utils/useBloquearScroll'
 
 interface RegistroPeso {
   id: string
@@ -10,9 +11,17 @@ interface RegistroPeso {
 }
 
 const MS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-function fmtCorta(f: string) {
+function fmtCorta(f: string, mostrarAnio = false) {
   const d = new Date(f + 'T00:00:00')
-  return `${d.getDate()} ${MS[d.getMonth()]}`
+  const base = `${d.getDate()} ${MS[d.getMonth()]}`
+  return mostrarAnio ? `${base} ${d.getFullYear()}` : base
+}
+
+// Detecta si los datos abarcan mas de un año para mostrar el año en el eje
+function necesitaAnio(fechas: string[]) {
+  if (fechas.length < 2) return false
+  const anios = new Set(fechas.map(f => new Date(f + 'T00:00:00').getFullYear()))
+  return anios.size > 1
 }
 
 export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: string; pesoActual?: number }) {
@@ -20,6 +29,10 @@ export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: stri
   const [historial, setHistorial] = useState<RegistroPeso[]>([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(false)
+
+  // Bloquea el scroll del fondo mientras el modal de registrar peso
+  // esta abierto.
+  useBloquearScroll(modal)
   const [nuevoPeso, setNuevoPeso] = useState('')
   const [nuevaFecha, setNuevaFecha] = useState(new Date().toISOString().split('T')[0])
   const [saving, setSaving] = useState(false)
@@ -127,8 +140,8 @@ export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: stri
             ))}
           </svg>
           <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-[#8A7560]">{fmtCorta(historial[0].fecha)}</span>
-            <span className="text-[10px] text-[#8A7560]">{fmtCorta(historial[historial.length - 1].fecha)}</span>
+            <span className="text-[10px] text-[#8A7560]">{fmtCorta(historial[0].fecha, necesitaAnio(historial.map(h => h.fecha)))}</span>
+            <span className="text-[10px] text-[#8A7560]">{fmtCorta(historial[historial.length - 1].fecha, necesitaAnio(historial.map(h => h.fecha)))}</span>
           </div>
         </div>
       ) : (
@@ -140,8 +153,8 @@ export default function PesoTracker({ mascotaId, pesoActual }: { mascotaId: stri
       )}
 
       {modal && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setModal(false)}>
-          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setModal(false)}>
+          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="font-heading font-bold text-base">⚖️ Registrar peso</h2>
               <button onClick={() => setModal(false)} className="text-[#8A7560] text-xl">✕</button>
