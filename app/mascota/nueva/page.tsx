@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { guardarMascotaActivaId } from '@/utils/mascotaActiva'
+import UnirseComoCotutor from '@/components/UnirseComoCotutor'
 
 const ESPECIES = ['Perro', 'Gato', 'Conejo', 'Ave', 'Otro']
 
@@ -298,6 +299,16 @@ export default function NuevaMascotaPage() {
             <button onClick={() => setStep(2)} className="w-full text-[#8A7560] text-sm py-2">
               ← Volver
             </button>
+
+            {/* Separador */}
+            <div className="flex items-center gap-3 my-1">
+              <div className="flex-1 h-px bg-[#EEE2D4]" />
+              <span className="text-xs text-[#8A7560]">o</span>
+              <div className="flex-1 h-px bg-[#EEE2D4]" />
+            </div>
+
+            {/* Opción alternativa para co-tutor */}
+            <UnirseComoCotutor />
           </>
         )}
 
