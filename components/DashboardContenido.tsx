@@ -349,23 +349,6 @@ export default function DashboardContenido({
         </>
       )}
 
-      {/* ACCESOS RÁPIDOS */}
-      <div className="px-5 pb-2.5">
-        <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Accesos rápidos</span>
-      </div>
-      <div className="mx-4 mb-4 grid grid-cols-2 gap-3">
-        {[
-          { href: '/calendario', label: 'Calendario' },
-          { href: '/analisis', label: 'Análisis' },
-          { href: '/prevencion', label: 'Prevención' },
-          { href: '/perfil', label: 'Perfil' },
-        ].map(item => (
-          <Link key={item.href} href={item.href} className="bg-[#FFBD59] rounded-2xl p-4 flex items-center justify-center">
-            <span className="text-sm font-bold text-[#5C3A12]">{item.label}</span>
-          </Link>
-        ))}
-      </div>
-
       <BottomNav />
     </div>
   )
