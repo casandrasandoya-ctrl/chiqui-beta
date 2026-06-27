@@ -27,40 +27,15 @@ export default async function Dashboard({ searchParams }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Traer mascotas propias
-  const { data: mascotasPropias } = await supabase
+  // Traemos TODAS las mascotas del usuario (liviano: solo lo necesario
+  // para el selector), para saber cuales existen y poder elegir cual
+  // mostrar como activa.
+  const { data: mascotas } = await supabase
     .from('mascotas')
     .select('id, nombre, especie, raza, foto_url')
     .order('created_at', { ascending: true })
 
-  // Traer mascotas compartidas via join directo (sin RPC)
-  // Busca en mascota_cotutores donde cotutor_user_id = usuario actual
-  const { data: cotutorRows } = await supabase
-    .from('mascota_cotutores')
-    .select('mascota_id')
-    .eq('cotutor_user_id', user.id)
-    .eq('estado', 'activo')
-
-  const idsMascotasCompartidas = (cotutorRows || []).map((r: any) => r.mascota_id)
-
-  const { data: mascotasCompartidasRaw } = idsMascotasCompartidas.length > 0
-    ? await supabase
-        .from('mascotas')
-        .select('id, nombre, especie, raza, foto_url')
-        .in('id', idsMascotasCompartidas)
-    : { data: [] }
-
-  const mascotasCompartidas = (mascotasCompartidasRaw || []) as any[]
-
-  const mascotas = [
-    ...(mascotasPropias || []),
-    ...mascotasCompartidas.filter(
-      (mc: any) => !(mascotasPropias || []).find((mp: any) => mp.id === mc.id)
-    ),
-  ]
-
-  // Si no tiene mascotas propias ni compartidas, va a crear una
-  if (!mascotas || !mascotas.length) redirect('/bienvenida')
+  if (!mascotas || !mascotas.length) redirect('/mascota/nueva')
 
   // La mascota activa es la indicada por el parametro ?mascota=ID en la
   // URL (que el selector del lado del cliente controla), o si no viene
@@ -147,7 +122,13 @@ export default async function Dashboard({ searchParams }: Props) {
   // los ultimos 30 dias de registros_diarios, contando hacia atras desde
   // hoy y cortando apenas hay un dia sin paseo o sin registro -- misma
   // logica que la racha que ya se muestra en Analisis.
+  //
+  // LOGICA ESPECIAL: si hoy no se ha registrado todavia, la racha NO
+  // se rompe -- se muestra la racha de dias anteriores con un aviso
+  // "Pasea hoy para mantener tu racha". Solo se rompe al dia siguiente
+  // si ayer tampoco se registro paseo.
   let rachaPaseo: number | null = null
+  let rachaEnRiesgo = false // true = no registrado hoy, racha en peligro
   if (m.especie === 'Perro') {
     const hace30 = new Date()
     hace30.setDate(hace30.getDate() - 30)
@@ -157,9 +138,17 @@ export default async function Dashboard({ searchParams }: Props) {
       .eq('mascota_id', m.id)
       .gte('fecha', fechaChile(hace30))
 
-    let racha = 0
     const hoyDate = new Date()
-    for (let i = 0; i < 30; i++) {
+    const hoyStr = fechaChile(hoyDate)
+    const regHoyPaseo = registrosPaseo?.find(r => r.fecha === hoyStr)
+    const tieneRegistroHoyPaseo = !!regHoyPaseo
+
+    // Si no hay registro hoy, empezar desde ayer para no romper la racha
+    const inicioLoop = tieneRegistroHoyPaseo ? 0 : 1
+    if (!tieneRegistroHoyPaseo) rachaEnRiesgo = true
+
+    let racha = 0
+    for (let i = inicioLoop; i < 30; i++) {
       const fecha = new Date(hoyDate)
       fecha.setDate(fecha.getDate() - i)
       const fechaStr = fechaChile(fecha)
@@ -256,6 +245,7 @@ export default async function Dashboard({ searchParams }: Props) {
       tieneRegistroHoy={!!regHoy}
       cuidadosRecientes={cuidadosRecientes}
       rachaPaseo={rachaPaseo}
+        rachaEnRiesgo={rachaEnRiesgo}
     />
   )
 }

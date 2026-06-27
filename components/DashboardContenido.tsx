@@ -41,10 +41,11 @@ interface Props {
   tieneRegistroHoy: boolean
   cuidadosRecientes: { grupo: string; label: string; emoji: string; dias: number }[]
   rachaPaseo: number | null
+  rachaEnRiesgo: boolean
 }
 
 export default function DashboardContenido({
-  mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy, cuidadosRecientes, rachaPaseo,
+  mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy, cuidadosRecientes, rachaPaseo, rachaEnRiesgo,
 }: Props) {
   const router = useRouter()
   const [cuidadosExpandido, setCuidadosExpandido] = useState(false)
@@ -292,7 +293,7 @@ export default function DashboardContenido({
                   <div>
                     <p className="text-[12.5px] font-bold text-[#3D2B1F]">Racha de paseos</p>
                     <p className="text-[11px] text-[#8A7560]">
-                      {rachaPaseo === 0 ? 'Sin racha activa' : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
+                      {rachaPaseo === 0 ? 'Sin racha activa' : rachaEnRiesgo ? `⚠️ ${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} — ¡pasea hoy para mantenerla!` : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
                     </p>
                   </div>
                 </div>
@@ -320,7 +321,7 @@ export default function DashboardContenido({
                       <div>
                         <p className="text-[12.5px] font-bold text-[#3D2B1F]">Racha de paseos</p>
                         <p className="text-[11px] text-[#8A7560]">
-                          {rachaPaseo === 0 ? 'Sin racha activa' : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
+                          {rachaPaseo === 0 ? 'Sin racha activa' : rachaEnRiesgo ? `⚠️ ${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} — ¡pasea hoy para mantenerla!` : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
                         </p>
                       </div>
                     </div>
