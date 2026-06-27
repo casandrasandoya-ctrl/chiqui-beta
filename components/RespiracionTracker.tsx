@@ -141,7 +141,7 @@ export default function RespiracionTracker({ mascotaId, especie }: Props) {
           ))}
           <div className="mt-2 pt-2 border-t border-[#CD7421]/20 space-y-1">
             <p className="text-xs font-semibold text-[#7A4A2F]">Valores de referencia (en reposo):</p>
-            {RANGOS.slice(1).map(r => (
+            {RANGOS_BASE.slice(1).map(r => (
               <div key={r.label} className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: r.color }} />
                 <p className="text-xs text-[#7A4A2F]">
@@ -257,7 +257,7 @@ export default function RespiracionTracker({ mascotaId, especie }: Props) {
           </div>
           {/* Leyenda */}
           <div className="flex gap-3 mt-2 flex-wrap">
-            {RANGOS.slice(1).map(r => (
+            {RANGOS_BASE.slice(1).map(r => (
               <div key={r.label} className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full" style={{ background: r.color }} />
                 <span className="text-[10px] text-[#8A7560]">{r.label} {r.min === 40 ? '+40' : `${r.min}-${r.max}`}</span>
