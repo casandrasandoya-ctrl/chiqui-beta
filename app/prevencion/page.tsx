@@ -790,7 +790,7 @@ export default function PrevencionPage() {
                 {modal === 'vacuna' ? (editandoId ? '💉 Editar vacuna' : '💉 Nueva vacuna') : modal === 'anti' ? (editandoId ? '💊 Editar antiparasitario' : '💊 Nuevo antiparasitario') : modal === 'medicamento' ? '🩹 Nuevo medicamento' : modal === 'enfermedad' ? '🏥 Nuevo diagnóstico' : modal === 'examen' ? '📄 Nuevo examen' : '👁️ Nueva observación'}
               </h2>
               <div className="flex items-center gap-2">
-                <button onClick={guardar} disabled={saving}
+                <button onClick={modal === 'examen' ? guardarExamen : guardar} disabled={saving}
                   className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
                   {saving ? '...' : editandoId ? 'Guardar cambios' : 'Guardar'}
                 </button>
@@ -952,12 +952,7 @@ export default function PrevencionPage() {
               {errorExamen && <p className="text-xs text-[#E05252] bg-[#E05252]/10 rounded-xl p-3">{errorExamen}</p>}
             </>}
 
-            <button
-              onClick={modal === 'examen' ? guardarExamen : guardar}
-              disabled={saving || (modal !== 'examen' && (!form.nombre && !form.titulo && !form.diagnostico))}
-              className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
-              {saving ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Guardar'}
-            </button>
+
           </div>
         </div>
       )}

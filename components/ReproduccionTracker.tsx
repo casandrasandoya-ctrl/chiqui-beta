@@ -297,7 +297,16 @@ export default function ReproduccionTracker({
       {modalCiclo && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setModalCiclo(false)}>
           <div className="bg-[#F5EDE3] rounded-t-2xl p-5 w-full max-w-lg space-y-3" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-base text-[#3D2B1F]">Registrar ciclo</h3>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-base text-[#3D2B1F]">Registrar ciclo</h3>
+              <div className="flex gap-2">
+                <button onClick={guardarCiclo} disabled={guardando || !form.tipo || !form.fecha_inicio}
+                  className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
+                  {guardando ? '...' : 'Guardar'}
+                </button>
+                <button onClick={() => setModalCiclo(false)} className="text-[#8A7560] text-xl">✕</button>
+              </div>
+            </div>
 
             <div>
               <p className="text-xs text-[#8A7560] mb-1.5">Tipo</p>
@@ -324,15 +333,7 @@ export default function ReproduccionTracker({
               <input type="text" value={form.notas||''} onChange={e => setForm((f: any) => ({...f, notas: e.target.value}))} placeholder="ej. flujo abundante" className={IC} />
             </div>
 
-            <div className="flex gap-2 pt-1">
-              <button onClick={guardarCiclo} disabled={guardando || !form.tipo || !form.fecha_inicio}
-                className="flex-1 bg-[#8C572F] text-white font-bold py-3 rounded-xl text-sm disabled:opacity-40">
-                {guardando ? 'Guardando...' : 'Guardar'}
-              </button>
-              <button onClick={() => setModalCiclo(false)} className="px-5 bg-[#EEE2D4] text-[#8A7560] font-semibold py-3 rounded-xl text-sm">
-                Cancelar
-              </button>
-            </div>
+
           </div>
         </div>
       )}
@@ -341,7 +342,16 @@ export default function ReproduccionTracker({
       {modalEtapa && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setModalEtapa(false)}>
           <div className="bg-[#F5EDE3] rounded-t-2xl p-5 w-full max-w-lg space-y-3" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-base text-[#3D2B1F]">Registrar hito de vida</h3>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-base text-[#3D2B1F]">Registrar hito</h3>
+              <div className="flex gap-2">
+                <button onClick={guardarEtapa} disabled={guardando || !form.tipo || !form.fecha}
+                  className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
+                  {guardando ? '...' : 'Guardar'}
+                </button>
+                <button onClick={() => setModalEtapa(false)} className="text-[#8A7560] text-xl">✕</button>
+              </div>
+            </div>
 
             <div>
               <p className="text-xs text-[#8A7560] mb-1.5">Tipo de hito</p>
@@ -364,15 +374,7 @@ export default function ReproduccionTracker({
               <input type="text" value={form.notas||''} onChange={e => setForm((f: any) => ({...f, notas: e.target.value}))} placeholder="ej. sin complicaciones" className={IC} />
             </div>
 
-            <div className="flex gap-2 pt-1">
-              <button onClick={guardarEtapa} disabled={guardando || !form.tipo || !form.fecha}
-                className="flex-1 bg-[#8C572F] text-white font-bold py-3 rounded-xl text-sm disabled:opacity-40">
-                {guardando ? 'Guardando...' : 'Guardar'}
-              </button>
-              <button onClick={() => setModalEtapa(false)} className="px-5 bg-[#EEE2D4] text-[#8A7560] font-semibold py-3 rounded-xl text-sm">
-                Cancelar
-              </button>
-            </div>
+
           </div>
         </div>
       )}
