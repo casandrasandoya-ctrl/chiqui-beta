@@ -201,10 +201,15 @@ export default function AnalisisPage() {
 
   // Racha de dias CONSECUTIVOS paseados, contando hacia atras desde hoy.
   // Se corta apenas hay un dia sin registro o con "no_paseo".
-  function calcularRachaPaseo(): number {
-    let racha = 0
+  function calcularRachaPaseo(): { racha: number; enRiesgo: boolean } {
     const hoy = new Date()
-    for (let i = 0; i < 30; i++) {
+    const hoyStr = fechaChile(hoy)
+    const regHoy = registros.find(r => r.fecha === hoyStr)
+    const tieneHoy = regHoy && regHoy.paseo && regHoy.paseo !== 'no_paseo'
+    // Si hoy no registró paseo aún, empezar desde ayer para no romper la racha
+    const inicio = tieneHoy ? 0 : 1
+    let racha = 0
+    for (let i = inicio; i < 30; i++) {
       const fecha = new Date(hoy)
       fecha.setDate(fecha.getDate() - i)
       const fechaStr = fechaChile(fecha)
@@ -215,9 +220,9 @@ export default function AnalisisPage() {
         break
       }
     }
-    return racha
+    return { racha, enRiesgo: !tieneHoy && racha > 0 }
   }
-  const rachaPaseo = calcularRachaPaseo()
+  const { racha: rachaPaseo, enRiesgo: rachaEnRiesgo } = calcularRachaPaseo()
 
   // Minutos de paseo por cada uno de los ultimos 7 dias, para el grafico.
   const paseoUltimos7 = Array(7).fill(null).map((_, i) => {
@@ -335,6 +340,9 @@ export default function AnalisisPage() {
                   <span className="text-[10px] text-[#8A7560]">Racha de paseos</span>
                 </div>
                 <div className="font-bold text-lg text-[#3D2B1F]">{rachaPaseo} {rachaPaseo === 1 ? 'día' : 'días'}</div>
+                {rachaEnRiesgo && rachaPaseo > 0 && (
+                  <p className="text-[10px] text-[#F07A30] mt-0.5 font-semibold">⚠️ Pasea hoy para mantenerla</p>
+                )}
               </div>
               <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
                 <div className="flex items-center gap-1.5 mb-1">
