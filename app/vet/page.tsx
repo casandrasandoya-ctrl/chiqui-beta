@@ -109,9 +109,16 @@ export default async function VetPage({ searchParams }: Props) {
 
   const mascota = datos.mascota
 
-  // Datos adicionales: respiracion y reproduccion
+  // Datos adicionales: respiracion, temperatura y reproduccion
   const { data: respiracion } = await supabase
     .from('frecuencia_respiratoria')
+    .select('*')
+    .eq('mascota_id', datos.mascota.id)
+    .order('fecha', { ascending: false })
+    .limit(5)
+
+  const { data: temperatura } = await supabase
+    .from('temperatura_corporal')
     .select('*')
     .eq('mascota_id', datos.mascota.id)
     .order('fecha', { ascending: false })
@@ -385,6 +392,28 @@ export default async function VetPage({ searchParams }: Props) {
                       <span className="text-sm font-bold" style={{ color }}>{r.rpm} rpm</span>
                       <span className="text-xs ml-2 px-1.5 py-0.5 rounded-full font-semibold" style={{ background: `${color}20`, color }}>{label}</span>
                       <p className="text-xs text-[#8A7560] mt-0.5">{fmt(r.fecha)}{r.nota ? ` · ${r.nota}` : ''}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </SeccionVet>
+        )}
+
+        {/* Temperatura corporal */}
+        {temperatura && temperatura.length > 0 && (
+          <SeccionVet titulo={`🌡️ Temperatura corporal (${temperatura.length})`}>
+            <div className="space-y-2">
+              {temperatura.map((t: any) => {
+                const temp = t.temperatura
+                const color = temp < 37.5 ? '#4AABDB' : temp < 39.3 ? '#4CAF7D' : temp < 39.5 ? '#F5C842' : temp < 41 ? '#F07A30' : '#E05252'
+                const label = temp < 37.5 ? 'Hipotermia' : temp < 39.3 ? 'Normal' : temp < 39.5 ? 'Atención' : temp < 41 ? 'Fiebre' : 'Emergencia'
+                return (
+                  <div key={t.id} className="flex items-center justify-between pb-2 border-b border-[#EEE2D4] last:border-0">
+                    <div>
+                      <span className="text-sm font-bold" style={{ color }}>{temp}°C</span>
+                      <span className="text-xs ml-2 px-1.5 py-0.5 rounded-full font-semibold" style={{ background: `${color}20`, color }}>{label}</span>
+                      <p className="text-xs text-[#8A7560] mt-0.5">{fmt(t.fecha)}{t.nota ? ` · ${t.nota}` : ''}</p>
                     </div>
                   </div>
                 )
