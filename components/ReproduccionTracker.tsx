@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import FechaSelector from '@/components/FechaSelector'
 import { createClient } from '@/utils/supabase/client'
 
 const TIPOS_CICLO: Record<string, { emoji: string; label: string; color: string; bg: string }> = {
@@ -322,11 +323,11 @@ export default function ReproduccionTracker({
 
             <div>
               <p className="text-xs text-[#8A7560] mb-1">Fecha de inicio</p>
-              <input type="date" value={form.fecha_inicio||''} onChange={e => setForm((f: any) => ({...f, fecha_inicio: e.target.value}))} className={IC} />
+              <FechaSelector value={form.fecha_inicio || ''} onChange={v => setForm((f: any) => ({...f, fecha_inicio: v})  )} />
             </div>
             <div>
               <p className="text-xs text-[#8A7560] mb-1">Fecha de término <span className="text-[#8A7560]">(opcional)</span></p>
-              <input type="date" value={form.fecha_termino||''} onChange={e => setForm((f: any) => ({...f, fecha_termino: e.target.value}))} className={IC} />
+              <FechaSelector value={form.fecha_termino || ''} onChange={v => setForm((f: any) => ({...f, fecha_termino: v})  )} />
             </div>
             <div>
               <p className="text-xs text-[#8A7560] mb-1">Notas <span className="text-[#8A7560]">(opcional)</span></p>
@@ -367,7 +368,7 @@ export default function ReproduccionTracker({
 
             <div>
               <p className="text-xs text-[#8A7560] mb-1">Fecha</p>
-              <input type="date" value={form.fecha||''} onChange={e => setForm((f: any) => ({...f, fecha: e.target.value}))} className={IC} />
+              <FechaSelector value={form.fecha || ''} onChange={v => setForm((f: any) => ({...f, fecha: v})  )} />
             </div>
             <div>
               <p className="text-xs text-[#8A7560] mb-1">Notas <span className="text-[#8A7560]">(opcional)</span></p>

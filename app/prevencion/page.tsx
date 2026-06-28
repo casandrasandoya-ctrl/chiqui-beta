@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import PesoTracker from '@/components/PesoTracker'
+import FechaSelector from '@/components/FechaSelector'
 import RespiracionTracker from '@/components/RespiracionTracker'
 import ReproduccionTracker from '@/components/ReproduccionTracker'
 import SelectorMascota from '@/components/SelectorMascota'
@@ -802,9 +803,9 @@ export default function PrevencionPage() {
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nombre de la vacuna *</label>
                 <input className={IC} placeholder="ej. Séxtuple, Antirrábica..." value={form.nombre || ''} onChange={e => u('nombre', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de aplicación *</label>
-                <input type="date" className={IC} value={form.fecha_aplicacion || ''} onChange={e => u('fecha_aplicacion', e.target.value)}/></div>
+                <FechaSelector value={form.fecha_aplicacion || ''} onChange={v => u('fecha_aplicacion', v)} /></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próxima vacunación</label>
-                <input type="date" className={IC} value={form.proxima_fecha || ''} onChange={e => u('proxima_fecha', e.target.value)}/></div>
+                <FechaSelector value={form.proxima_fecha || ''} onChange={v => u('proxima_fecha', v)} /></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Lote / Serie</label>
                 <input className={IC} placeholder="ej. A16301" value={form.lote || ''} onChange={e => u('lote', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nota</label>
@@ -825,9 +826,9 @@ export default function PrevencionPage() {
                   <option>pastilla</option><option>liquido</option><option>collar</option><option>otro</option>
                 </select></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de aplicación *</label>
-                <input type="date" className={IC} value={form.fecha_aplicacion || ''} onChange={e => u('fecha_aplicacion', e.target.value)}/></div>
+                <FechaSelector value={form.fecha_aplicacion || ''} onChange={v => u('fecha_aplicacion', v)} /></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próxima dosis</label>
-                <input type="date" className={IC} value={form.proxima_fecha || ''} onChange={e => u('proxima_fecha', e.target.value)}/></div>
+                <FechaSelector value={form.proxima_fecha || ''} onChange={v => u('proxima_fecha', v)} /></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nota</label>
                 <input className={IC} placeholder="Observación opcional" value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
             </>}
@@ -843,12 +844,12 @@ export default function PrevencionPage() {
                 <input className={IC} placeholder="ej. Infección de oído" value={form.motivo || ''} onChange={e => u('motivo', e.target.value)}/></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de inicio *</label>
-                  <input type="date" className={IC} value={form.fecha_inicio || ''} onChange={e => u('fecha_inicio', e.target.value)}/></div>
+                  <FechaSelector value={form.fecha_inicio || ''} onChange={v => u('fecha_inicio', v)} /></div>
                 <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de término</label>
-                  <input type="date" className={IC} value={form.fecha_fin || ''} onChange={e => u('fecha_fin', e.target.value)}/></div>
+                  <FechaSelector value={form.fecha_fin || ''} onChange={v => u('fecha_fin', v)} /></div>
               </div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próximo control</label>
-                <input type="date" className={IC} value={form.proximo_control || ''} onChange={e => u('proximo_control', e.target.value)}/></div>
+                <FechaSelector value={form.proximo_control || ''} onChange={v => u('proximo_control', v)} /></div>
               <button type="button" onClick={() => u('indicado_por_vet', form.indicado_por_vet ? '' : 'true')}
                 className="w-full flex items-center gap-3 bg-[#FBEAD9] rounded-xl px-4 py-3 border border-[#EEE2D4]">
                 <div className="w-5 h-5 rounded-md flex items-center justify-center text-xs flex-shrink-0" style={{ background: form.indicado_por_vet ? '#4AABDB' : 'transparent', border: form.indicado_por_vet ? 'none' : '1.5px solid #8A7560' }}>
@@ -864,7 +865,7 @@ export default function PrevencionPage() {
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Diagnóstico *</label>
                 <input className={IC} placeholder="ej. Displasia de cadera, Gastritis" value={form.diagnostico || ''} onChange={e => u('diagnostico', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de diagnóstico *</label>
-                <input type="date" className={IC} value={form.fecha_diagnostico || ''} onChange={e => u('fecha_diagnostico', e.target.value)}/></div>
+                <FechaSelector value={form.fecha_diagnostico || ''} onChange={v => u('fecha_diagnostico', v)} /></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Estado *</label>
                 <select className={SC} value={form.estado || ''} onChange={e => u('estado', e.target.value)}>
                   <option value="">Seleccionar...</option>
@@ -875,7 +876,7 @@ export default function PrevencionPage() {
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Veterinario tratante</label>
                 <input className={IC} placeholder="ej. Dr. González, Clínica X" value={form.veterinario || ''} onChange={e => u('veterinario', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Próxima revisión</label>
-                <input type="date" className={IC} value={form.proxima_revision || ''} onChange={e => u('proxima_revision', e.target.value)}/></div>
+                <FechaSelector value={form.proxima_revision || ''} onChange={v => u('proxima_revision', v)} /></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Notas</label>
                 <textarea className={IC} rows={3} placeholder="Detalles del diagnóstico, tratamiento indicado..." value={form.nota || ''} onChange={e => u('nota', e.target.value)}/></div>
               <div>
@@ -906,7 +907,7 @@ export default function PrevencionPage() {
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Descripción</label>
                 <textarea className={IC} rows={3} placeholder="Describe lo observado..." value={form.descripcion || ''} onChange={e => u('descripcion', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de inicio</label>
-                <input type="date" className={IC} value={form.fecha_inicio || ''} onChange={e => u('fecha_inicio', e.target.value)}/></div>
+                <FechaSelector value={form.fecha_inicio || ''} onChange={v => u('fecha_inicio', v)} /></div>
               <div>
                 <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Foto (opcional)</label>
                 <div className="flex items-center gap-3">
@@ -935,7 +936,7 @@ export default function PrevencionPage() {
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nombre del examen</label>
                 <input className={IC} placeholder="ej. Control anual, Chequeo pre-cirugía" value={form.nombre || ''} onChange={e => u('nombre', e.target.value)}/></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha del examen *</label>
-                <input type="date" className={IC} value={form.fecha || ''} onChange={e => u('fecha', e.target.value)}/></div>
+                <FechaSelector value={form.fecha || ''} onChange={v => u('fecha', v)} /></div>
               <div>
                 <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Archivo PDF *</label>
                 <input

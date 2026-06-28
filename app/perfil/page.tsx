@@ -10,8 +10,6 @@ import { iconoPorEspecie } from '@/utils/iconoEspecie'
 import FotoMascota from '@/components/FotoMascota'
 import ConfiguracionNotificaciones from '@/components/ConfiguracionNotificaciones'
 import { calcularEtapaVida, formatearEdad } from '@/utils/etapaVida'
-import GestionCotutor from '@/components/GestionCotutor'
-import UnirseComoCotutor from '@/components/UnirseComoCotutor'
 
 const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
 const SC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
@@ -194,8 +192,8 @@ export default function PerfilPage() {
           <div className="text-[10px] text-[#8A7560] uppercase tracking-wider mt-0.5">Sexo</div>
         </div>
         <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
-          <div className="font-bold text-sm text-[#4CAF7D]">{mascota?.castrado ? 'Sí' : 'No'}</div>
-          <div className="text-[10px] text-[#8A7560] uppercase tracking-wider mt-0.5">Castrado</div>
+          <div className="font-bold text-sm text-[#4CAF7D]">{mascota?.castrado ? 'Esterilizado/a' : 'Entero/a'}</div>
+          <div className="text-[10px] text-[#8A7560] uppercase tracking-wider mt-0.5">Estado</div>
         </div>
       </div>
 
@@ -260,19 +258,7 @@ export default function PerfilPage() {
         )}
       </div>
 
-      {mascota && <LinkVet key={mascota.id} mascotaId={mascota.id} />}
-
-      {/* Co-tutor — gestión para el dueño */}
-      {mascota && (
-        <GestionCotutor
-          key={mascota.id}
-          mascotaId={mascota.id}
-          mascotaNombre={mascota.nombre}
-        />
-      )}
-
-      {/* Unirse como co-tutor — para quien tiene un código */}
-      <UnirseComoCotutor />
+      {mascota && <LinkVet mascotaId={mascota.id} />}
 
       <ConfiguracionNotificaciones />
 
