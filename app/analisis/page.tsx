@@ -22,6 +22,8 @@ export default function AnalisisPage() {
   const [periodo, setPeriodo] = useState(30)
   const [abiertaNormalidad, setAbiertaNormalidad] = useState(true)
   const [abiertoRecientes, setAbiertoRecientes] = useState(true)
+  const [respReciente, setRespReciente] = useState<any>(null)
+  const [celoInfo, setCeloInfo] = useState<any>(null)
 
   // Misma funcion que en el dashboard: devuelve la fecha en zona horaria
   // de Chile en vez de UTC, para que el calculo de racha sea correcto.
@@ -50,7 +52,36 @@ export default function AnalisisPage() {
       const m = determinarMascotaActiva(todasMascotas)!
       setMascota(m)
       await cargarRegistros(m.id)
-      setLoading(false)
+      // Respiracion reciente
+    const { data: resp } = await supabase
+      .from('frecuencia_respiratoria')
+      .select('rpm, fecha')
+      .eq('mascota_id', id)
+      .order('fecha', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    setRespReciente(resp)
+
+    // Celo activo
+    const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30)
+    const { data: ciclosRecientes } = await supabase
+      .from('ciclos_reproductivos')
+      .select('tipo, fecha_inicio, fecha_termino')
+      .eq('mascota_id', id)
+      .eq('tipo', 'celo')
+    const hoy = new Date()
+    const celoActivo = (ciclosRecientes || []).find((cc: any) => {
+      const inicio = new Date(cc.fecha_inicio + 'T00:00:00')
+      if (inicio > hoy) return false
+      if (!cc.fecha_termino) return (hoy.getTime() - inicio.getTime()) / 86400000 < 21
+      return hoy <= new Date(cc.fecha_termino + 'T00:00:00')
+    })
+    if (celoActivo) {
+      const dia = Math.ceil((hoy.getTime() - new Date(celoActivo.fecha_inicio + 'T00:00:00').getTime()) / 86400000) + 1
+      setCeloInfo({ dia })
+    }
+
+    setLoading(false)
     }
     init()
   }, [])
@@ -60,6 +91,35 @@ export default function AnalisisPage() {
     guardarMascotaActivaId(nueva.id)
     setMascota(nueva)
     await cargarRegistros(nueva.id)
+    // Respiracion reciente
+    const { data: resp } = await supabase
+      .from('frecuencia_respiratoria')
+      .select('rpm, fecha')
+      .eq('mascota_id', id)
+      .order('fecha', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    setRespReciente(resp)
+
+    // Celo activo
+    const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30)
+    const { data: ciclosRecientes } = await supabase
+      .from('ciclos_reproductivos')
+      .select('tipo, fecha_inicio, fecha_termino')
+      .eq('mascota_id', id)
+      .eq('tipo', 'celo')
+    const hoy = new Date()
+    const celoActivo = (ciclosRecientes || []).find((cc: any) => {
+      const inicio = new Date(cc.fecha_inicio + 'T00:00:00')
+      if (inicio > hoy) return false
+      if (!cc.fecha_termino) return (hoy.getTime() - inicio.getTime()) / 86400000 < 21
+      return hoy <= new Date(cc.fecha_termino + 'T00:00:00')
+    })
+    if (celoActivo) {
+      const dia = Math.ceil((hoy.getTime() - new Date(celoActivo.fecha_inicio + 'T00:00:00').getTime()) / 86400000) + 1
+      setCeloInfo({ dia })
+    }
+
     setLoading(false)
   }
 
@@ -313,6 +373,31 @@ export default function AnalisisPage() {
             ))}
           </div>
         </div>
+
+        {/* Resumen salud adicional */}
+        {(respReciente || celoInfo) && (
+          <div className="mx-4 mb-2 flex gap-2">
+            {respReciente && (() => {
+              const rpm = respReciente.rpm
+              const color = rpm < 15 ? '#4AABDB' : rpm < 30 ? '#4CAF7D' : rpm < 40 ? '#F5C842' : '#E05252'
+              const label = rpm < 15 ? 'Muy baja' : rpm < 30 ? 'Normal' : rpm < 40 ? 'Atención' : 'Urgente'
+              return (
+                <div className="flex-1 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3">
+                  <p className="text-[10px] text-[#8A7560] mb-1">🫁 Respiración reciente</p>
+                  <p className="text-lg font-black" style={{ color }}>{rpm} rpm</p>
+                  <p className="text-[10px] font-semibold" style={{ color }}>{label}</p>
+                </div>
+              )
+            })()}
+            {celoInfo && (
+              <div className="flex-1 bg-[#FDEAEA] border border-[#E05252]/20 rounded-2xl p-3">
+                <p className="text-[10px] text-[#E05252] mb-1">🌸 En celo ahora</p>
+                <p className="text-lg font-black text-[#E05252]">Día {celoInfo.dia}</p>
+                <p className="text-[10px] text-[#E05252]">Ciclo activo</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Normalidad por categoría — desplegable */}
         {normalidadPorCategoria.length > 0 && (

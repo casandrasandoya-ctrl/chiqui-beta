@@ -694,7 +694,7 @@ export default function PrevencionPage() {
       </div>
 
       {/* REPRODUCCIÓN */}
-      {mascota && mascota.sexo === 'Hembra' && mascota.seguimiento_reproductivo && (
+      {mascota && mascota.sexo === 'Hembra' && mascota.seguimiento_reproductivo !== false && (
         <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           <button onClick={() => toggleSeccion('reproduccion')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
             <span className="font-bold text-sm text-[#3D2B1F]">🌸 Reproducción</span>

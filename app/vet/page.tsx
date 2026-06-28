@@ -108,6 +108,27 @@ export default async function VetPage({ searchParams }: Props) {
   }
 
   const mascota = datos.mascota
+
+  // Datos adicionales: respiracion y reproduccion
+  const { data: respiracion } = await supabase
+    .from('frecuencia_respiratoria')
+    .select('*')
+    .eq('mascota_id', datos.mascota.id)
+    .order('fecha', { ascending: false })
+    .limit(5)
+
+  const { data: ciclos } = await supabase
+    .from('ciclos_reproductivos')
+    .select('*')
+    .eq('mascota_id', datos.mascota.id)
+    .order('fecha_inicio', { ascending: false })
+    .limit(5)
+
+  const { data: etapas } = await supabase
+    .from('etapas_reproductivas')
+    .select('*')
+    .eq('mascota_id', datos.mascota.id)
+    .order('fecha', { ascending: true })
   const registros = datos.registros || []
   const vacunas = datos.vacunas || []
   const antis = datos.antiparasitarios || []
@@ -144,7 +165,7 @@ export default async function VetPage({ searchParams }: Props) {
           {mascota.especie}{mascota.raza ? ` · ${mascota.raza}` : ''}
           {mascota.fecha_nacimiento ? ` · ${calcEdad(mascota.fecha_nacimiento)}` : ''}
           {mascota.sexo ? ` · ${mascota.sexo}` : ''}
-          {mascota.castrado ? ' · Esterilizado/a' : ''}
+          {mascota.castrado ? ' · Castrado/a' : ''}
         </p>
         {mascota.alergias && (
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E05252]/20 text-white">
@@ -344,6 +365,65 @@ export default async function VetPage({ searchParams }: Props) {
                         📄 Ver / descargar PDF
                       </a>
                     )}
+                  </div>
+                )
+              })}
+            </div>
+          </SeccionVet>
+        )}
+
+        {/* Frecuencia respiratoria */}
+        {respiracion && respiracion.length > 0 && (
+          <SeccionVet titulo={`🫁 Frecuencia respiratoria (${respiracion.length})`}>
+            <div className="space-y-2">
+              {respiracion.map((r: any) => {
+                const color = r.rpm < 15 ? '#4AABDB' : r.rpm < 30 ? '#4CAF7D' : r.rpm < 40 ? '#F5C842' : '#E05252'
+                const label = r.rpm < 15 ? 'Muy baja' : r.rpm < 30 ? 'Normal' : r.rpm < 40 ? 'Atención' : 'Urgente'
+                return (
+                  <div key={r.id} className="flex items-center justify-between pb-2 border-b border-[#EEE2D4] last:border-0">
+                    <div>
+                      <span className="text-sm font-bold" style={{ color }}>{r.rpm} rpm</span>
+                      <span className="text-xs ml-2 px-1.5 py-0.5 rounded-full font-semibold" style={{ background: `${color}20`, color }}>{label}</span>
+                      <p className="text-xs text-[#8A7560] mt-0.5">{fmt(r.fecha)}{r.nota ? ` · ${r.nota}` : ''}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </SeccionVet>
+        )}
+
+        {/* Ciclo reproductivo */}
+        {ciclos && ciclos.length > 0 && (
+          <SeccionVet titulo={`🌸 Ciclo reproductivo (${ciclos.length})`}>
+            <div className="space-y-2">
+              {ciclos.map((c: any) => (
+                <div key={c.id} className="pb-2 border-b border-[#EEE2D4] last:border-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{c.tipo === 'celo' ? '🌸' : c.tipo === 'embarazo' ? '🤰' : '🍼'}</span>
+                    <span className="text-sm font-semibold capitalize">{c.tipo}</span>
+                    {c.duracion_dias && <span className="text-xs text-[#8A7560]">{c.duracion_dias} días</span>}
+                  </div>
+                  <p className="text-xs text-[#8A7560] mt-0.5">{fmt(c.fecha_inicio)}{c.fecha_termino ? ` → ${fmt(c.fecha_termino)}` : ' → en curso'}</p>
+                  {c.notas && <p className="text-xs text-[#8A7560] italic">{c.notas}</p>}
+                </div>
+              ))}
+            </div>
+          </SeccionVet>
+        )}
+
+        {/* Línea de vida reproductiva */}
+        {etapas && etapas.length > 0 && (
+          <SeccionVet titulo={`📍 Línea de vida reproductiva (${etapas.length})`}>
+            <div className="space-y-2">
+              {etapas.map((e: any) => {
+                const tipos: Record<string,string> = { primer_celo:'🌸 Primer celo', esterilizacion:'✂️ Esterilización', embarazo:'🤰 Embarazo', parto:'🐣 Parto', lactancia:'🍼 Lactancia', tumor_mamario:'🎗️ Tumor mamario', otro:'📋 Otro' }
+                return (
+                  <div key={e.id} className="flex items-center gap-2 pb-2 border-b border-[#EEE2D4] last:border-0">
+                    <div>
+                      <p className="text-sm font-semibold">{tipos[e.tipo] || e.tipo}</p>
+                      <p className="text-xs text-[#8A7560]">{fmt(e.fecha)}{e.notas ? ` · ${e.notas}` : ''}</p>
+                    </div>
                   </div>
                 )
               })}

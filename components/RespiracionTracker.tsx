@@ -205,59 +205,60 @@ export default function RespiracionTracker({ mascotaId, especie }: Props) {
         </div>
       )}
 
-      {/* Gráfico */}
-      {registros.length > 0 && (
-        <div className="mb-3">
-          <div className="relative h-32 mb-1">
-            <div className="absolute inset-x-0" style={{
-              bottom: `${(15/maxRpm)*100}%`, height: `${((30-15)/maxRpm)*100}%`,
-              background: 'rgba(76,175,125,0.08)',
-              borderTop: '1px dashed rgba(76,175,125,0.4)',
-              borderBottom: '1px dashed rgba(76,175,125,0.4)',
-            }} />
-            <div className="absolute inset-x-0" style={{
-              bottom: `${(30/maxRpm)*100}%`, height: `${((40-30)/maxRpm)*100}%`,
-              background: 'rgba(245,200,66,0.08)',
-              borderTop: '1px dashed rgba(245,200,66,0.4)',
-            }} />
-            <div className="absolute inset-0 flex items-end gap-1 px-1">
-              {[...registros].reverse().map(r => {
-                const rang = getRango(r.rpm)
-                const h = Math.max(4, (r.rpm / maxRpm) * 100)
-                return (
-                  <div key={r.id} className="flex-1 flex flex-col items-center gap-0.5">
-                    <span className="text-[9px] font-bold" style={{ color: rang.color }}>{r.rpm}</span>
-                    <div className="w-full rounded-t-md" style={{ height: `${h}%`, background: rang.color, minHeight: '4px' }} />
-                  </div>
-                )
-              })}
+      {/* Gráfico de línea + puntos */}
+      {registros.length >= 2 && (() => {
+        const datos = [...registros].reverse()
+        const W = 300, H = 80, PAD = 10
+        const rpms = datos.map(r => r.rpm)
+        const minVal = Math.max(0, Math.min(...rpms) - 5)
+        const maxVal = Math.max(...rpms) + 5
+        const rango = maxVal - minVal || 1
+        const puntos = datos.map((r, i) => ({
+          x: PAD + (i / (datos.length - 1)) * (W - PAD * 2),
+          y: H - PAD - ((r.rpm - minVal) / rango) * (H - PAD * 2),
+          rpm: r.rpm, fecha: r.fecha,
+          color: getRango(r.rpm).color,
+        }))
+        const pathD = `M ${puntos.map(p => `${p.x},${p.y}`).join(' L ')}`
+        const fechas = datos.map(r => r.fecha)
+        const conAnio = multiAnio(fechas)
+        // Zonas de referencia en Y
+        const y15 = H - PAD - ((15 - minVal) / rango) * (H - PAD * 2)
+        const y30 = H - PAD - ((30 - minVal) / rango) * (H - PAD * 2)
+        const y40 = H - PAD - ((40 - minVal) / rango) * (H - PAD * 2)
+        return (
+          <div className="mb-3">
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 90, overflow: 'visible' }} preserveAspectRatio="none">
+              {/* Zona normal */}
+              {y15 < H && y30 > 0 && <rect x={0} y={Math.max(0,y30)} width={W} height={Math.min(H,y15)-Math.max(0,y30)} fill="rgba(76,175,125,0.08)" />}
+              {/* Líneas de referencia */}
+              {y30 > 0 && y30 < H && <line x1={0} y1={y30} x2={W} y2={y30} stroke="rgba(245,200,66,0.5)" strokeWidth="1" strokeDasharray="4,3" />}
+              {y40 > 0 && y40 < H && <line x1={0} y1={y40} x2={W} y2={y40} stroke="rgba(224,82,82,0.5)" strokeWidth="1" strokeDasharray="4,3" />}
+              {/* Línea de conexión */}
+              <path d={pathD} fill="none" stroke="#8C572F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              {/* Puntos */}
+              {puntos.map((p, i) => (
+                <g key={i}>
+                  <circle cx={p.x} cy={p.y} r={i === puntos.length-1 ? 5 : 4} fill={p.color} stroke="#FFFCF8" strokeWidth="1.5" />
+                  <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="7" fill={p.color} fontWeight="bold">{p.rpm}</text>
+                </g>
+              ))}
+            </svg>
+            <div className="flex justify-between mt-1 px-1">
+              <span className="text-[9px] text-[#8A7560]">{fmt(fechas[0], conAnio)}</span>
+              <span className="text-[9px] text-[#8A7560]">{fmt(fechas[fechas.length-1], conAnio)}</span>
+            </div>
+            <div className="flex gap-3 mt-1.5 flex-wrap">
+              {RANGOS.slice(1).map(r => (
+                <div key={r.label} className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full" style={{ background: r.color }} />
+                  <span className="text-[10px] text-[#8A7560]">{r.label} {r.min === 40 ? '+40' : `${r.min}-${r.max}`}</span>
+                </div>
+              ))}
             </div>
           </div>
-          {/* Eje X con fechas */}
-          {(() => {
-            const fechas = [...registros].reverse().map(r => r.fecha)
-            const conAnio = multiAnio(fechas)
-            return (
-              <div className="flex gap-1 px-1">
-                {fechas.map((f, i) => (
-                  <div key={i} className="flex-1 text-center">
-                    <p className="text-[9px] text-[#8A7560]">{fmt(f, conAnio)}</p>
-                  </div>
-                ))}
-              </div>
-            )
-          })()}
-          {/* Leyenda */}
-          <div className="flex gap-3 mt-2 flex-wrap">
-            {RANGOS.slice(1).map(r => (
-              <div key={r.label} className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full" style={{ background: r.color }} />
-                <span className="text-[10px] text-[#8A7560]">{r.label} {r.min === 40 ? '+40' : `${r.min}-${r.max}`}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Historial */}
       {registros.length > 0 && (
