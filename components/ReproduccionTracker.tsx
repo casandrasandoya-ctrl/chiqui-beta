@@ -295,8 +295,8 @@ export default function ReproduccionTracker({
 
       {/* MODAL CICLO */}
       {modalCiclo && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setModalCiclo(false)}>
-          <div className="bg-[#F5EDE3] rounded-t-2xl p-5 w-full max-w-lg space-y-3" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 overflow-hidden flex items-end justify-center bg-black/50" onClick={() => setModalCiclo(false)}>
+          <div className="bg-[#F5EDE3] rounded-t-2xl p-5 w-full max-w-lg space-y-3 overflow-y-auto" style={{ maxHeight: "85vh" }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-bold text-base text-[#3D2B1F]">Registrar ciclo</h3>
               <div className="flex gap-2">
@@ -340,8 +340,8 @@ export default function ReproduccionTracker({
 
       {/* MODAL ETAPA */}
       {modalEtapa && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setModalEtapa(false)}>
-          <div className="bg-[#F5EDE3] rounded-t-2xl p-5 w-full max-w-lg space-y-3" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 overflow-hidden flex items-end justify-center bg-black/50" onClick={() => setModalEtapa(false)}>
+          <div className="bg-[#F5EDE3] rounded-t-2xl p-5 w-full max-w-lg space-y-3 overflow-y-auto" style={{ maxHeight: "85vh" }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-bold text-base text-[#3D2B1F]">Registrar hito</h3>
               <div className="flex gap-2">
