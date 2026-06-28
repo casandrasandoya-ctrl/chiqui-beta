@@ -177,7 +177,8 @@ export default async function Dashboard({ searchParams }: Props) {
     const celoEnCurso = (ciclosHoy || []).find((cc: any) => {
       const inicio = new Date(cc.fecha_inicio + 'T00:00:00')
       if (inicio > hoy) return false
-      if (!cc.fecha_termino) return (hoy.getTime() - inicio.getTime()) / 86400000 < 21
+      const maxDias = m.especie === 'Gato' ? 14 : 21
+      if (!cc.fecha_termino) return (hoy.getTime() - inicio.getTime()) / 86400000 < maxDias
       return hoy <= new Date(cc.fecha_termino + 'T00:00:00')
     })
     if (celoEnCurso) {
@@ -247,6 +248,17 @@ export default async function Dashboard({ searchParams }: Props) {
         const prom = Math.round(intervalos.reduce((a, b) => a + b, 0) / intervalos.length)
         const ultimo = new Date(celos[celos.length-1].fecha_inicio + 'T00:00:00')
         const proximo = new Date(ultimo.getTime() + prom * 86400000)
+        if (proximo > new Date()) {
+          proximoCeloFecha = proximo.toISOString().split('T')[0]
+        }
+      }
+      // Sin historial suficiente: estimar según especie
+      // Perras: ~180 días (6 meses), Gatas: ~21 días (3 semanas)
+      // Solo si hay al menos 1 celo registrado y no calculamos predicción
+      if (intervalos.length === 0 && celos.length >= 1 && !proximoCeloFecha) {
+        const diasEspecie = m.especie === 'Gato' ? 21 : 180
+        const ultimo = new Date(celos[celos.length-1].fecha_inicio + 'T00:00:00')
+        const proximo = new Date(ultimo.getTime() + diasEspecie * 86400000)
         if (proximo > new Date()) {
           proximoCeloFecha = proximo.toISOString().split('T')[0]
         }

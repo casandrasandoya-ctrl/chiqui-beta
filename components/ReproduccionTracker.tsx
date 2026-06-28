@@ -192,6 +192,30 @@ export default function ReproduccionTracker({
   return (
     <div className="border-t border-[#EEE2D4] pt-3">
 
+      {/* Info educativa por especie */}
+      {!estaEsterilizada && (
+        <div className="bg-[#FBEAD9] rounded-xl px-3 py-3 mb-3">
+          {especie === 'Perro' ? (
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold text-[#8C572F]">🐕 Celo en perras</p>
+              <p className="text-xs text-[#7A4A2F] leading-relaxed">• Se presenta <strong>1-2 veces al año</strong> (cada 6-8 meses).</p>
+              <p className="text-xs text-[#7A4A2F] leading-relaxed">• <strong>Sangrado o goteo vulvar</strong> visible al inicio — es la señal más clara.</p>
+              <p className="text-xs text-[#7A4A2F] leading-relaxed">• Puede estar más inquieta, orinar frecuente y apartar la cola al acercarse un macho.</p>
+              <p className="text-xs text-[#7A4A2F] leading-relaxed">• Ovula espontáneamente — puede tener <strong>embarazo psicológico</strong> aunque no haya monta.</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold text-[#8C572F]">🐈 Celo en gatas</p>
+              <p className="text-xs text-[#7A4A2F] leading-relaxed">• Se repite cada <strong>2-3 semanas</strong> durante primavera y verano (más luz solar).</p>
+              <p className="text-xs text-[#7A4A2F] leading-relaxed">• <strong>No sangra</strong> — el celo es 100% conductual.</p>
+              <p className="text-xs text-[#7A4A2F] leading-relaxed">• Señales: maullidos insistentes, frotarse con todo, levantar pelvis y bajar el tren delantero.</p>
+              <p className="text-xs text-[#7A4A2F] leading-relaxed">• Ovulación inducida — si no hay monta, el celo <strong>se repite sin parar</strong> toda la temporada.</p>
+              <p className="text-[10px] text-[#8A7560] italic mt-1">La luz artificial del hogar puede activar ciclos fuera de temporada.</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div>
@@ -269,6 +293,11 @@ export default function ReproduccionTracker({
                   <p className="text-[11px] text-[#8A7560] mt-0.5">
                     {fmt(c.fecha_inicio)}{c.fecha_termino ? ` → ${fmt(c.fecha_termino)}` : ' → en curso'}
                   </p>
+                  {c.sangrado && c.tipo === 'celo' && (
+                    <p className="text-[10px] mt-0.5" style={{ color: c.sangrado === 'si' ? '#E05252' : '#8A7560' }}>
+                      🩸 {c.sangrado === 'si' ? 'Con sangrado' : c.sangrado === 'leve' ? 'Sangrado leve' : 'Sin sangrado observado'}
+                    </p>
+                  )}
                   {c.notas && <p className="text-[10px] text-[#8A7560] italic mt-0.5">{c.notas}</p>}
                 </div>
                 <div className="flex gap-1">
@@ -358,9 +387,24 @@ export default function ReproduccionTracker({
               <p className="text-xs text-[#8A7560] mb-1">Fecha de término <span className="text-[#8A7560]">(opcional)</span></p>
               <FechaSelector value={form.fecha_termino || ''} onChange={v => setForm((f: any) => ({...f, fecha_termino: v})  )} />
             </div>
+            {/* Campo sangrado — solo perras */}
+            {form.tipo === 'celo' && especie === 'Perro' && (
+              <div>
+                <p className="text-xs text-[#8A7560] mb-1.5">¿Hubo sangrado o goteo vulvar?</p>
+                <div className="flex gap-2">
+                  {[['si','Sí, hubo sangrado'],['no','No observé'],['leve','Leve / dudoso']].map(([val, lbl]) => (
+                    <button key={val} type="button"
+                      onClick={() => setForm((f: any) => ({...f, sangrado: val}))}
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all ${form.sangrado === val ? 'border-[#FFBD59] bg-[#FFBD59]/20 text-[#3D2B1F]' : 'border-[#EEE2D4] bg-[#FFFCF8] text-[#8A7560]'}`}>
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <p className="text-xs text-[#8A7560] mb-1">Notas <span className="text-[#8A7560]">(opcional)</span></p>
-              <input type="text" value={form.notas||''} onChange={e => setForm((f: any) => ({...f, notas: e.target.value}))} placeholder="ej. flujo abundante" className={IC} />
+              <input type="text" value={form.notas||''} onChange={e => setForm((f: any) => ({...f, notas: e.target.value}))} placeholder={especie === 'Perro' ? 'ej. flujo abundante, comportamiento inquieto' : 'ej. vocalizó mucho, se frotó con todo'} className={IC} />
             </div>
 
 
