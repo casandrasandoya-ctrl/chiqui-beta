@@ -78,6 +78,16 @@ export default function PrevencionPage() {
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [menuAbierto, setMenuAbierto] = useState<{ tipo: 'vacuna' | 'anti'; id: string } | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Bloquear scroll del body cuando modal abierto (fix Android)
+  useEffect(() => {
+    if (modal || menuAbierto) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [modal, menuAbierto])
   const [archivoExamen, setArchivoExamen] = useState<File | null>(null)
   const [errorExamen, setErrorExamen] = useState('')
   const [urlEnProgreso, setUrlEnProgreso] = useState<string | null>(null)
@@ -751,7 +761,7 @@ export default function PrevencionPage() {
             {/* MODAL DE ACCIONES (editar/eliminar) — siempre centrado abajo,
           nunca se corta por la posicion de la tarjeta en la pantalla */}
       {menuAbierto && (
-        <div className="fixed inset-0 z-50 overflow-hidden flex items-end justify-center bg-black/60" onClick={() => setMenuAbierto(null)}>
+        <div className="fixed inset-0 z-[60] overflow-hidden flex items-end justify-center bg-black/60" onClick={() => setMenuAbierto(null)}>
           <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-2 pb-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-[#EEE2D4] rounded-full mx-auto mb-3 mt-1" />
             <button
@@ -784,7 +794,7 @@ export default function PrevencionPage() {
 
       {/* MODAL AGREGAR */}
       {modal && (
-        <div className="fixed inset-0 z-50 overflow-hidden flex items-end justify-center bg-black/60" onClick={() => { setModal(null); setEditandoId(null) }}>
+        <div className="fixed inset-0 z-[60] overflow-hidden flex items-end justify-center bg-black/60" onClick={() => { setModal(null); setEditandoId(null) }}>
           <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 80px)", paddingBottom: "24px" }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-bold text-base">

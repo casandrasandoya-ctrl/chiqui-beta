@@ -10,6 +10,8 @@ import { iconoPorEspecie } from '@/utils/iconoEspecie'
 import FotoMascota from '@/components/FotoMascota'
 import ConfiguracionNotificaciones from '@/components/ConfiguracionNotificaciones'
 import { calcularEtapaVida, formatearEdad } from '@/utils/etapaVida'
+import GestionCotutor from '@/components/GestionCotutor'
+import UnirseComoCotutor from '@/components/UnirseComoCotutor'
 
 const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
 const SC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
@@ -258,7 +260,19 @@ export default function PerfilPage() {
         )}
       </div>
 
-      {mascota && <LinkVet mascotaId={mascota.id} />}
+      {mascota && <LinkVet key={mascota.id} mascotaId={mascota.id} />}
+
+      {/* Co-tutor — gestión para el dueño */}
+      {mascota && (
+        <GestionCotutor
+          key={mascota.id}
+          mascotaId={mascota.id}
+          mascotaNombre={mascota.nombre}
+        />
+      )}
+
+      {/* Unirse como co-tutor — para quien tiene un código */}
+      <UnirseComoCotutor />
 
       <ConfiguracionNotificaciones />
 
