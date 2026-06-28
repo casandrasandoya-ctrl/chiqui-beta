@@ -784,12 +784,18 @@ export default function PrevencionPage() {
       {/* MODAL AGREGAR */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => { setModal(null); setEditandoId(null) }}>
-          <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 overflow-y-auto pb-8" style={{ maxHeight: "90vh" }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-bold text-base">
                 {modal === 'vacuna' ? (editandoId ? '💉 Editar vacuna' : '💉 Nueva vacuna') : modal === 'anti' ? (editandoId ? '💊 Editar antiparasitario' : '💊 Nuevo antiparasitario') : modal === 'medicamento' ? '🩹 Nuevo medicamento' : modal === 'enfermedad' ? '🏥 Nuevo diagnóstico' : modal === 'examen' ? '📄 Nuevo examen' : '👁️ Nueva observación'}
               </h2>
-              <button onClick={() => { setModal(null); setEditandoId(null) }} className="text-[#8A7560] text-xl">✕</button>
+              <div className="flex items-center gap-2">
+                <button onClick={guardar} disabled={saving}
+                  className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
+                  {saving ? '...' : editandoId ? 'Guardar cambios' : 'Guardar'}
+                </button>
+                <button onClick={() => { setModal(null); setEditandoId(null) }} className="text-[#8A7560] text-xl">✕</button>
+              </div>
             </div>
 
             {modal === 'vacuna' && <>
