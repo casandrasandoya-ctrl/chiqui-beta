@@ -7,6 +7,7 @@ import BottomNav from '@/components/BottomNav'
 import PesoTracker from '@/components/PesoTracker'
 import FechaSelector from '@/components/FechaSelector'
 import RespiracionTracker from '@/components/RespiracionTracker'
+import TemperaturaTracker from '@/components/TemperaturaTracker'
 import ReproduccionTracker from '@/components/ReproduccionTracker'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
@@ -332,17 +333,44 @@ export default function PrevencionPage() {
         </button>
         {estaAbierta('peso') && !!mascota && (
           <div className="border-t border-[#EEE2D4]">
-<>
-          <div className="mx-4 mb-3 bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
-            <span className="text-base flex-shrink-0">🐾</span>
-            <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí puedes contarme cuánto pesa tu compañero cada vez que lo controlen, así vemos juntos cómo va cambiando.</p>
-          </div>
-          <PesoTracker mascotaId={mascota.id} pesoActual={mascota.peso_actual} />
-          <RespiracionTracker mascotaId={mascota.id} especie={mascota.especie} />
-        </>
+            <div className="mx-4 mb-3 bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-start gap-2.5">
+              <span className="text-base flex-shrink-0">🐾</span>
+              <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí puedes contarme cuánto pesa tu compañero cada vez que lo controlen, así vemos juntos cómo va cambiando.</p>
+            </div>
+            <PesoTracker mascotaId={mascota.id} pesoActual={mascota.peso_actual} />
           </div>
         )}
       </div>
+
+      {/* FRECUENCIA RESPIRATORIA */}
+      {mascota && (mascota.especie === 'Perro' || mascota.especie === 'Gato') && (
+        <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+          <button onClick={() => toggleSeccion('respiracion')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+            <span className="font-bold text-sm text-[#3D2B1F]">🫁 Frecuencia respiratoria</span>
+            <span className="text-[#8A7560] text-lg">{estaAbierta('respiracion') ? '⌃' : '⌄'}</span>
+          </button>
+          {estaAbierta('respiracion') && (
+            <div className="border-t border-[#EEE2D4] px-4 pb-4 pt-2">
+              <RespiracionTracker mascotaId={mascota.id} especie={mascota.especie} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TEMPERATURA CORPORAL */}
+      {mascota && (mascota.especie === 'Perro' || mascota.especie === 'Gato') && (
+        <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+          <button onClick={() => toggleSeccion('temperatura')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+            <span className="font-bold text-sm text-[#3D2B1F]">🌡️ Temperatura corporal</span>
+            <span className="text-[#8A7560] text-lg">{estaAbierta('temperatura') ? '⌃' : '⌄'}</span>
+          </button>
+          {estaAbierta('temperatura') && (
+            <div className="border-t border-[#EEE2D4]">
+              <TemperaturaTracker mascotaId={mascota.id} especie={mascota.especie} />
+            </div>
+          )}
+        </div>
+      )}
       {/* VACUNAS */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('vacunas')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
