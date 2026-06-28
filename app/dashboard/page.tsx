@@ -225,6 +225,35 @@ export default async function Dashboard({ searchParams }: Props) {
     }
   }
 
+  // Calcular prediccion del proximo celo para hembras con historial
+  let proximoCeloFecha: string | null = null
+  if (m.sexo === 'Hembra' && m.seguimiento_reproductivo !== false && !m.castrado) {
+    const { data: celosHistorial } = await supabase
+      .from('ciclos_reproductivos')
+      .select('fecha_inicio')
+      .eq('mascota_id', m.id)
+      .eq('tipo', 'celo')
+      .order('fecha_inicio', { ascending: true })
+    const celos = (celosHistorial || []).filter((c: any) => c.fecha_inicio)
+    if (celos.length >= 2) {
+      const intervalos: number[] = []
+      for (let i = 1; i < celos.length; i++) {
+        const ant = new Date(celos[i-1].fecha_inicio + 'T00:00:00')
+        const act = new Date(celos[i].fecha_inicio + 'T00:00:00')
+        const dias = Math.round((act.getTime() - ant.getTime()) / 86400000)
+        if (dias > 30 && dias < 400) intervalos.push(dias)
+      }
+      if (intervalos.length > 0) {
+        const prom = Math.round(intervalos.reduce((a, b) => a + b, 0) / intervalos.length)
+        const ultimo = new Date(celos[celos.length-1].fecha_inicio + 'T00:00:00')
+        const proximo = new Date(ultimo.getTime() + prom * 86400000)
+        if (proximo > new Date()) {
+          proximoCeloFecha = proximo.toISOString().split('T')[0]
+        }
+      }
+    }
+  }
+
   // Tarjetas de "Próximos" en formato grid 2x2. Se incluye solo si hay
   // datos reales -- si no hay ninguno, no se muestra la sección entera.
   const proximosItems = [
@@ -252,6 +281,10 @@ export default async function Dashboard({ searchParams }: Props) {
     },
     proximaRevisionEnf && {
       label: 'Enfermedades', sub: proximaRevisionEnf.diagnostico, dias: diasR(proximaRevisionEnf.proxima_revision), color: '#E05252',
+    },
+    // Proximo celo estimado (solo hembras con 2+ celos registrados)
+    proximoCeloFecha && {
+      label: 'Próximo celo', sub: 'Estimado según historial', dias: diasR(proximoCeloFecha), color: '#E05252',
     },
   ].filter(Boolean) as { label: string; sub: string; dias: string; color: string; url?: string }[]
 
