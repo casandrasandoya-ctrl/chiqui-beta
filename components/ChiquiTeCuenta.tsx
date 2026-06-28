@@ -58,6 +58,15 @@ const TARJETAS_GENERAL = [
   { emoji: '🐾', titulo: 'Observar es cuidar', texto: 'Conocer el comportamiento habitual de tu mascota es la mejor herramienta para detectar cambios. Lo que notas tú en casa es información valiosa para el vet.' },
 ]
 
+
+const COLORES_CAT: Record<string, { color: string; bg: string; border: string; label: string }> = {
+  alim:  { color: '#CD7421', bg: '#FEF3E7', border: '#F5C09A', label: 'Alimentación' },
+  salud: { color: '#2E7D52', bg: '#EAF6EF', border: '#A8D5B5', label: 'Salud' },
+  comp:  { color: '#6B3FA0', bg: '#F3EEFF', border: '#C9A8F0', label: 'Comportamiento' },
+  bien:  { color: '#1A6B9A', bg: '#EBF6FC', border: '#8DCCED', label: 'Bienestar' },
+  seg:   { color: '#B83232', bg: '#FDEAEA', border: '#F0AAAA', label: 'Seguridad' },
+}
+
 interface Props {
   especie: string
 }
