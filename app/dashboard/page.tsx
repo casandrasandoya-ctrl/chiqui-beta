@@ -162,6 +162,30 @@ export default async function Dashboard({ searchParams }: Props) {
     rachaPaseo = racha
   }
 
+  // Detectar si la mascota está en celo hoy
+  let celoActivoHoy = false
+  let diaCeloHoy = 0
+  if (m.sexo === 'Hembra' && m.seguimiento_reproductivo && !m.castrado) {
+    const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30)
+    const { data: ciclosHoy } = await supabase
+      .from('ciclos_reproductivos')
+      .select('tipo, fecha_inicio, fecha_termino')
+      .eq('mascota_id', m.id)
+      .eq('tipo', 'celo')
+      .gte('fecha_inicio', fechaChile(hace30))
+    const hoy = new Date()
+    const celoEnCurso = (ciclosHoy || []).find((cc: any) => {
+      const inicio = new Date(cc.fecha_inicio + 'T00:00:00')
+      if (inicio > hoy) return false
+      if (!cc.fecha_termino) return (hoy.getTime() - inicio.getTime()) / 86400000 < 21
+      return hoy <= new Date(cc.fecha_termino + 'T00:00:00')
+    })
+    if (celoEnCurso) {
+      celoActivoHoy = true
+      diaCeloHoy = Math.ceil((hoy.getTime() - new Date(celoEnCurso.fecha_inicio + 'T00:00:00').getTime()) / 86400000) + 1
+    }
+  }
+
   const color = regHoy?.estado_dia ? EC[regHoy.estado_dia] : '#4CAF7D'
   const estadoLabel = regHoy?.estado_dia ? EL[regHoy.estado_dia] : 'Sin registro hoy'
 
@@ -246,6 +270,8 @@ export default async function Dashboard({ searchParams }: Props) {
       cuidadosRecientes={cuidadosRecientes}
       rachaPaseo={rachaPaseo}
         rachaEnRiesgo={rachaEnRiesgo}
+        celoActivoHoy={celoActivoHoy}
+        diaCeloHoy={diaCeloHoy}
     />
   )
 }

@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import PesoTracker from '@/components/PesoTracker'
 import RespiracionTracker from '@/components/RespiracionTracker'
+import ReproduccionTracker from '@/components/ReproduccionTracker'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 
@@ -691,6 +692,28 @@ export default function PrevencionPage() {
           </div>
         )}
       </div>
+
+      {/* REPRODUCCIÓN */}
+      {mascota && mascota.sexo === 'Hembra' && mascota.seguimiento_reproductivo && (
+        <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+          <button onClick={() => toggleSeccion('reproduccion')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+            <span className="font-bold text-sm text-[#3D2B1F]">🌸 Reproducción</span>
+            <span className="text-[#8A7560] text-lg">{estaAbierta('reproduccion') ? '⌃' : '⌄'}</span>
+          </button>
+          {estaAbierta('reproduccion') && (
+            <div className="border-t border-[#EEE2D4] px-4 pb-4 pt-3">
+              <ReproduccionTracker
+                mascotaId={mascota.id}
+                sexo={mascota.sexo || ''}
+                especie={mascota.especie || ''}
+                seguimientoReproductivo={mascota.seguimiento_reproductivo || false}
+                estadoReproductivo={mascota.estado_reproductivo || 'desconocido'}
+                nombreMascota={mascota.nombre}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* REVISIÓN CORPORAL */}
       {revisiones.length > 0 && (

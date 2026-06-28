@@ -26,6 +26,8 @@ export default function NuevaMascotaPage() {
     fecha_nacimiento: '',
     color: '',
     castrado: false,
+    seguimiento_reproductivo: false,
+    estado_reproductivo: 'desconocido',
     peso_actual: '',
     alimentacion_tipo: '',
     alimentacion_marca: '',
