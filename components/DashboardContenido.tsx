@@ -9,6 +9,7 @@ import { calcularEtapaVida, formatearEdad } from '@/utils/etapaVida'
 import BannerNotificaciones from '@/components/BannerNotificaciones'
 import BannerInstalarApp from '@/components/BannerInstalarApp'
 import { useEffect, useState } from 'react'
+import ChiquiTeCuenta from '@/components/ChiquiTeCuenta'
 
 function calcEdad(f: string) {
   const h = new Date(), n = new Date(f)
@@ -124,8 +125,8 @@ export default function DashboardContenido({
         )
       })()}
 
-      {/* TARJETA CELO ACTIVO — aparece cuando la mascota está en celo hoy */}
-      {m.sexo === 'Hembra' && m.seguimiento_reproductivo && !m.castrado && celoActivoHoy && (
+      {/* TARJETA CELO ACTIVO */}
+      {m.sexo === 'Hembra' && m.seguimiento_reproductivo !== false && !m.castrado && celoActivoHoy && (
         <div className="mx-4 mb-3 bg-[#FDEAEA] border border-[#E05252]/30 rounded-2xl px-4 py-3 flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-[#E05252] flex-shrink-0 animate-pulse" />
           <div>
@@ -305,7 +306,7 @@ export default function DashboardContenido({
                   <div>
                     <p className="text-[12.5px] font-bold text-[#3D2B1F]">Racha de paseos</p>
                     <p className="text-[11px] text-[#8A7560]">
-                      {rachaPaseo === 0 ? 'Sin racha activa' : rachaEnRiesgo ? `⚠️ ${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} — ¡pasea hoy!` : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
+                      {rachaPaseo === 0 ? 'Sin racha activa' : rachaEnRiesgo ? `⚠️ ${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} — ¡pasea hoy para mantenerla!` : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
                     </p>
                   </div>
                 </div>
@@ -333,7 +334,7 @@ export default function DashboardContenido({
                       <div>
                         <p className="text-[12.5px] font-bold text-[#3D2B1F]">Racha de paseos</p>
                         <p className="text-[11px] text-[#8A7560]">
-                          {rachaPaseo === 0 ? 'Sin racha activa' : rachaEnRiesgo ? `⚠️ ${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} — ¡pasea hoy!` : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
+                          {rachaPaseo === 0 ? 'Sin racha activa' : rachaEnRiesgo ? `⚠️ ${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} — ¡pasea hoy para mantenerla!` : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
                         </p>
                       </div>
                     </div>
@@ -362,6 +363,9 @@ export default function DashboardContenido({
           )}
         </>
       )}
+
+      {/* CHIQUI TE CUENTA — carrusel de datos curiosos, cambia cada dia */}
+      <ChiquiTeCuenta especie={m.especie} />
 
       <BottomNav />
     </div>
