@@ -395,54 +395,19 @@ export default function AnalisisPage() {
           </div>
         </div>
 
-        {/* Resumen salud adicional */}
-        {(respReciente || tempReciente || celoInfo) && (
-          <div className="mx-4 mb-2 flex gap-2 flex-wrap">
-            {respReciente && (() => {
-              const rpm = respReciente.rpm
-              const color = rpm < 15 ? '#4AABDB' : rpm < 30 ? '#4CAF7D' : rpm < 40 ? '#F5C842' : '#E05252'
-              const label = rpm < 15 ? 'Muy baja' : rpm < 30 ? 'Normal' : rpm < 40 ? 'Atención' : 'Urgente'
-              return (
-                <div className="flex-1 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3" style={{ minWidth: '30%' }}>
-                  <p className="text-[10px] text-[#8A7560] mb-1">🫁 Respiración reciente</p>
-                  <p className="text-lg font-black" style={{ color }}>{rpm} rpm</p>
-                  <p className="text-[10px] font-semibold" style={{ color }}>{label}</p>
-                </div>
-              )
-            })()}
-            {tempReciente && (() => {
-              const t = tempReciente.temperatura
-              const color = t < 37.5 ? '#4AABDB' : t < 39.3 ? '#4CAF7D' : t < 39.5 ? '#F5C842' : t < 41 ? '#F07A30' : '#E05252'
-              const label = t < 37.5 ? 'Hipotermia' : t < 39.3 ? 'Normal' : t < 39.5 ? 'Atención' : t < 41 ? 'Fiebre' : 'Emergencia'
-              return (
-                <div className="flex-1 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3" style={{ minWidth: '30%' }}>
-                  <p className="text-[10px] text-[#8A7560] mb-1">🌡️ Temperatura reciente</p>
-                  <p className="text-lg font-black" style={{ color }}>{t}°C</p>
-                  <p className="text-[10px] font-semibold" style={{ color }}>{label}</p>
-                </div>
-              )
-            })()}
-            {celoInfo && (
-              <div className="flex-1 bg-[#FDEAEA] border border-[#E05252]/20 rounded-2xl p-3" style={{ minWidth: '30%' }}>
-                <p className="text-[10px] text-[#E05252] mb-1">🌸 En celo ahora</p>
-                <p className="text-lg font-black text-[#E05252]">Día {celoInfo.dia}</p>
-                <p className="text-[10px] text-[#E05252]">Ciclo activo</p>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Lo observado este mes incluye normalidad + signos vitales + celo — ver sección abajo */}
 
         {/* Normalidad por categoría — desplegable */}
-        {normalidadPorCategoria.length > 0 && (
+        {(normalidadPorCategoria.length > 0 || respReciente || tempReciente || celoInfo) && (
           <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
             <button onClick={() => setAbiertaNormalidad(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-              <span className="font-bold text-sm text-[#3D2B1F]">📊 Normalidad por categoría</span>
+              <span className="font-bold text-sm text-[#3D2B1F]">📊 Lo observado este mes</span>
               <span className="text-[#8A7560] text-lg">{abiertaNormalidad ? '⌃' : '⌄'}</span>
             </button>
             {abiertaNormalidad && (
               <div className="border-t border-[#EEE2D4] p-4">
                 {normalidadPorCategoria.map((cat, i) => (
-                  <div key={cat.campo} className={`flex items-center gap-2.5 ${i < normalidadPorCategoria.length - 1 ? 'mb-2.5' : ''}`}>
+                  <div key={cat.campo} className={`flex items-center gap-2.5 ${i < normalidadPorCategoria.length - 1 || respReciente || tempReciente || celoInfo ? 'mb-2.5' : ''}`}>
                     <span className="text-sm flex-shrink-0 w-5">{cat.icon}</span>
                     <span className="text-xs text-[#3D2B1F] flex-1">{cat.label}</span>
                     <div className="w-20 h-1.5 bg-[#EEE2D4] rounded-full overflow-hidden flex-shrink-0">
@@ -451,7 +416,48 @@ export default function AnalisisPage() {
                     <span className="text-[11px] text-[#8A7560] w-9 text-right flex-shrink-0">{cat.pct}%</span>
                   </div>
                 ))}
-                <p className="text-[10px] text-[#8A7560] mt-3 italic">% de días registrados como "Normal" en cada categoría.</p>
+
+                {/* Respiración — último registro del mes */}
+                {respReciente && (() => {
+                  const rpm = respReciente.rpm
+                  const color = rpm < 15 ? '#4AABDB' : rpm < 30 ? '#4CAF7D' : rpm < 40 ? '#F5C842' : '#E05252'
+                  const label = rpm < 15 ? 'Muy baja' : rpm < 30 ? 'Normal' : rpm < 40 ? 'Atención' : 'Urgente'
+                  return (
+                    <div className={`flex items-center gap-2.5 ${tempReciente || celoInfo ? 'mb-2.5' : ''}`}>
+                      <span className="text-sm flex-shrink-0 w-5">🫁</span>
+                      <span className="text-xs text-[#3D2B1F] flex-1">Frecuencia respiratoria</span>
+                      <span className="text-xs font-bold" style={{ color }}>{rpm} rpm</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: `${color}20`, color }}>{label}</span>
+                    </div>
+                  )
+                })()}
+
+                {/* Temperatura — último registro del mes */}
+                {tempReciente && (() => {
+                  const t = tempReciente.temperatura
+                  const color = t < 37.5 ? '#4AABDB' : t < 39.3 ? '#4CAF7D' : t < 39.5 ? '#F5C842' : t < 41 ? '#F07A30' : '#E05252'
+                  const label = t < 37.5 ? 'Hipotermia' : t < 39.3 ? 'Normal' : t < 39.5 ? 'Atención' : t < 41 ? 'Fiebre' : 'Emergencia'
+                  return (
+                    <div className={`flex items-center gap-2.5 ${celoInfo ? 'mb-2.5' : ''}`}>
+                      <span className="text-sm flex-shrink-0 w-5">🌡️</span>
+                      <span className="text-xs text-[#3D2B1F] flex-1">Temperatura corporal</span>
+                      <span className="text-xs font-bold" style={{ color }}>{t}°C</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: `${color}20`, color }}>{label}</span>
+                    </div>
+                  )
+                })()}
+
+                {/* Celo activo */}
+                {celoInfo && (
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-sm flex-shrink-0 w-5">🌸</span>
+                    <span className="text-xs text-[#3D2B1F] flex-1">Ciclo reproductivo</span>
+                    <span className="text-xs font-bold text-[#E05252]">Día {celoInfo.dia}</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 bg-[#FDEAEA] text-[#E05252]">En celo</span>
+                  </div>
+                )}
+
+                <p className="text-[10px] text-[#8A7560] mt-3 italic">% de días registrados como "Normal" en cada categoría. Signos vitales: último registro.</p>
               </div>
             )}
           </div>
