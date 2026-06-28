@@ -56,7 +56,7 @@ export default function AnalisisPage() {
     const { data: resp } = await supabase
       .from('frecuencia_respiratoria')
       .select('rpm, fecha')
-      .eq('mascota_id', id)
+      .eq('mascota_id', m.id)
       .order('fecha', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -67,7 +67,7 @@ export default function AnalisisPage() {
     const { data: ciclosRecientes } = await supabase
       .from('ciclos_reproductivos')
       .select('tipo, fecha_inicio, fecha_termino')
-      .eq('mascota_id', id)
+      .eq('mascota_id', m.id)
       .eq('tipo', 'celo')
     const hoy = new Date()
     const celoActivo = (ciclosRecientes || []).find((cc: any) => {
@@ -95,7 +95,7 @@ export default function AnalisisPage() {
     const { data: resp } = await supabase
       .from('frecuencia_respiratoria')
       .select('rpm, fecha')
-      .eq('mascota_id', id)
+      .eq('mascota_id', nueva.id)
       .order('fecha', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -106,7 +106,7 @@ export default function AnalisisPage() {
     const { data: ciclosRecientes } = await supabase
       .from('ciclos_reproductivos')
       .select('tipo, fecha_inicio, fecha_termino')
-      .eq('mascota_id', id)
+      .eq('mascota_id', nueva.id)
       .eq('tipo', 'celo')
     const hoy = new Date()
     const celoActivo = (ciclosRecientes || []).find((cc: any) => {
