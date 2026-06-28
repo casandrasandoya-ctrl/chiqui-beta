@@ -99,7 +99,18 @@ export default function ReproduccionTracker({
   const [modalCiclo, setModalCiclo] = useState(false)
   const [modalEtapa, setModalEtapa] = useState(false)
   const [form, setForm] = useState<any>({})
+  const [editandoCicloId, setEditandoCicloId] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
+
+  // Bloquear scroll del body cuando modal abierto (fix Android)
+  useEffect(() => {
+    if (modalCiclo || modalEtapa) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [modalCiclo, modalEtapa])
 
   // Solo aplica a hembras con seguimiento activado y no esterilizadas
   const esMacho = sexo === 'Macho'
@@ -125,14 +136,25 @@ export default function ReproduccionTracker({
     const duracion = form.fecha_termino
       ? Math.round((new Date(form.fecha_termino+'T00:00:00').getTime() - new Date(form.fecha_inicio+'T00:00:00').getTime()) / 86400000)
       : null
-    await supabase.from('ciclos_reproductivos').insert({
-      mascota_id: mascotaId, user_id: user.id,
-      tipo: form.tipo, fecha_inicio: form.fecha_inicio,
-      fecha_termino: form.fecha_termino || null,
-      duracion_dias: duracion,
-      notas: form.notas || null,
-    })
-    setForm({}); setModalCiclo(false)
+    if (editandoCicloId) {
+      // Editar ciclo existente
+      await supabase.from('ciclos_reproductivos').update({
+        tipo: form.tipo, fecha_inicio: form.fecha_inicio,
+        fecha_termino: form.fecha_termino || null,
+        duracion_dias: duracion,
+        notas: form.notas || null,
+      }).eq('id', editandoCicloId)
+    } else {
+      // Nuevo ciclo
+      await supabase.from('ciclos_reproductivos').insert({
+        mascota_id: mascotaId, user_id: user.id,
+        tipo: form.tipo, fecha_inicio: form.fecha_inicio,
+        fecha_termino: form.fecha_termino || null,
+        duracion_dias: duracion,
+        notas: form.notas || null,
+      })
+    }
+    setForm({}); setEditandoCicloId(null); setModalCiclo(false)
     await cargar()
     setGuardando(false)
   }
@@ -249,7 +271,14 @@ export default function ReproduccionTracker({
                   </p>
                   {c.notas && <p className="text-[10px] text-[#8A7560] italic mt-0.5">{c.notas}</p>}
                 </div>
+                <div className="flex gap-1">
+                <button onClick={() => {
+                  setEditandoCicloId(c.id)
+                  setForm({ tipo: c.tipo, fecha_inicio: c.fecha_inicio, fecha_termino: c.fecha_termino || '', notas: c.notas || '' })
+                  setModalCiclo(true)
+                }} className="text-[#8A7560] text-xs px-1.5 py-1 bg-[#FBEAD9] rounded-lg">✏️</button>
                 <button onClick={() => eliminarCiclo(c.id)} className="text-[#8A7560] text-xs">✕</button>
+              </div>
               </div>
             )
           })}
@@ -296,16 +325,16 @@ export default function ReproduccionTracker({
 
       {/* MODAL CICLO */}
       {modalCiclo && (
-        <div className="fixed inset-0 z-50 overflow-hidden flex items-end justify-center bg-black/50" onClick={() => setModalCiclo(false)}>
-          <div className="bg-[#F5EDE3] rounded-t-2xl p-5 w-full max-w-lg space-y-3 overflow-y-auto" style={{ maxHeight: "calc(100vh - 80px)", paddingBottom: "24px" }} onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] overflow-hidden flex items-end justify-center bg-black/50" onClick={() => { setModalCiclo(false); setEditandoCicloId(null); setForm({}) }}>
+          <div className="bg-[#F5EDE3] rounded-t-2xl p-5 w-full max-w-lg space-y-3 overflow-y-auto" style={{ maxHeight: "calc(100vh - 80px)", paddingBottom: "32px" }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
-              <h3 className="font-bold text-base text-[#3D2B1F]">Registrar ciclo</h3>
+              <h3 className="font-bold text-base text-[#3D2B1F]">{editandoCicloId ? 'Editar ciclo' : 'Registrar ciclo'}</h3>
               <div className="flex gap-2">
                 <button onClick={guardarCiclo} disabled={guardando || !form.tipo || !form.fecha_inicio}
                   className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
                   {guardando ? '...' : 'Guardar'}
                 </button>
-                <button onClick={() => setModalCiclo(false)} className="text-[#8A7560] text-xl">✕</button>
+                <button onClick={() => { setModalCiclo(false); setEditandoCicloId(null); setForm({}) }} className="text-[#8A7560] text-xl">✕</button>
               </div>
             </div>
 
@@ -341,8 +370,8 @@ export default function ReproduccionTracker({
 
       {/* MODAL ETAPA */}
       {modalEtapa && (
-        <div className="fixed inset-0 z-50 overflow-hidden flex items-end justify-center bg-black/50" onClick={() => setModalEtapa(false)}>
-          <div className="bg-[#F5EDE3] rounded-t-2xl p-5 w-full max-w-lg space-y-3 overflow-y-auto" style={{ maxHeight: "calc(100vh - 80px)", paddingBottom: "24px" }} onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] overflow-hidden flex items-end justify-center bg-black/50" onClick={() => setModalEtapa(false)}>
+          <div className="bg-[#F5EDE3] rounded-t-2xl p-5 w-full max-w-lg space-y-3 overflow-y-auto" style={{ maxHeight: "calc(100vh - 80px)", paddingBottom: "32px" }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-bold text-base text-[#3D2B1F]">Registrar hito</h3>
               <div className="flex gap-2">
