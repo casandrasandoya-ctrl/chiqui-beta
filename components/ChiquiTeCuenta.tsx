@@ -169,6 +169,16 @@ export default function ChiquiTeCuenta({ especie }: Props) {
           )
         })}
       </div>
+
+      {/* Tarjeta fija — Chiqui idea */}
+      <div className="mt-2.5 rounded-2xl p-3 flex items-center gap-3"
+        style={{ background: '#FFFCF8', border: '1.5px solid #EEE2D4' }}>
+        <img src="/chiqui/chiqui_idea.png" alt="Chiqui idea" className="w-12 h-12 object-contain flex-shrink-0" />
+        <div>
+          <p className="font-bold text-xs text-[#3D2B1F] mb-0.5">¿Sabías que puedes registrar todo esto en CHIQUI?</p>
+          <p className="text-[10px] text-[#8A7560] leading-relaxed">Cada observación que registras hoy puede ser clave para tu veterinario mañana.</p>
+        </div>
+      </div>
     </div>
   )
 }
