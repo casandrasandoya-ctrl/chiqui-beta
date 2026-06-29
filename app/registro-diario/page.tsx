@@ -251,7 +251,7 @@ function RegistroContenido() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: todasMascotas } = await supabase.from('mascotas').select('id,nombre,especie,raza').order('created_at', { ascending: true })
+      const { data: todasMascotas } = await supabase.from('mascotas').select('id,nombre,especie,raza,foto_url,sexo,castrado,seguimiento_reproductivo').order('created_at', { ascending: true })
       if (!todasMascotas || !todasMascotas.length) { router.push('/mascota/nueva'); return }
       setMascotas(todasMascotas)
       const m = determinarMascotaActiva(todasMascotas)!

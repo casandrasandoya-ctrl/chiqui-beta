@@ -271,13 +271,15 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
-        {/* Vacunas */}
-        {vacunas.length > 0 && (
-          <div className="flex items-center gap-2 mb-1">
+        {/* ÁREA: Prevención */}
+        <div className="flex items-center gap-2 mb-1">
           <img src="/chiqui/chiqui_escudo.png" alt="" className="w-6 h-6 object-contain" />
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Prevención</p>
         </div>
-        <SeccionVet titulo={`💉 Vacunas (${vacunas.length})`}>
+
+        {/* Vacunas */}
+        {vacunas.length > 0 && (
+          <SeccionVet titulo={`💉 Vacunas (${vacunas.length})`}>
             <div className="space-y-2">
               {vacunas.map((v: any) => (
                 <div key={v.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
@@ -330,13 +332,15 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
-        {/* Enfermedades */}
-        {enfermedades.length > 0 && (
-          <div className="flex items-center gap-2 mb-1 mt-2">
+        {/* ÁREA: Historial médico */}
+        <div className="flex items-center gap-2 mb-1 mt-2">
           <img src="/chiqui/chiqui_examen.png" alt="" className="w-6 h-6 object-contain" />
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
         </div>
-        <SeccionVet titulo={`🏥 Enfermedades (${enfermedades.length})`}>
+
+        {/* Enfermedades */}
+        {enfermedades.length > 0 && (
+          <SeccionVet titulo={`🏥 Enfermedades (${enfermedades.length})`}>
             <div className="space-y-2">
               {enfermedades.map((enf: any) => {
                 const estadoColor: Record<string,string> = { activa:'#F07A30', cronica:'#E05252', resuelta:'#4CAF7D' }
@@ -390,10 +394,12 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
+        {/* ÁREA: Signos vitales */}
         <div className="flex items-center gap-2 mb-1 mt-2">
           <img src="/chiqui/chiqui_temperatura.png" alt="" className="w-6 h-6 object-contain" />
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Signos vitales</p>
         </div>
+
         {/* Frecuencia respiratoria */}
         {respiracion && respiracion.length > 0 && (
           <SeccionVet titulo={`🫁 Frecuencia respiratoria (${respiracion.length})`}>
