@@ -137,17 +137,17 @@ export default function DashboardContenido({
         </div>
       )}
 
-      {/* Banner racha de registros — aparece en hitos: 3, 5, 7, 14, 30 días */}
-      {[3, 5, 7, 14, 30].includes(rachaRegistros) && (
+      {/* Banner racha de registros — aparece cuando racha >= 3 */}
+      {rachaRegistros >= 3 && (
         <div className="mx-4 mb-3 bg-[#FFFCF8] border border-[#FFBD59] rounded-2xl px-4 py-3 flex items-center gap-3">
           <img src="/chiqui/chiqui_cool.png" alt="Chiqui" className="w-12 h-12 object-contain flex-shrink-0" />
           <div>
             <p className="text-sm font-bold text-[#3D2B1F]">
-              {rachaRegistros === 3 && '¡3 días seguidos registrando! 😎'}
-              {rachaRegistros === 5 && '¡Llevas 5 días! Sigue así 😎'}
-              {rachaRegistros === 7 && '¡Una semana completa! Increíble 😎'}
-              {rachaRegistros === 14 && '¡14 días seguidos! Eres un pro 😎'}
-              {rachaRegistros === 30 && '¡30 días! Chiqui no lo puede creer 😎'}
+              {rachaRegistros >= 30 ? '¡30 días o más! Chiqui no lo puede creer 😎' :
+               rachaRegistros >= 14 ? `¡${rachaRegistros} días seguidos! Eres un pro 😎` :
+               rachaRegistros >= 7  ? `¡${rachaRegistros} días! Una semana o más 😎` :
+               rachaRegistros >= 5  ? `¡${rachaRegistros} días seguidos! Sigue así 😎` :
+               `¡${rachaRegistros} días registrando! Buen comienzo 😎`}
             </p>
             <p className="text-xs text-[#8A7560] mt-0.5">Cada registro le da contexto a tu veterinario.</p>
           </div>

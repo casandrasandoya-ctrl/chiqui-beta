@@ -53,9 +53,7 @@ export default function SelectorMascota({
             {mascotaActiva.especie}{mascotaActiva.raza ? ` · ${mascotaActiva.raza}` : ''}
           </p>
         </div>
-        <Link href="/perfil" onClick={e => e.stopPropagation()} className="text-[10px] font-bold text-[#CD7421] px-2 py-1 rounded-lg bg-[#FBEAD9] flex-shrink-0">
-          Perfil ›
-        </Link>
+
         {mascotas.length > 1 && (
           <span className={`text-[#8A7560] text-base transition-transform ${abierto ? 'rotate-180' : ''}`}>⌄</span>
         )}
@@ -66,6 +64,19 @@ export default function SelectorMascota({
           {/* Capa invisible para cerrar el menu al tocar fuera */}
           <div className="fixed inset-0 z-30" onClick={() => setAbierto(false)} />
           <div className="absolute left-4 right-4 mt-1.5 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl overflow-hidden z-40 shadow-sm">
+            {/* Link al perfil dentro del desplegable */}
+            <Link href="/perfil" onClick={() => setAbierto(false)}
+              className="w-full px-3 py-2.5 flex items-center justify-between border-b border-[#EEE2D4] bg-[#FBEAD9]">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full overflow-hidden bg-[#EEE2D4] flex items-center justify-center flex-shrink-0">
+                  {mascotaActiva.foto_url
+                    ? <img src={mascotaActiva.foto_url} alt="" className="w-full h-full object-cover" />
+                    : <span className="text-sm">{icono(mascotaActiva.especie)}</span>}
+                </div>
+                <span className="text-xs font-bold text-[#3D2B1F]">{mascotaActiva.nombre}</span>
+              </div>
+              <span className="text-xs font-bold text-[#CD7421]">Ver perfil ›</span>
+            </Link>
             {mascotas.map(m => (
               <button
                 key={m.id}
