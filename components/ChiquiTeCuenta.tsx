@@ -26,6 +26,12 @@ const TARJETAS_PERRO = [
   { emoji: '🫙', cat: 'alim', titulo: '¿Qué puedo poner en mi Kong?', texto: 'Mantequilla de maní sin xilitol, plátano, zanahoria rallada, queso crema o zapallo son buenas opciones. ¡Si lo congelas, durará mucho más!' },
   { emoji: '🎯', cat: 'bien', titulo: 'Snuffle Mat', texto: 'Buscar mi comida con el olfato despierta mi instinto y me ayuda a relajarme. ¡También puedes hacer uno en casa con una alfombra y tiras de polar!' },
   { emoji: '👅', cat: 'bien', titulo: 'Lick Mat', texto: 'Lamer me ayuda a relajarme porque libera serotonina. Un lick mat puede ser un gran compañero antes de quedarme solo un rato.' },
+  { emoji: '💩', cat: 'salud', titulo: 'El color de mis heces importa', texto: 'Lo normal es que sean marrón chocolate. Si son verdes, amarillas, naranjas, blancas, grises, negras o con sangre roja, algo podría no andar bien. Anótalo en CHIQUI y consulta con mi veterinario si el cambio persiste o me notas decaído.' },
+  { emoji: '💩', cat: 'salud', titulo: 'La forma también dice mucho', texto: 'Lo ideal es que mis heces sean firmes, con forma definida y fáciles de recoger. Muy duras → podría necesitar más agua. Blandas → mi intestino podría estar irritado. Líquidas → es diarrea. Si ocurre más de una vez, regístralo en CHIQUI.' },
+  { emoji: '🟤', cat: 'salud', titulo: 'Heces blandas: ¿cuándo preocuparse?', texto: 'Una vez puede pasar por algo que comí o por estrés. Pero si duran más de 48 horas, aparecen junto a vómitos, sangre o decaimiento, necesito que me revise un veterinario.' },
+  { emoji: '⚫', cat: 'salud', titulo: 'Heces negras', texto: 'Si mis heces son negras y brillantes, como alquitrán, podrían contener sangre digerida proveniente del estómago o intestino. Es una señal importante y conviene consultar con mi veterinario ese mismo día.' },
+  { emoji: '🤮', cat: 'salud', titulo: 'Vomité... ¿es normal?', texto: 'Vomitar una vez puede ocurrir. Pero si vomito varias veces, hay sangre, dejo de comer o estoy muy decaído, necesito atención veterinaria. Tú me conoces mejor que nadie.' },
+  { emoji: '💩', cat: 'salud', titulo: '¿Sabías que el tamaño también importa?', texto: 'Si mis heces son mucho más grandes o pequeñas de lo habitual durante varios días, también vale la pena registrarlo. Los cambios en la alimentación, la fibra o mi digestión pueden influir.' },
 ]
 
 const TARJETAS_GATO = [
@@ -49,6 +55,12 @@ const TARJETAS_GATO = [
   { emoji: '📦', cat: 'bien', titulo: 'Cajas y bolsas de papel', texto: 'Una caja o una bolsa de papel pueden ser el mejor juguete del mundo. Si además cambias mis escondites de vez en cuando, evitarás que me aburra.' },
   { emoji: '🍽️', cat: 'bien', titulo: 'Comer también puede ser un juego', texto: 'Si escondes mi comida o usas una pelota dispensadora, activarás mi instinto de caza mientras me alimento. ¡Es mucho más entretenido para mí!' },
   { emoji: '🪟', cat: 'bien', titulo: 'Mi televisión favorita', texto: 'Para mí, una ventana es como tener televisión todo el día. Si además hay pajaritos afuera, créeme... podría pasar horas mirando.' },
+  { emoji: '💩', cat: 'salud', titulo: 'Mis heces normales', texto: 'Lo normal es que sean marrones, firmes y con forma cilíndrica. Si son muy blandas, muy secas o líquidas, puede deberse a cambios en la alimentación, estrés o algún problema digestivo.' },
+  { emoji: '💩', cat: 'salud', titulo: 'La forma también importa', texto: 'Mis heces deberían mantener su forma. Muy duras → podría necesitar más agua. Blandas → algo puede estar irritando mi intestino. Líquidas → si continúa durante el día o me siento mal, necesita que consultes con mi veterinario.' },
+  { emoji: '⚫', cat: 'salud', titulo: 'Heces negras', texto: 'Si mis deposiciones son negras y pegajosas, podrían contener sangre digerida. Es una señal importante y conviene que un veterinario me evalúe pronto.' },
+  { emoji: '🔴', cat: 'salud', titulo: 'Sangre en las heces', texto: 'Si ves sangre roja brillante, generalmente proviene de la parte final del intestino. Si la sangre es oscura o viene mezclada con las heces, el origen puede estar más arriba en el aparato digestivo. En ambos casos, avísale a mi veterinario.' },
+  { emoji: '🤮', cat: 'salud', titulo: 'Vomité... ¿debo preocuparme?', texto: 'A veces vomitamos por bolas de pelo. Pero si vomito varias veces en un día, hay sangre o dejo de comer por más de 24 horas, necesito que me vea un veterinario. No siempre es una bola de pelo.' },
+  { emoji: '💩', cat: 'salud', titulo: 'El tamaño también me da pistas', texto: 'Si mis deposiciones cambian mucho de tamaño durante varios días, también es bueno registrarlo. A veces se relaciona con cambios en la alimentación, el tránsito intestinal o mi salud digestiva.' },
 ]
 
 // Tarjetas generales (para otras especies)
