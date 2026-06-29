@@ -162,6 +162,27 @@ export default async function Dashboard({ searchParams }: Props) {
     rachaPaseo = racha
   }
 
+  // Racha de REGISTROS DIARIOS consecutivos (cualquier registro, no solo paseos)
+  // Misma lógica: si hoy no registró aún, no se rompe — se cuenta desde ayer
+  let rachaRegistros = 0
+  {
+    const { data: ultimosRegistros } = await supabase
+      .from('registros_diarios')
+      .select('fecha')
+      .eq('mascota_id', m.id)
+      .order('fecha', { ascending: false })
+      .limit(60)
+    const fechasRegistro = new Set((ultimosRegistros || []).map((r: any) => r.fecha))
+    const tieneHoy = fechasRegistro.has(hoy)
+    const inicio = tieneHoy ? 0 : 1
+    for (let i = inicio; i < 60; i++) {
+      const d = new Date(new Date(hoy + 'T00:00:00').getTime() - i * 86400000)
+      const f = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d)
+      if (fechasRegistro.has(f)) rachaRegistros++
+      else break
+    }
+  }
+
   // Detectar si la mascota está en celo hoy
   let celoActivoHoy = false
   let diaCeloHoy = 0
@@ -314,6 +335,7 @@ export default async function Dashboard({ searchParams }: Props) {
       tieneRegistroHoy={!!regHoy}
       cuidadosRecientes={cuidadosRecientes}
       rachaPaseo={rachaPaseo}
+        rachaRegistros={rachaRegistros}
         rachaEnRiesgo={rachaEnRiesgo}
         celoActivoHoy={celoActivoHoy}
         diaCeloHoy={diaCeloHoy}

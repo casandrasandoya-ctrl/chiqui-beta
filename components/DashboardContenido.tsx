@@ -42,12 +42,13 @@ interface Props {
   cuidadosRecientes: { grupo: string; label: string; emoji: string; dias: number }[]
   rachaPaseo: number | null
   rachaEnRiesgo: boolean
+  rachaRegistros: number
   celoActivoHoy: boolean
   diaCeloHoy: number
 }
 
 export default function DashboardContenido({
-  mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy, cuidadosRecientes, rachaPaseo, rachaEnRiesgo, celoActivoHoy, diaCeloHoy,
+  mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy, cuidadosRecientes, rachaPaseo, rachaEnRiesgo, celoActivoHoy, diaCeloHoy, rachaRegistros,
 }: Props) {
   const router = useRouter()
   const [cuidadosExpandido, setCuidadosExpandido] = useState(false)
@@ -132,6 +133,23 @@ export default function DashboardContenido({
           <div>
             <p className="text-sm font-bold text-[#E05252]">🌸 {m.nombre} está en celo · Día {diaCeloHoy}</p>
             <p className="text-xs text-[#8A7560] mt-0.5">Evita contacto con machos si no buscas reproducción.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Banner racha de registros — aparece en hitos: 3, 5, 7, 14, 30 días */}
+      {[3, 5, 7, 14, 30].includes(rachaRegistros) && (
+        <div className="mx-4 mb-3 bg-[#FFFCF8] border border-[#FFBD59] rounded-2xl px-4 py-3 flex items-center gap-3">
+          <img src="/chiqui/chiqui_cool.png" alt="Chiqui" className="w-12 h-12 object-contain flex-shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-[#3D2B1F]">
+              {rachaRegistros === 3 && '¡3 días seguidos registrando! 😎'}
+              {rachaRegistros === 5 && '¡Llevas 5 días! Sigue así 😎'}
+              {rachaRegistros === 7 && '¡Una semana completa! Increíble 😎'}
+              {rachaRegistros === 14 && '¡14 días seguidos! Eres un pro 😎'}
+              {rachaRegistros === 30 && '¡30 días! Chiqui no lo puede creer 😎'}
+            </p>
+            <p className="text-xs text-[#8A7560] mt-0.5">Cada registro le da contexto a tu veterinario.</p>
           </div>
         </div>
       )}
