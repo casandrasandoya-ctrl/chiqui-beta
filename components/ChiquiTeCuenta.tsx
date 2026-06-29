@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useRef } from 'react'
+import { useMemo, useState } from 'react'
 
 // Bateria de tarjetas educativas filtradas por especie.
 // Rotan diariamente — cada dia se muestra un set distinto de 4 tarjetas
@@ -27,11 +27,11 @@ const TARJETAS_PERRO = [
   { emoji: '🎯', cat: 'bien', titulo: 'Snuffle Mat', texto: 'Buscar mi comida con el olfato despierta mi instinto y me ayuda a relajarme. ¡También puedes hacer uno en casa con una alfombra y tiras de polar!' },
   { emoji: '👅', cat: 'bien', titulo: 'Lick Mat', texto: 'Lamer me ayuda a relajarme porque libera serotonina. Un lick mat puede ser un gran compañero antes de quedarme solo un rato.' },
   { emoji: '💩', cat: 'salud', titulo: 'El color de mis heces importa', texto: 'Lo normal es que sean marrón chocolate. Si son verdes, amarillas, naranjas, blancas, grises, negras o con sangre roja, algo podría no andar bien. Anótalo en CHIQUI y consulta con mi veterinario si el cambio persiste o me notas decaído.' },
-  { emoji: '💩', cat: 'salud', titulo: 'La forma también dice mucho', texto: 'Lo ideal es que mis heces sean firmes, con forma definida y fáciles de recoger. Muy duras → podría necesitar más agua. Blandas → mi intestino podría estar irritado. Líquidas → es diarrea. Si ocurre más de una vez, regístralo en CHIQUI.' },
+  { emoji: '💩', cat: 'salud', titulo: 'La forma y el tamaño también dicen mucho', texto: 'Lo ideal es que mis heces sean firmes, con forma definida y fáciles de recoger. Muy duras → podría necesitar más agua. Blandas → mi intestino podría estar irritado. Líquidas → es diarrea. Si además cambian mucho de tamaño durante varios días, también vale registrarlo.' },
   { emoji: '🟤', cat: 'salud', titulo: 'Heces blandas: ¿cuándo preocuparse?', texto: 'Una vez puede pasar por algo que comí o por estrés. Pero si duran más de 48 horas, aparecen junto a vómitos, sangre o decaimiento, necesito que me revise un veterinario.' },
   { emoji: '⚫', cat: 'salud', titulo: 'Heces negras', texto: 'Si mis heces son negras y brillantes, como alquitrán, podrían contener sangre digerida proveniente del estómago o intestino. Es una señal importante y conviene consultar con mi veterinario ese mismo día.' },
   { emoji: '🤮', cat: 'salud', titulo: 'Vomité... ¿es normal?', texto: 'Vomitar una vez puede ocurrir. Pero si vomito varias veces, hay sangre, dejo de comer o estoy muy decaído, necesito atención veterinaria. Tú me conoces mejor que nadie.' },
-  { emoji: '💩', cat: 'salud', titulo: '¿Sabías que el tamaño también importa?', texto: 'Si mis heces son mucho más grandes o pequeñas de lo habitual durante varios días, también vale la pena registrarlo. Los cambios en la alimentación, la fibra o mi digestión pueden influir.' },
+
 ]
 
 const TARJETAS_GATO = [
@@ -55,12 +55,12 @@ const TARJETAS_GATO = [
   { emoji: '📦', cat: 'bien', titulo: 'Cajas y bolsas de papel', texto: 'Una caja o una bolsa de papel pueden ser el mejor juguete del mundo. Si además cambias mis escondites de vez en cuando, evitarás que me aburra.' },
   { emoji: '🍽️', cat: 'bien', titulo: 'Comer también puede ser un juego', texto: 'Si escondes mi comida o usas una pelota dispensadora, activarás mi instinto de caza mientras me alimento. ¡Es mucho más entretenido para mí!' },
   { emoji: '🪟', cat: 'bien', titulo: 'Mi televisión favorita', texto: 'Para mí, una ventana es como tener televisión todo el día. Si además hay pajaritos afuera, créeme... podría pasar horas mirando.' },
-  { emoji: '💩', cat: 'salud', titulo: 'Mis heces normales', texto: 'Lo normal es que sean marrones, firmes y con forma cilíndrica. Si son muy blandas, muy secas o líquidas, puede deberse a cambios en la alimentación, estrés o algún problema digestivo.' },
+  { emoji: '💩', cat: 'salud', titulo: 'Mis heces normales y lo que me dicen', texto: 'Lo normal es que sean marrones, firmes y con forma cilíndrica. Si son muy duras, probablemente necesito más agua. Si son blandas o sin forma, puede ser estrés o un problema digestivo. Si cambian de tamaño durante varios días, también vale registrarlo en CHIQUI.' },
   { emoji: '💩', cat: 'salud', titulo: 'La forma también importa', texto: 'Mis heces deberían mantener su forma. Muy duras → podría necesitar más agua. Blandas → algo puede estar irritando mi intestino. Líquidas → si continúa durante el día o me siento mal, necesita que consultes con mi veterinario.' },
   { emoji: '⚫', cat: 'salud', titulo: 'Heces negras', texto: 'Si mis deposiciones son negras y pegajosas, podrían contener sangre digerida. Es una señal importante y conviene que un veterinario me evalúe pronto.' },
   { emoji: '🔴', cat: 'salud', titulo: 'Sangre en las heces', texto: 'Si ves sangre roja brillante, generalmente proviene de la parte final del intestino. Si la sangre es oscura o viene mezclada con las heces, el origen puede estar más arriba en el aparato digestivo. En ambos casos, avísale a mi veterinario.' },
   { emoji: '🤮', cat: 'salud', titulo: 'Vomité... ¿debo preocuparme?', texto: 'A veces vomitamos por bolas de pelo. Pero si vomito varias veces en un día, hay sangre o dejo de comer por más de 24 horas, necesito que me vea un veterinario. No siempre es una bola de pelo.' },
-  { emoji: '💩', cat: 'salud', titulo: 'El tamaño también me da pistas', texto: 'Si mis deposiciones cambian mucho de tamaño durante varios días, también es bueno registrarlo. A veces se relaciona con cambios en la alimentación, el tránsito intestinal o mi salud digestiva.' },
+
 ]
 
 // Tarjetas generales (para otras especies)
@@ -84,8 +84,6 @@ interface Props {
 }
 
 export default function ChiquiTeCuenta({ especie }: Props) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-
   // Seleccionar 5 tarjetas del dia — rotan segun dia del año
   const tarjetasHoy = useMemo(() => {
     const lista = especie === 'Perro' ? TARJETAS_PERRO
@@ -104,34 +102,80 @@ export default function ChiquiTeCuenta({ especie }: Props) {
     return resultado
   }, [especie])
 
-  return (
-    <div className="mb-4">
-      {/* Header */}
-      <div className="px-5 mb-2.5 flex items-center gap-2">
-        <span className="text-base">🐶🤓</span>
-        <span className="font-bold text-xs text-[#3D2B1F] uppercase tracking-wider">Chiqui te cuenta</span>
-      </div>
+  const [expandido, setExpandido] = useState<number | null>(null)
 
-      {/* Carrusel horizontal */}
-      <div
-        ref={scrollRef}
-        className="flex gap-3 overflow-x-auto px-4 pb-2"
-        style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
-      >
+  // Imagen de Chiqui según categoría
+  const CHIQUI_IMG: Record<string, string> = {
+    alim:  '/chiqui/chiqui_lupa.png',
+    salud: '/chiqui/chiqui_doctor.png',
+    comp:  '/chiqui/chiqui_pregunta.png',
+    bien:  '/chiqui/chiqui_lentes.png',
+    seg:   '/chiqui/chiqui_lupa.png',
+  }
+
+  return (
+    <div className="mb-4 px-4">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-1">
+        <img src="/chiqui/chiqui_lentes.png" alt="Chiqui" className="w-7 h-7 object-contain" />
+        <span className="font-bold text-sm text-[#3D2B1F]">Chiqui te cuenta qué</span>
+      </div>
+      <p className="text-xs text-[#8A7560] mb-3 ml-9">Hoy tengo {tarjetasHoy.length} cositas para contarte...</p>
+
+      {/* Grid 2 columnas */}
+      <div className="grid grid-cols-2 gap-2.5">
         {tarjetasHoy.map((t, i) => {
           const cat = COLORES_CAT[(t as any).cat] || COLORES_CAT.bien
+          const chiquiImg = CHIQUI_IMG[(t as any).cat] || '/chiqui/chiqui_lentes.png'
+          const abierto = expandido === i
           return (
             <div
               key={i}
-              className="flex-shrink-0 rounded-2xl p-4"
-              style={{ width: '240px', scrollSnapAlign: 'start', background: cat.bg, border: `1px solid ${cat.border}` }}
+              className="rounded-2xl p-3 flex flex-col"
+              style={{ background: cat.bg, border: `1px solid ${cat.border}` }}
             >
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-xl">{t.emoji}</span>
-                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ color: cat.color, background: `${cat.color}18` }}>{cat.label}</span>
+              {/* Badge categoría */}
+              <div className="flex items-center gap-1 mb-2">
+                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ color: cat.color, background: `${cat.color}20` }}>
+                  {cat.label}
+                </span>
               </div>
-              <p className="font-bold text-sm mb-1.5 leading-snug" style={{ color: cat.color }}>{t.titulo}</p>
-              <p className="text-xs leading-relaxed text-[#5C4A3A]">{t.texto}</p>
+
+              {/* Imagen Chiqui + emoji */}
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <img src={chiquiImg} alt="Chiqui" className="w-8 h-8 object-contain flex-shrink-0" />
+                <span className="text-base">{t.emoji}</span>
+              </div>
+
+              {/* Título */}
+              <p className="font-bold text-xs leading-snug mb-1" style={{ color: cat.color }}>{t.titulo}</p>
+
+              {/* Pregunta corta o texto expandido */}
+              {!abierto ? (
+                <>
+                  <p className="text-[10px] text-[#8A7560] leading-relaxed line-clamp-2 mb-1">
+                    {t.texto.split('.')[0]}...
+                  </p>
+                  <button
+                    onClick={() => setExpandido(i)}
+                    className="text-[10px] font-bold mt-auto text-left"
+                    style={{ color: cat.color }}
+                  >
+                    Ver más ↓
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] text-[#5C4A3A] leading-relaxed mb-1">{t.texto}</p>
+                  <button
+                    onClick={() => setExpandido(null)}
+                    className="text-[10px] font-bold mt-auto text-left"
+                    style={{ color: cat.color }}
+                  >
+                    Ver menos ↑
+                  </button>
+                </>
+              )}
             </div>
           )
         })}
