@@ -64,7 +64,7 @@ export default function PrevencionPage() {
   const [examenes, setExamenes] = useState<any[]>([])
   const [revisiones, setRevisiones] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [seccionesAbiertas, setSeccionesAbiertas] = useState<Set<string>>(new Set(['peso']))
+  const [seccionesAbiertas, setSeccionesAbiertas] = useState<Set<string>>(new Set())
 
   function toggleSeccion(s: string) {
     setSeccionesAbiertas(prev => {
@@ -115,7 +115,7 @@ export default function PrevencionPage() {
     setLoading(true)
     guardarMascotaActivaId(nueva.id)
     setMascota(nueva)
-    setSeccionesAbiertas(new Set(['peso']))
+    setSeccionesAbiertas(new Set())
     await cargarDatos(nueva.id)
     setLoading(false)
   }
@@ -309,7 +309,7 @@ export default function PrevencionPage() {
       {/* Header */}
       <div className="px-5 pt-6 pb-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
+          <img src="/chiqui/chiqui_escudo.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
           <div>
             <h1 className="font-heading text-xl font-extrabold">Salud preventiva</h1>
             <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
@@ -325,6 +325,13 @@ export default function PrevencionPage() {
 
 
       {/* SECCIONES EN ACORDEÓN */}
+
+      {/* ÁREA 1: Signos vitales */}
+      <div className="mx-4 mb-2 mt-1 flex items-center gap-2">
+        <img src="/chiqui/chiqui_temperatura.png" alt="" className="w-7 h-7 object-contain" />
+        <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Signos vitales</p>
+      </div>
+
       {/* PESO */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('peso')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
@@ -371,6 +378,12 @@ export default function PrevencionPage() {
           )}
         </div>
       )}
+      {/* ÁREA 2: Prevención */}
+      <div className="mx-4 mb-2 mt-3 flex items-center gap-2">
+        <img src="/chiqui/chiqui_medicamentos.png" alt="" className="w-7 h-7 object-contain" />
+        <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Prevención</p>
+      </div>
+
       {/* VACUNAS */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('vacunas')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
@@ -551,6 +564,12 @@ export default function PrevencionPage() {
           </div>
         )}
       </div>
+      {/* ÁREA 3: Historial médico */}
+      <div className="mx-4 mb-2 mt-3 flex items-center gap-2">
+        <img src="/chiqui/chiqui_examen.png" alt="" className="w-7 h-7 object-contain" />
+        <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
+      </div>
+
       {/* ENFERMEDADES */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('enfermedades')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
@@ -735,8 +754,12 @@ export default function PrevencionPage() {
       {/* REPRODUCCIÓN */}
       {mascota && mascota.sexo === 'Hembra' && mascota.seguimiento_reproductivo !== false && (
         <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+          {/* Header reproducción con Chiqui corazón */}
           <button onClick={() => toggleSeccion('reproduccion')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-            <span className="font-bold text-sm text-[#3D2B1F]">🌸 Reproducción</span>
+            <div className="flex items-center gap-2">
+              <img src="/chiqui/chiqui_amor.png" alt="" className="w-7 h-7 object-contain" />
+              <span className="font-bold text-sm text-[#3D2B1F]">🌸 Reproducción</span>
+            </div>
             <span className="text-[#8A7560] text-lg">{estaAbierta('reproduccion') ? '⌃' : '⌄'}</span>
           </button>
           {estaAbierta('reproduccion') && (
