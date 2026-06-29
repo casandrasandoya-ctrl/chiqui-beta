@@ -269,7 +269,10 @@ export default function DashboardContenido({
       {proximosItems.length > 0 && (
         <>
           <div className="flex items-center justify-between px-5 pb-2.5">
-            <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Próximos</span>
+            <div className="flex items-center gap-2">
+              <img src="/chiqui/chiqui_lupa.png" alt="" className="w-6 h-6 object-contain" />
+              <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Próximos</span>
+            </div>
             <Link href="/prevencion" className="text-xs text-[#CD7421] font-semibold">Ver todo</Link>
           </div>
           <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
@@ -290,7 +293,10 @@ export default function DashboardContenido({
       {(cuidadosRecientes.length > 0 || rachaPaseo !== null) && (
         <>
           <div className="flex items-center justify-between px-5 pb-2.5">
-            <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Cuidados recientes</span>
+            <div className="flex items-center gap-2">
+              <img src="/chiqui/chiqui_doctor.png" alt="" className="w-6 h-6 object-contain" />
+              <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Cuidados recientes</span>
+            </div>
             {cuidadosRecientes.length > 4 && (
               <button onClick={() => setCuidadosExpandido(e => !e)} className="text-xs text-[#CD7421] font-semibold">
                 {cuidadosExpandido ? 'Ver menos' : 'Ver todo'}
