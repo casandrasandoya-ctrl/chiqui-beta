@@ -142,15 +142,19 @@ export default function CalendarioPage() {
       {/* Selector de mascota */}
       {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
 
-      {/* Leyenda */}
-      <div className="flex gap-4 px-5 py-2 overflow-x-auto scrollbar-none">
-        {[['verde','Todo bien'],['amarillo','Leve'],['naranjo','Síntoma'],['rojo','Alerta']].map(([e,l]) => (
-          <div key={e} className="flex items-center gap-1.5 text-xs text-[#8A7560] whitespace-nowrap">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background: ESTADO_COLOR[e] }}/>
-            {l}
-          </div>
-        ))}
+      {/* Chiqui + leyenda */}
+      <div className="flex items-center gap-3 px-5 py-2">
+        <img src="/chiqui/chiqui_calendario.png" alt="Chiqui" className="w-9 h-9 object-contain flex-shrink-0" />
+        <div className="flex gap-4 overflow-x-auto scrollbar-none">
+          {[['verde','Todo bien'],['amarillo','Leve'],['naranjo','Síntoma'],['rojo','Alerta']].map(([e,l]) => (
+            <div key={e} className="flex items-center gap-1.5 text-xs text-[#8A7560] whitespace-nowrap">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ background: ESTADO_COLOR[e] }}/>
+              {l}
+            </div>
+          ))}
+        </div>
       </div>
+
 
       {/* Días semana */}
       <div className="grid grid-cols-7 px-3 pb-1">
