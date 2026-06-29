@@ -587,35 +587,38 @@ function RegistroContenido() {
         </label>
 
         {[
-          { titulo: 'Cuidados básicos', items: [
+          { titulo: 'Cuidados básicos', img: '/chiqui/chiqui_doctor.png', items: [
             { value: 'vet', emoji: '🩺', label: 'Fue al veterinario' },
-            { value: 'bano', emoji: '🛁', label: 'Se bañó' },
-            { value: 'unas', emoji: '✂️', label: 'Corte de uñas' },
             { value: 'alimento', emoji: '🍖', label: 'Compré alimento' },
           ]},
-          { titulo: 'Prevención', items: [
+          { titulo: 'Prevención', img: '/chiqui/chiqui_medicamentos.png', items: [
             { value: 'medicamento_hoy', emoji: '💊', label: 'Recibió medicamento' },
             { value: 'vacuna_hoy', emoji: '💉', label: 'Vacuna aplicada' },
             { value: 'anti_hoy', emoji: '🪱', label: 'Antiparasitario aplicado' },
           ]},
-          { titulo: 'Higiene y bienestar', items: [
+          { titulo: 'Higiene y bienestar', img: '/chiqui/chiqui_grooming.png', items: [
+            { value: 'bano', emoji: '🛁', label: 'Se bañó' },
+            { value: 'unas', emoji: '✂️', label: 'Corte de uñas' },
             { value: 'limpieza_dental', emoji: '🦷', label: 'Limpieza dental' },
             { value: 'limpieza_oidos', emoji: '👂', label: 'Limpieza de oídos' },
             { value: 'tratamiento_dermatologico', emoji: '🧴', label: 'Tratamiento dermatológico' },
           ]},
-          { titulo: 'Alimentación', items: [
+          { titulo: 'Alimentación', img: '/chiqui/chiqui_chef.png', items: [
             { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
             { value: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó un alimento nuevo' },
             { value: 'cargo_dispensador', emoji: '🤖', label: 'Cargué el dispensador de comida/agua' },
           ]},
-          { titulo: 'Eventos importantes', items: [
+          { titulo: 'Eventos importantes', img: '/chiqui/chiqui_sorpresa.png', items: [
             { value: 'control_peso', emoji: '⚖️', label: 'Control de peso' },
             { value: 'procedimiento_cirugia', emoji: '🏥', label: 'Procedimiento o cirugía' },
             { value: 'seguimiento_lesion', emoji: '📸', label: 'Seguimiento de lesión o recuperación' },
           ]},
         ].map(grupo => (
           <div key={grupo.titulo} className="mb-3 last:mb-0">
-            <p className="text-[11px] font-semibold text-[#CD7421] mb-1.5">{grupo.titulo}</p>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <img src={grupo.img} alt="" className="w-5 h-5 object-contain" />
+              <p className="text-[11px] font-semibold text-[#CD7421]">{grupo.titulo}</p>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {grupo.items.map(c => {
                 const activo = cuidados.has(c.value)
