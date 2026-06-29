@@ -172,7 +172,7 @@ export default function PerfilPage() {
       {etapa && (
         <div className="mx-4 mt-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
           <div className="flex items-center gap-2.5 mb-2">
-            <span className="text-xl">🩺</span>
+            <img src="/chiqui/chiqui_idea.png" alt="" className="w-8 h-8 object-contain flex-shrink-0" />
             <div>
               <p className="font-bold text-sm text-[#3D2B1F]">{etapa.nombre} · {formatearEdad(etapa)}</p>
               <p className="text-[10px] text-[#8A7560] uppercase tracking-wider">Etapa de vida</p>
@@ -201,7 +201,10 @@ export default function PerfilPage() {
 
       <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#EEE2D4]">
-          <h2 className="font-bold text-sm">Datos del perfil</h2>
+          <div className="flex items-center gap-2">
+            <img src="/chiqui/chiqui_registro.png" alt="" className="w-7 h-7 object-contain" />
+            <h2 className="font-bold text-sm">Datos del perfil</h2>
+          </div>
           <button onClick={() => { setEditando(!editando); setForm(mascota || {}) }} className="text-xs font-bold text-[#FFBD59]">
             {editando ? 'Cancelar' : '✏️ Editar'}
           </button>
@@ -260,20 +263,40 @@ export default function PerfilPage() {
         )}
       </div>
 
-      {mascota && <LinkVet key={mascota.id} mascotaId={mascota.id} />}
-
-      {/* Co-tutor — gestión para el dueño */}
+      {/* Link vet con Chiqui doctor */}
       {mascota && (
-        <GestionCotutor
+        <div>
+          <div className="flex items-center gap-2 mx-4 mb-2">
+            <img src="/chiqui/chiqui_doctor.png" alt="" className="w-7 h-7 object-contain" />
+            <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Compartir con veterinario</p>
+          </div>
+          <LinkVet key={mascota.id} mascotaId={mascota.id} />
+        </div>
+      )}
+
+      {/* Co-tutor con Chiqui corazón */}
+      {mascota && (
+        <div>
+          <div className="flex items-center gap-2 mx-4 mb-2">
+            <img src="/chiqui/chiqui_amor.png" alt="" className="w-7 h-7 object-contain" />
+            <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Co-tutor</p>
+          </div>
+          <GestionCotutor
           key={mascota.id}
           mascotaId={mascota.id}
           mascotaNombre={mascota.nombre}
         />
+        </div>
       )}
 
       {/* Unirse como co-tutor — para quien tiene un código */}
       <UnirseComoCotutor />
 
+      {/* Recordatorios con Chiqui estrella */}
+      <div className="flex items-center gap-2 mx-4 mb-2 mt-2">
+        <img src="/chiqui/chiqui_estrella.png" alt="" className="w-7 h-7 object-contain" />
+        <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Recordatorios</p>
+      </div>
       <ConfiguracionNotificaciones />
 
       <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">

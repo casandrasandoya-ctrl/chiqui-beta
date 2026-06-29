@@ -161,7 +161,7 @@ export default async function VetPage({ searchParams }: Props) {
       {/* Header */}
       <div className="bg-gradient-to-b from-[#8C572F] to-[#F5EDE3] text-white px-5 pt-8 pb-6">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">🐾</span>
+          <img src="/chiqui/chiqui_doctor.png" alt="" className="w-10 h-10 object-contain flex-shrink-0" />
           <div>
             <div className="text-xs font-bold text-[#FFBD59] tracking-widest uppercase">CHIQUI Entre Señales</div>
             <div className="text-xs text-white/80">Vista veterinaria · Solo lectura</div>
@@ -185,7 +185,10 @@ export default async function VetPage({ searchParams }: Props) {
 
         {/* Ficha del paciente */}
         <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4]">
-          <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-3">Ficha del paciente</h2>
+          <div className="flex items-center gap-2 mb-3">
+            <img src="/chiqui/chiqui_registro.png" alt="" className="w-6 h-6 object-contain" />
+            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider">Ficha del paciente</h2>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             {[
               ['Peso actual', mascota.peso_actual ? `${mascota.peso_actual} kg` : '—'],
@@ -270,7 +273,11 @@ export default async function VetPage({ searchParams }: Props) {
 
         {/* Vacunas */}
         {vacunas.length > 0 && (
-          <SeccionVet titulo={`💉 Vacunas (${vacunas.length})`}>
+          <div className="flex items-center gap-2 mb-1">
+          <img src="/chiqui/chiqui_escudo.png" alt="" className="w-6 h-6 object-contain" />
+          <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Prevención</p>
+        </div>
+        <SeccionVet titulo={`💉 Vacunas (${vacunas.length})`}>
             <div className="space-y-2">
               {vacunas.map((v: any) => (
                 <div key={v.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
@@ -325,7 +332,11 @@ export default async function VetPage({ searchParams }: Props) {
 
         {/* Enfermedades */}
         {enfermedades.length > 0 && (
-          <SeccionVet titulo={`🏥 Enfermedades (${enfermedades.length})`}>
+          <div className="flex items-center gap-2 mb-1 mt-2">
+          <img src="/chiqui/chiqui_examen.png" alt="" className="w-6 h-6 object-contain" />
+          <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
+        </div>
+        <SeccionVet titulo={`🏥 Enfermedades (${enfermedades.length})`}>
             <div className="space-y-2">
               {enfermedades.map((enf: any) => {
                 const estadoColor: Record<string,string> = { activa:'#F07A30', cronica:'#E05252', resuelta:'#4CAF7D' }
@@ -379,6 +390,10 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
+        <div className="flex items-center gap-2 mb-1 mt-2">
+          <img src="/chiqui/chiqui_temperatura.png" alt="" className="w-6 h-6 object-contain" />
+          <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Signos vitales</p>
+        </div>
         {/* Frecuencia respiratoria */}
         {respiracion && respiracion.length > 0 && (
           <SeccionVet titulo={`🫁 Frecuencia respiratoria (${respiracion.length})`}>
