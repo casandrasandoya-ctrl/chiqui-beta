@@ -227,9 +227,15 @@ export default async function VetPage({ searchParams }: Props) {
           )}
         </div>
 
-        {/* Observaciones — siempre primera, abierta por defecto */}
+        {/* ÁREA: Historial médico — Observaciones, Registros, Exámenes */}
+        <div className="flex items-center gap-2 mb-1">
+          <img src="/chiqui/chiqui_examen.png" alt="" className="w-6 h-6 object-contain" />
+          <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
+        </div>
+
+        {/* Observaciones */}
         {obs.length > 0 && (
-          <SeccionVet titulo={`👁️ Observaciones (${obs.length})`} abiertaPorDefecto={true}>
+          <SeccionVet titulo={`👁️ Observaciones (${obs.length})`}>
             <div className="space-y-3">
               {obs.map((o: any) => (
                 <div key={o.id} className="pb-3 border-b border-[#EEE2D4] last:border-0 last:pb-0">
@@ -331,12 +337,6 @@ export default async function VetPage({ searchParams }: Props) {
             </div>
           </SeccionVet>
         )}
-
-        {/* ÁREA: Historial médico */}
-        <div className="flex items-center gap-2 mb-1 mt-2">
-          <img src="/chiqui/chiqui_examen.png" alt="" className="w-6 h-6 object-contain" />
-          <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
-        </div>
 
         {/* Enfermedades */}
         {enfermedades.length > 0 && (
@@ -481,10 +481,11 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
-        <div className="text-center pt-4 border-t border-[#EEE2D4]">
-          <p className="text-xs text-[#8A7560] leading-relaxed">
-            Generado por CHIQUI Entre Señales<br/>
-            Información de observación del tutor. No reemplaza la evaluación clínica.
+        <div className="text-center pt-6 pb-2 border-t border-[#EEE2D4] mt-2">
+          <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-12 h-12 object-contain mx-auto mb-2" />
+          <p className="text-sm font-bold text-[#8C572F]">CHIQUI Entre Señales</p>
+          <p className="text-xs text-[#8A7560] mt-1 leading-relaxed">
+            Información de observación del tutor.<br/>No reemplaza la evaluación clínica.
           </p>
         </div>
 
