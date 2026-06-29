@@ -95,8 +95,11 @@ export default function ConfiguracionNotificaciones() {
   return (
     <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
       <div className="px-4 py-3 border-b border-[#EEE2D4]">
-        <h2 className="font-bold text-sm">🔔 Recordatorio diario</h2>
-        <p className="text-xs text-[#8A7560] mt-0.5">Si hoy aún no has observado cómo estuvo tu mascota, te enviamos un recordatorio para que no se pierda ninguna señal.</p>
+        <div className="flex items-center gap-2 mb-1">
+          <img src="/chiqui/chiqui_estrella.png" alt="" className="w-7 h-7 object-contain" />
+          <h2 className="font-bold text-sm">Recordatorio diario</h2>
+        </div>
+        <p className="text-xs text-[#8A7560] mt-0.5">Te avisamos si no has registrado a tu mascota hoy</p>
       </div>
 
       <div className="p-4">

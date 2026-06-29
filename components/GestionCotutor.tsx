@@ -92,7 +92,10 @@ export default function GestionCotutor({ mascotaId, mascotaNombre }: Props) {
 
   return (
     <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
-      <h3 className="font-bold text-sm text-[#3D2B1F] mb-3">👥 Co-tutor</h3>
+      <div className="flex items-center gap-2 mb-3">
+        <img src="/chiqui/chiqui_amor.png" alt="" className="w-7 h-7 object-contain" />
+        <h3 className="font-bold text-sm text-[#3D2B1F]">Co-tutor</h3>
+      </div>
 
       {estado === 'sin_cotutor' && (
         <>

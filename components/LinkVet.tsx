@@ -35,7 +35,10 @@ export default function LinkVet({ mascotaId }: { mascotaId: string }) {
   return (
     <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
       <div className="px-4 py-3 border-b border-[#EEE2D4]">
-        <h2 className="font-bold text-sm">🩺 Comparte el historial con tu vet</h2>
+        <div className="flex items-center gap-2 mb-1">
+          <img src="/chiqui/chiqui_doctor.png" alt="" className="w-7 h-7 object-contain" />
+          <h2 className="font-bold text-sm">Comparte el historial con tu vet</h2>
+        </div>
         <p className="text-xs text-[#8A7560] mt-0.5">CHIQUI recomienda enviarlo antes o durante la consulta, para que tu vet llegue con contexto.</p>
       </div>
       <div className="p-4">

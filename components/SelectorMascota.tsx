@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { guardarMascotaActivaId } from '@/utils/mascotaActiva'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
@@ -52,6 +53,9 @@ export default function SelectorMascota({
             {mascotaActiva.especie}{mascotaActiva.raza ? ` · ${mascotaActiva.raza}` : ''}
           </p>
         </div>
+        <Link href="/perfil" onClick={e => e.stopPropagation()} className="text-[10px] font-bold text-[#CD7421] px-2 py-1 rounded-lg bg-[#FBEAD9] flex-shrink-0">
+          Perfil ›
+        </Link>
         {mascotas.length > 1 && (
           <span className={`text-[#8A7560] text-base transition-transform ${abierto ? 'rotate-180' : ''}`}>⌄</span>
         )}
