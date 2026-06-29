@@ -114,7 +114,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
       <p className="text-xs text-[#8A7560] mb-3 ml-9">Hoy tengo {tarjetasHoy.length} cositas para contarte...</p>
 
       {/* Grid 2 columnas */}
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5 items-start">
         {tarjetasHoy.map((t, i) => {
           const cat = COLORES_CAT[(t as any).cat] || COLORES_CAT.bien
           const abierto = expandido === i
@@ -126,7 +126,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
             >
               {/* Badge categoría */}
               <div className="flex items-center gap-1 mb-2">
-                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ color: cat.color, background: `${cat.color}20` }}>
+                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[#F5EDE3]" style={{ color: cat.color }}>
                   {cat.label}
                 </span>
               </div>
