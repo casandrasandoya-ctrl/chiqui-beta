@@ -98,18 +98,37 @@ function getCategorias(especie: string): Categoria[] {
   // marcar ambas a la vez).
   const heces: Categoria = { id:'heces', nombre:'Heces', icon:'💩', color:'#8C572F',
     opciones:[
-      {value:'normal',emoji:'✅',label:'Normal'},
-      {value:'diarrea',emoji:'💩',label:'Diarrea',detalle:[
-        {titulo:'¿Cómo fueron las heces?',opciones:[
-          {value:'blandas',emoji:'🟤',label:'Blandas'},
-          {value:'liquidas',emoji:'💧',label:'Líquidas'},
-          {value:'sangre_heces',emoji:'🔴',label:'Con sangre'},
-          {value:'mucosidad',emoji:'🫧',label:'Con mucosidad'},
-          {value:'muy_oscuras',emoji:'⚫',label:'Muy oscuras'},
-          {value:'muy_claras',emoji:'⬜',label:'Muy claras'},
+      {value:'normal',     emoji:'✅', label:'Normal'},
+      {value:'blandas',    emoji:'🟡', label:'Blandas',      detalle:[
+        {titulo:'¿Desde cuándo?', opciones:[
+          {value:'hoy_solo',   emoji:'📅', label:'Solo hoy'},
+          {value:'varios_dias',emoji:'📆', label:'Varios días'},
         ]},
       ]},
-      {value:'estrenimiento',emoji:'😬',label:'Estreñimiento'},
+      {value:'diarrea',    emoji:'💩', label:'Diarrea',      detalle:[
+        {titulo:'¿Cómo son?', opciones:[
+          {value:'liquidas',   emoji:'💧', label:'Líquidas'},
+          {value:'muy_seguido',emoji:'⏱️', label:'Muy seguido'},
+        ]},
+      ]},
+      {value:'con_sangre', emoji:'🔴', label:'Con sangre'},
+      {value:'estrenimiento',emoji:'😬',label:'Estreñimiento',detalle:[
+        {titulo:'¿Cuántos días sin defecar?', opciones:[
+          {value:'1_dia',  emoji:'1️⃣', label:'1 día'},
+          {value:'2_dias', emoji:'2️⃣', label:'2 días'},
+          {value:'3_mas',  emoji:'⚠️', label:'+3 días'},
+        ]},
+      ]},
+      {value:'mucosidad',  emoji:'🫧', label:'Con mucosidad'},
+      {value:'color_raro', emoji:'🎨', label:'Color diferente', detalle:[
+        {titulo:'¿De qué color?', opciones:[
+          {value:'muy_oscura', emoji:'⚫', label:'Muy oscura / negra',  },
+          {value:'amarilla',   emoji:'🟡', label:'Amarilla / naranja'  },
+          {value:'muy_clara',  emoji:'⬜', label:'Muy clara / blanca'  },
+          {value:'verdosa',    emoji:'🟢', label:'Verdosa'             },
+          {value:'rojiza',     emoji:'🔴', label:'Con manchas rojas'   },
+        ]},
+      ]},
     ]}
 
   // Arenero / Eliminación urinaria: categoría nueva, para AMBAS especies.
@@ -198,8 +217,8 @@ function getCategorias(especie: string): Categoria[] {
 
 function calcEstado(sel: Record<string,string>): string {
   const vals = Object.values(sel)
-  const alertas = ['vomito','diarrea','nada','muy_baja','decaido','cojera_marcada','con_sangre','no_orino']
-  const observar = ['menos','gases','nauseas','baja','ansioso','temeroso','cojera_leve','caida_excesiva','rasca','triste','irritable','rigidez','opaco','mas_orina','menos_costo','fuera_arenero','fuera_lugar','esconde','lame_exceso']
+  const alertas = ['vomito','diarrea','nada','muy_baja','decaido','cojera_marcada','con_sangre','no_orino','sangre_heces','rojiza','muy_oscura']
+  const observar = ['menos','gases','nauseas','baja','ansioso','temeroso','cojera_leve','blandas','mucosidad','amarilla','muy_clara','verdosa','color_raro','caida_excesiva','rasca','triste','irritable','rigidez','opaco','mas_orina','menos_costo','fuera_arenero','fuera_lugar','esconde','lame_exceso']
   if (vals.some(v => alertas.includes(v))) return 'naranjo'
   if (vals.some(v => observar.includes(v))) return 'amarillo'
   return 'verde'
