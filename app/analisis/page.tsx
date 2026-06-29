@@ -383,7 +383,10 @@ export default function AnalisisPage() {
 
         {/* Últimos 7 días visual */}
         <div className="px-5 mb-2">
-          <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Últimos 7 días</h2>
+          <div className="flex items-center gap-2">
+            <img src="/chiqui/chiqui_calendario.png" alt="" className="w-8 h-8 object-contain" />
+            <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Últimos 7 días</h2>
+          </div>
         </div>
         <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
           <div className="flex items-end justify-between gap-1 h-16">
