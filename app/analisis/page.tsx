@@ -275,7 +275,7 @@ export default function AnalisisPage() {
     <div className="min-h-screen pb-24 fade-in">
 
       <div className="px-5 pt-6 pb-3 flex items-center gap-2.5">
-        <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
+        <img src="/chiqui/chiqui_analisis.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
         <div>
           <h1 className="font-heading text-xl font-extrabold">Análisis</h1>
           <p className="text-xs text-[#8A7560]">{mascota?.nombre} · últimos 30 días</p>
@@ -383,10 +383,7 @@ export default function AnalisisPage() {
 
         {/* Últimos 7 días visual */}
         <div className="px-5 mb-2">
-          <div className="flex items-center gap-2">
-            <img src="/chiqui/chiqui_calendario.png" alt="" className="w-8 h-8 object-contain" />
-            <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Últimos 7 días</h2>
-          </div>
+          <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Últimos 7 días</h2>
         </div>
         <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
           <div className="flex items-end justify-between gap-1 h-16">

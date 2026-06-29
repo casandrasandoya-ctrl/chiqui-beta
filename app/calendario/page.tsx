@@ -130,7 +130,7 @@ export default function CalendarioPage() {
       <div className="px-5 pt-6 pb-3 flex items-center justify-between sticky top-0 bg-[#F5EDE3] z-10 border-b border-[#EEE2D4]">
         <button onClick={() => cambiarMes(-1)} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg">‹</button>
         <div className="text-center flex items-center gap-2">
-          <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-7 h-7 object-contain" />
+          <img src="/chiqui/chiqui_calendario.png" alt="CHIQUI" className="w-7 h-7 object-contain" />
           <div>
             <h1 className="font-heading text-base font-extrabold">{MESES[mes]} {año}</h1>
             <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
@@ -142,17 +142,14 @@ export default function CalendarioPage() {
       {/* Selector de mascota */}
       {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
 
-      {/* Chiqui + leyenda */}
-      <div className="flex items-center gap-3 px-5 py-2">
-        <img src="/chiqui/chiqui_calendario.png" alt="Chiqui" className="w-9 h-9 object-contain flex-shrink-0" />
-        <div className="flex gap-4 overflow-x-auto scrollbar-none">
-          {[['verde','Todo bien'],['amarillo','Leve'],['naranjo','Síntoma'],['rojo','Alerta']].map(([e,l]) => (
-            <div key={e} className="flex items-center gap-1.5 text-xs text-[#8A7560] whitespace-nowrap">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ background: ESTADO_COLOR[e] }}/>
-              {l}
-            </div>
-          ))}
-        </div>
+      {/* Leyenda */}
+      <div className="flex gap-4 px-5 py-2 overflow-x-auto scrollbar-none">
+        {[['verde','Todo bien'],['amarillo','Leve'],['naranjo','Síntoma'],['rojo','Alerta']].map(([e,l]) => (
+          <div key={e} className="flex items-center gap-1.5 text-xs text-[#8A7560] whitespace-nowrap">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: ESTADO_COLOR[e] }}/>
+            {l}
+          </div>
+        ))}
       </div>
 
 
