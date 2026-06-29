@@ -122,7 +122,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
             <div
               key={i}
               className="rounded-2xl p-3 flex flex-col"
-              style={{ background: cat.bg, border: `1px solid ${cat.border}` }}
+              style={{ background: '#FFFCF8', border: `1.5px solid ${cat.border}` }}
             >
               {/* Badge categoría */}
               <div className="flex items-center gap-1 mb-2">
