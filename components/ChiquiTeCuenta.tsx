@@ -110,25 +110,25 @@ export default function ChiquiTeCuenta({ especie }: Props) {
     const todos = titulos.join(' ').toLowerCase()
 
     if (todos.includes('heces') || todos.includes('vomit') || todos.includes('caca')) {
-      return { img: '/chiqui/chiqui_caca.png', titulo: '¿Quieres aprender a leer las heces?', texto: 'Registrar cómo son las heces de tu mascota puede anticipar problemas antes de que se vean graves.' }
+      return { img: '/chiqui/chiqui_caca.png', titulo: '¿Sabes leer las heces de tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué te dice cada color y forma.' }
     }
     if (todos.includes('kong') || todos.includes('snuffle') || todos.includes('lick') || todos.includes('olfato') || todos.includes('juego')) {
-      return { img: '/chiqui/chiqui_juguetes.png', titulo: '¿Quieres ayudarlo con la ansiedad?', texto: 'El juego olfativo y los Kongs congelados son de las mejores herramientas para bajar la ansiedad en casa.' }
+      return { img: '/chiqui/chiqui_juguetes.png', titulo: '¿Quieres ayudarlo con la ansiedad?', texto: 'Lee los tips de Chiqui y descubre cómo el juego olfativo puede calmarlo.' }
     }
     if (todos.includes('fruta') || todos.includes('verdura') || todos.includes('alimento') || todos.includes('hueso') || todos.includes('agua') || todos.includes('peligros')) {
-      return { img: '/chiqui/chiqui_chef.png', titulo: '¿Sabes qué puede comer tu mascota?', texto: 'Registrar su alimentación en CHIQUI te ayuda a detectar si algo de lo que come le está cayendo mal.' }
+      return { img: '/chiqui/chiqui_chef.png', titulo: '¿Sabes qué puede comer tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué sí y qué no puede comer.' }
     }
     if (todos.includes('planta') || todos.includes('tóxic')) {
-      return { img: '/chiqui/chiqui_alerta.png', titulo: '¿Sabías que algunas plantas son peligrosas?', texto: 'Revisa que las plantas de tu hogar sean seguras para tu mascota. Los accidentes por plantas tóxicas son más comunes de lo que parecen.' }
+      return { img: '/chiqui/chiqui_alerta.png', titulo: '¿Conoces las plantas peligrosas para tu mascota?', texto: 'Lee los tips de Chiqui y descubre cuáles evitar en casa.' }
     }
     if (todos.includes('temperatura') || todos.includes('corazón') || todos.includes('respirat') || todos.includes('diente') || todos.includes('antiparasit')) {
-      return { img: '/chiqui/chiqui_doctor.png', titulo: '¿Registras sus signos vitales?', texto: 'La temperatura, frecuencia respiratoria y salud dental se pueden monitorear en casa. CHIQUI te ayuda a llevar el registro.' }
+      return { img: '/chiqui/chiqui_doctor.png', titulo: '¿Sabes cuáles son sus signos vitales normales?', texto: 'Lee los tips de Chiqui y aprende a reconocerlos en casa.' }
     }
     if (todos.includes('estrés') || todos.includes('duerm') || todos.includes('sueñ') || todos.includes('ejercicio') || todos.includes('calor') || todos.includes('paseo')) {
-      return { img: '/chiqui/chiqui_paseo.png', titulo: '¿Registras sus paseos y descanso?', texto: 'El nivel de actividad y el descanso diario son señales clave de bienestar. Cada registro cuenta.' }
+      return { img: '/chiqui/chiqui_paseo.png', titulo: '¿Sabes cuánto ejercicio necesita tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué necesita según su edad.' }
     }
     // Default
-    return { img: '/chiqui/chiqui_idea.png', titulo: '¿Quieres aprender más sobre tu mascota?', texto: 'Cada tip que lees hoy puede convertirse en una observación importante mañana.' }
+    return { img: '/chiqui/chiqui_idea.png', titulo: '¿Quieres aprender más sobre tu mascota?', texto: 'Lee los tips de Chiqui y descubre algo nuevo cada vez que entras.' }
   }, [tarjetasHoy])
 
   return (
@@ -140,18 +140,15 @@ export default function ChiquiTeCuenta({ especie }: Props) {
       </div>
       <p className="text-xs text-[#8A7560] mb-3 ml-9">Tips y curiosidades para cuidarte mejor 🐾</p>
 
-      {/* Sexta tarjeta dinámica — PRIMERO, ancho completo */}
-      <div className="mb-2.5 rounded-2xl p-3 flex items-center gap-3"
-        style={{ background: '#FFFCF8', border: '1.5px solid #EEE2D4' }}>
-        <img src={sextaTarjeta.img} alt="Chiqui" className="w-12 h-12 object-contain flex-shrink-0" />
-        <div className="flex-1">
-          <p className="font-bold text-xs text-[#3D2B1F] mb-0.5">{sextaTarjeta.titulo}</p>
+      {/* Grid 2 columnas — 6 tarjetas en 3 filas */}
+      <div className="grid grid-cols-2 gap-2.5 items-start">
+        {/* Sexta tarjeta dinámica — primera del grid, mismo tamaño que las otras */}
+        <div className="rounded-2xl p-3 flex flex-col"
+          style={{ background: '#FFFCF8', border: '1.5px solid #EEE2D4' }}>
+          <img src={sextaTarjeta.img} alt="Chiqui" className="w-10 h-10 object-contain mb-2" />
+          <p className="font-bold text-xs text-[#3D2B1F] leading-snug mb-1">{sextaTarjeta.titulo}</p>
           <p className="text-[10px] text-[#8A7560] leading-relaxed">{sextaTarjeta.texto}</p>
         </div>
-      </div>
-
-      {/* Grid 2 columnas — 5 tarjetas */}
-      <div className="grid grid-cols-2 gap-2.5 items-start">
         {tarjetasHoy.map((t, i) => {
           const cat = COLORES_CAT[(t as any).cat] || COLORES_CAT.bien
           const abierto = expandido === i
