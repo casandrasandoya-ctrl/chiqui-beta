@@ -109,9 +109,9 @@ export default function ChiquiTeCuenta({ especie }: Props) {
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
         <img src="/chiqui/chiqui_lentes.png" alt="Chiqui" className="w-7 h-7 object-contain" />
-        <span className="font-bold text-sm text-[#3D2B1F]">Chiqui te cuenta qué</span>
+        <span className="font-bold text-sm text-[#3D2B1F]">Chiqui Tips</span>
       </div>
-      <p className="text-xs text-[#8A7560] mb-3 ml-9">Hoy tengo {tarjetasHoy.length} cositas para contarte...</p>
+      <p className="text-xs text-[#8A7560] mb-3 ml-9">Tips y curiosidades para cuidarte mejor 🐾</p>
 
       {/* Grid 2 columnas */}
       <div className="grid grid-cols-2 gap-2.5 items-start">
