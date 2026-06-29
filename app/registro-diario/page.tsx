@@ -493,7 +493,7 @@ function RegistroContenido() {
         onClick={marcarTodoNormal}
         className="mx-4 mt-2 mb-1 w-[calc(100%-2rem)] bg-[#FFBD59] rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left"
       >
-        <span className="text-2xl flex-shrink-0">🐶</span>
+        <img src="/chiqui/chiqui_ladeado.png" alt="Chiqui" className="w-10 h-10 object-contain flex-shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-bold text-[#1A1200]">¿Hoy no notaste nada raro?</p>
           <p className="text-[11px] text-[#1A1200]/70">Marca todo como normal en un toque</p>
