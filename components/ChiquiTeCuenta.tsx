@@ -140,7 +140,17 @@ export default function ChiquiTeCuenta({ especie }: Props) {
       </div>
       <p className="text-xs text-[#8A7560] mb-3 ml-9">Tips y curiosidades para cuidarte mejor 🐾</p>
 
-      {/* Grid 2 columnas */}
+      {/* Sexta tarjeta dinámica — PRIMERO, ancho completo */}
+      <div className="mb-2.5 rounded-2xl p-3 flex items-center gap-3"
+        style={{ background: '#FFFCF8', border: '1.5px solid #EEE2D4' }}>
+        <img src={sextaTarjeta.img} alt="Chiqui" className="w-12 h-12 object-contain flex-shrink-0" />
+        <div className="flex-1">
+          <p className="font-bold text-xs text-[#3D2B1F] mb-0.5">{sextaTarjeta.titulo}</p>
+          <p className="text-[10px] text-[#8A7560] leading-relaxed">{sextaTarjeta.texto}</p>
+        </div>
+      </div>
+
+      {/* Grid 2 columnas — 5 tarjetas */}
       <div className="grid grid-cols-2 gap-2.5 items-start">
         {tarjetasHoy.map((t, i) => {
           const cat = COLORES_CAT[(t as any).cat] || COLORES_CAT.bien
@@ -196,7 +206,6 @@ export default function ChiquiTeCuenta({ especie }: Props) {
           )
         })}
       </div>
-
     </div>
   )
 }
