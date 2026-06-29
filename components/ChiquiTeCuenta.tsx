@@ -104,11 +104,38 @@ export default function ChiquiTeCuenta({ especie }: Props) {
 
   const [expandido, setExpandido] = useState<number | null>(null)
 
+  // Sexta tarjeta dinámica según el tema del set de hoy
+  const sextaTarjeta = useMemo(() => {
+    const titulos = tarjetasHoy.map((t: any) => t.titulo)
+    const todos = titulos.join(' ').toLowerCase()
+
+    if (todos.includes('heces') || todos.includes('vomit') || todos.includes('caca')) {
+      return { img: '/chiqui/chiqui_caca.png', titulo: '¿Quieres aprender a leer las heces?', texto: 'Registrar cómo son las heces de tu mascota puede anticipar problemas antes de que se vean graves.' }
+    }
+    if (todos.includes('kong') || todos.includes('snuffle') || todos.includes('lick') || todos.includes('olfato') || todos.includes('juego')) {
+      return { img: '/chiqui/chiqui_juguetes.png', titulo: '¿Quieres ayudarlo con la ansiedad?', texto: 'El juego olfativo y los Kongs congelados son de las mejores herramientas para bajar la ansiedad en casa.' }
+    }
+    if (todos.includes('fruta') || todos.includes('verdura') || todos.includes('alimento') || todos.includes('hueso') || todos.includes('agua') || todos.includes('peligros')) {
+      return { img: '/chiqui/chiqui_chef.png', titulo: '¿Sabes qué puede comer tu mascota?', texto: 'Registrar su alimentación en CHIQUI te ayuda a detectar si algo de lo que come le está cayendo mal.' }
+    }
+    if (todos.includes('planta') || todos.includes('tóxic')) {
+      return { img: '/chiqui/chiqui_alerta.png', titulo: '¿Sabías que algunas plantas son peligrosas?', texto: 'Revisa que las plantas de tu hogar sean seguras para tu mascota. Los accidentes por plantas tóxicas son más comunes de lo que parecen.' }
+    }
+    if (todos.includes('temperatura') || todos.includes('corazón') || todos.includes('respirat') || todos.includes('diente') || todos.includes('antiparasit')) {
+      return { img: '/chiqui/chiqui_doctor.png', titulo: '¿Registras sus signos vitales?', texto: 'La temperatura, frecuencia respiratoria y salud dental se pueden monitorear en casa. CHIQUI te ayuda a llevar el registro.' }
+    }
+    if (todos.includes('estrés') || todos.includes('duerm') || todos.includes('sueñ') || todos.includes('ejercicio') || todos.includes('calor') || todos.includes('paseo')) {
+      return { img: '/chiqui/chiqui_paseo.png', titulo: '¿Registras sus paseos y descanso?', texto: 'El nivel de actividad y el descanso diario son señales clave de bienestar. Cada registro cuenta.' }
+    }
+    // Default
+    return { img: '/chiqui/chiqui_idea.png', titulo: '¿Quieres aprender más sobre tu mascota?', texto: 'Cada tip que lees hoy puede convertirse en una observación importante mañana.' }
+  }, [tarjetasHoy])
+
   return (
     <div className="mb-4 px-4">
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
-        <img src="/chiqui/chiqui_lentes.png" alt="Chiqui" className="w-7 h-7 object-contain" />
+        <img src="/chiqui/chiqui_leyendo.png" alt="Chiqui" className="w-8 h-8 object-contain" />
         <span className="font-bold text-sm text-[#3D2B1F]">Chiqui Tips</span>
       </div>
       <p className="text-xs text-[#8A7560] mb-3 ml-9">Tips y curiosidades para cuidarte mejor 🐾</p>
@@ -170,15 +197,6 @@ export default function ChiquiTeCuenta({ especie }: Props) {
         })}
       </div>
 
-      {/* Tarjeta fija — Chiqui idea */}
-      <div className="mt-2.5 rounded-2xl p-3 flex items-center gap-3"
-        style={{ background: '#FFFCF8', border: '1.5px solid #EEE2D4' }}>
-        <img src="/chiqui/chiqui_idea.png" alt="Chiqui idea" className="w-12 h-12 object-contain flex-shrink-0" />
-        <div>
-          <p className="font-bold text-xs text-[#3D2B1F] mb-0.5">¿Sabías que puedes registrar todo esto en CHIQUI?</p>
-          <p className="text-[10px] text-[#8A7560] leading-relaxed">Cada observación que registras hoy puede ser clave para tu veterinario mañana.</p>
-        </div>
-      </div>
     </div>
   )
 }
