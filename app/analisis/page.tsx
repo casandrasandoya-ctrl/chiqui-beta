@@ -20,8 +20,8 @@ export default function AnalisisPage() {
   const [registros, setRegistros] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [periodo, setPeriodo] = useState(30)
-  const [abiertaNormalidad, setAbiertaNormalidad] = useState(true)
-  const [abiertoRecientes, setAbiertoRecientes] = useState(true)
+  const [abiertaNormalidad, setAbiertaNormalidad] = useState(false)
+  const [abiertoRecientes, setAbiertoRecientes] = useState(false)
   const [respReciente, setRespReciente] = useState<any>(null)
   const [tempReciente, setTempReciente] = useState<any>(null)
   const [celoInfo, setCeloInfo] = useState<any>(null)
@@ -311,7 +311,10 @@ export default function AnalisisPage() {
       {/* Resumen estadístico */}
       {total > 0 && <>
         <div className="px-5 mb-2">
-          <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Resumen del período</h2>
+          <div className="flex items-center gap-2">
+            <img src="/chiqui/chiqui_analisis.png" alt="" className="w-8 h-8 object-contain" />
+            <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Resumen del período</h2>
+          </div>
         </div>
         <div className="grid grid-cols-4 gap-2 mx-4 mb-4">
           {[
@@ -331,7 +334,10 @@ export default function AnalisisPage() {
         {esPerro && (
           <>
             <div className="px-5 mb-2">
-              <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Paseo</h2>
+              <div className="flex items-center gap-2">
+                <img src="/chiqui/chiqui_paseo.png" alt="" className="w-8 h-8 object-contain" />
+                <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Paseo</h2>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2.5 mx-4 mb-3">
               <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
@@ -377,7 +383,10 @@ export default function AnalisisPage() {
 
         {/* Últimos 7 días visual */}
         <div className="px-5 mb-2">
-          <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Últimos 7 días</h2>
+          <div className="flex items-center gap-2">
+            <img src="/chiqui/chiqui_calendario.png" alt="" className="w-8 h-8 object-contain" />
+            <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Últimos 7 días</h2>
+          </div>
         </div>
         <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
           <div className="flex items-end justify-between gap-1 h-16">
