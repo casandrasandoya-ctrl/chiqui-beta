@@ -35,7 +35,7 @@ export default async function Dashboard({ searchParams }: Props) {
     .select('id, nombre, especie, raza, foto_url')
     .order('created_at', { ascending: true })
 
-  if (!mascotas || !mascotas.length) redirect('/mascota/nueva')
+  if (!mascotas || !mascotas.length) redirect('/bienvenida')
 
   // La mascota activa es la indicada por el parametro ?mascota=ID en la
   // URL (que el selector del lado del cliente controla), o si no viene
