@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [verPass, setVerPass] = useState(false)
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -65,14 +66,20 @@ export default function LoginPage() {
           <label className="block text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2">
             Contraseña
           </label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            required
-            className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60 transition-colors"
-          />
+          <div className="relative">
+            <input
+              type={verPass ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 pr-12 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60 transition-colors"
+            />
+            <button type="button" onClick={() => setVerPass(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A7560] text-sm">
+              {verPass ? '🙈' : '👁️'}
+            </button>
+          </div>
         </div>
 
         <div className="text-right -mt-2">
