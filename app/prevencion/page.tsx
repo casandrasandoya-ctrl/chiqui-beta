@@ -956,7 +956,7 @@ export default function PrevencionPage() {
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-base">📍 Nueva evolución</h2>
               <div className="flex items-center gap-2">
-                <button onClick={guardarEvolucion} disabled={saving} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
+                <button onClick={() => guardarEvolucion(modalEvo!)} disabled={savingEvo} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
                   {saving ? '...' : 'Guardar'}
                 </button>
                 <button onClick={() => { setModalEvo(null); setFormEvo({ fecha: '', nota: '' }); setFotoEvo(null); setFotoEvoPreview(null) }} className="text-[#8A7560] text-xl">✕</button>
@@ -991,7 +991,7 @@ export default function PrevencionPage() {
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-base">✅ Marcar como resuelta</h2>
               <div className="flex items-center gap-2">
-                <button onClick={marcarResuelta} disabled={saving} className="bg-[#4CAF7D] text-white text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
+                <button onClick={() => marcarResuelta(modalResolverObs!)} disabled={saving} className="bg-[#4CAF7D] text-white text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
                   {saving ? '...' : 'Confirmar'}
                 </button>
                 <button onClick={() => { setModalResolverObs(null); setFechaResolucion('') }} className="text-[#8A7560] text-xl">✕</button>
