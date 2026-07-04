@@ -82,6 +82,14 @@ export default function PrevencionPage() {
   // Mejora 2: marcar observación como resuelta
   const [modalResolverObs, setModalResolverObs] = useState<string | null>(null)
   const [fechaResolucion, setFechaResolucion] = useState('')
+  // Mejora 1: timeline de evoluciones
+  const [evoluciones, setEvoluciones] = useState<Record<string, any[]>>({})
+  const [obsExpandida, setObsExpandida] = useState<string | null>(null)
+  const [modalEvo, setModalEvo] = useState<string | null>(null) // obsId
+  const [formEvo, setFormEvo] = useState<{ fecha: string; nota: string }>({ fecha: '', nota: '' })
+  const [fotoEvo, setFotoEvo] = useState<File | null>(null)
+  const [fotoEvoPreview, setFotoEvoPreview] = useState<string | null>(null)
+  const [savingEvo, setSavingEvo] = useState(false)
 
   useEffect(() => {
     const anyModal = modal || menuAbierto || modalEvo || modalResolverObs
@@ -205,6 +213,57 @@ export default function PrevencionPage() {
     setSaving(false)
   }
 
+  async function cargarEvoluciones(obsId: string) {
+    const { data } = await supabase
+      .from('observacion_evoluciones')
+      .select('*')
+      .eq('observacion_id', obsId)
+      .order('fecha', { ascending: false })
+    setEvoluciones(prev => ({ ...prev, [obsId]: data || [] }))
+  }
+
+  function toggleObs(obsId: string) {
+    if (obsExpandida === obsId) {
+      setObsExpandida(null)
+    } else {
+      setObsExpandida(obsId)
+      if (!evoluciones[obsId]) cargarEvoluciones(obsId)
+    }
+  }
+
+  async function guardarEvolucion(obsId: string) {
+    if (!formEvo.fecha) return
+    setSavingEvo(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSavingEvo(false); return }
+
+    const { data: nueva } = await supabase.from('observacion_evoluciones').insert({
+      observacion_id: obsId,
+      user_id: user.id,
+      fecha: formEvo.fecha,
+      nota: formEvo.nota || null,
+    }).select('id').single()
+
+    if (nueva && fotoEvo) {
+      const ext = fotoEvo.name.split('.').pop() || 'jpg'
+      const path = `${user.id}/evoluciones/${nueva.id}.${ext}`
+      const { error: uploadErr } = await supabase.storage.from('fotos-salud').upload(path, fotoEvo, { upsert: true })
+      if (!uploadErr) {
+        const { data: urlData } = supabase.storage.from('fotos-salud').getPublicUrl(path)
+        await supabase.from('observacion_evoluciones').update({
+          foto_url: `${urlData.publicUrl}?t=${Date.now()}`
+        }).eq('id', nueva.id)
+      }
+    }
+
+    await cargarEvoluciones(obsId)
+    setModalEvo(null)
+    setFormEvo({ fecha: '', nota: '' })
+    setFotoEvo(null)
+    setFotoEvoPreview(null)
+    setSavingEvo(false)
+  }
+
   async function reactivarObs(obsId: string) {
     await supabase.from('observaciones').update({ estado: 'activa', fecha_resolucion: null }).eq('id', obsId)
     if (mascota) await cargarDatos(mascota.id)
@@ -323,6 +382,57 @@ export default function PrevencionPage() {
     setModalResolverObs(null)
     setFechaResolucion('')
     if (mascota) await cargarDatos(mascota.id)
+  }
+
+  async function cargarEvoluciones(obsId: string) {
+    const { data } = await supabase
+      .from('observacion_evoluciones')
+      .select('*')
+      .eq('observacion_id', obsId)
+      .order('fecha', { ascending: false })
+    setEvoluciones(prev => ({ ...prev, [obsId]: data || [] }))
+  }
+
+  function toggleObs(obsId: string) {
+    if (obsExpandida === obsId) {
+      setObsExpandida(null)
+    } else {
+      setObsExpandida(obsId)
+      if (!evoluciones[obsId]) cargarEvoluciones(obsId)
+    }
+  }
+
+  async function guardarEvolucion(obsId: string) {
+    if (!formEvo.fecha) return
+    setSavingEvo(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSavingEvo(false); return }
+
+    const { data: nueva } = await supabase.from('observacion_evoluciones').insert({
+      observacion_id: obsId,
+      user_id: user.id,
+      fecha: formEvo.fecha,
+      nota: formEvo.nota || null,
+    }).select('id').single()
+
+    if (nueva && fotoEvo) {
+      const ext = fotoEvo.name.split('.').pop() || 'jpg'
+      const path = `${user.id}/evoluciones/${nueva.id}.${ext}`
+      const { error: uploadErr } = await supabase.storage.from('fotos-salud').upload(path, fotoEvo, { upsert: true })
+      if (!uploadErr) {
+        const { data: urlData } = supabase.storage.from('fotos-salud').getPublicUrl(path)
+        await supabase.from('observacion_evoluciones').update({
+          foto_url: `${urlData.publicUrl}?t=${Date.now()}`
+        }).eq('id', nueva.id)
+      }
+    }
+
+    await cargarEvoluciones(obsId)
+    setModalEvo(null)
+    setFormEvo({ fecha: '', nota: '' })
+    setFotoEvo(null)
+    setFotoEvoPreview(null)
+    setSavingEvo(false)
   }
 
   async function reactivarObs(obsId: string) {
@@ -1160,6 +1270,63 @@ export default function PrevencionPage() {
                 <textarea className={IC} rows={3} placeholder="ej. Todo normal, colesterol levemente alto..." value={form.nota || ''} onChange={e => u('nota', e.target.value)} /></div>
               {errorExamen && <p className="text-xs text-[#E05252] bg-[#E05252]/10 rounded-xl p-3">{errorExamen}</p>}
             </>}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Nueva evolución */}
+      {modalEvo && (
+        <div className="fixed inset-0 z-[60] overflow-hidden flex items-end justify-center bg-black/60"
+          onClick={() => setModalEvo(null)}>
+          <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 overflow-y-auto"
+            style={{ maxHeight: 'calc(100vh - 80px)', paddingBottom: '24px' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-base">📝 Nueva evolución</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => guardarEvolucion(modalEvo)}
+                  disabled={!formEvo.fecha || savingEvo}
+                  className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40"
+                >
+                  {savingEvo ? '...' : 'Guardar'}
+                </button>
+                <button onClick={() => setModalEvo(null)} className="text-[#8A7560] text-xl">✕</button>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha *</label>
+              <FechaSelector value={formEvo.fecha} onChange={v => setFormEvo(f => ({ ...f, fecha: v }))} />
+            </div>
+            <div>
+              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nota</label>
+              <textarea
+                className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none"
+                rows={3}
+                placeholder="¿Cómo está hoy? ¿Mejoró, empeoró, igual?"
+                value={formEvo.nota}
+                onChange={e => setFormEvo(f => ({ ...f, nota: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Foto (opcional)</label>
+              <div className="flex items-center gap-3">
+                <label className="w-16 h-16 rounded-xl bg-[#FFFCF8] border border-[#EEE2D4] flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer">
+                  {fotoEvoPreview ? (
+                    <img src={fotoEvoPreview} alt="preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xl">📷</span>
+                  )}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setFotoEvo(file)
+                    setFotoEvoPreview(URL.createObjectURL(file))
+                  }} />
+                </label>
+                <p className="text-xs text-[#8A7560]">Toca para agregar una foto de cómo evoluciona.</p>
+              </div>
+            </div>
           </div>
         </div>
       )}

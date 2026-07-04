@@ -133,10 +133,23 @@ export default async function VetPage({ searchParams }: Props) {
     .eq('mascota_id', datos.mascota.id)
     .order('fecha', { ascending: true })
 
+  // Cargar evoluciones de cada observación
+  const obsData = datos.observaciones || []
+  const obsConEvoluciones = await Promise.all(
+    obsData.map(async (o: any) => {
+      const { data: evos } = await supabase
+        .from('observacion_evoluciones')
+        .select('*')
+        .eq('observacion_id', o.id)
+        .order('fecha', { ascending: false })
+      return { ...o, evoluciones: evos || [] }
+    })
+  )
+
   const registros = datos.registros || []
   const vacunas = datos.vacunas || []
   const antis = datos.antiparasitarios || []
-  const obs = datos.observaciones || []
+  const obs = obsConEvoluciones
   const examenes = datos.examenes || []
   const enfermedades = datos.enfermedades || []
   const medicamentos = datos.medicamentos || []
@@ -230,23 +243,46 @@ export default async function VetPage({ searchParams }: Props) {
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
         </div>
 
-        {/* Observaciones */}
+        {/* Observaciones con timeline de evoluciones */}
         {obs.length > 0 && (
           <SeccionVet titulo={`👁️ Observaciones (${obs.length})`}>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {obs.map((o: any) => (
-                <div key={o.id} className="pb-3 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                  <div className="flex items-center justify-between">
+                <div key={o.id} className="pb-4 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-1">
                     <p className="font-bold text-sm">{o.titulo}</p>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${o.estado === 'activa' ? 'bg-[#F07A30]/20 text-[#F07A30]' : 'bg-[#4CAF7D]/20 text-[#4CAF7D]'}`}>
                       {o.estado === 'activa' ? 'Activa' : 'Resuelta'}
                     </span>
                   </div>
-                  {o.descripcion && <p className="text-sm text-[#8A7560] mt-0.5">{o.descripcion}</p>}
+                  {o.descripcion && <p className="text-xs text-[#8A7560] mt-0.5 leading-relaxed">{o.descripcion}</p>}
                   <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
                   {o.fecha_resolucion && <p className="text-xs text-[#4CAF7D] mt-0.5">Resuelta: {fmt(o.fecha_resolucion)}</p>}
                   {o.foto_url && (
-                    <img src={o.foto_url} alt={o.titulo} className="w-full h-40 object-cover rounded-xl mt-2" />
+                    <img src={o.foto_url} alt={o.titulo} className="w-full h-36 object-cover rounded-xl mt-2" />
+                  )}
+
+                  {/* Timeline de evoluciones — solo lectura */}
+                  {o.evoluciones && o.evoluciones.length > 0 && (
+                    <div className="mt-3 relative">
+                      <p className="text-[10px] font-bold text-[#8A7560] uppercase tracking-wider mb-2">
+                        Evolución ({o.evoluciones.length})
+                      </p>
+                      <div className="absolute left-2 top-6 bottom-0 w-0.5 bg-[#EEE2D4]" />
+                      <div className="space-y-3 pl-7">
+                        {o.evoluciones.map((evo: any) => (
+                          <div key={evo.id} className="relative">
+                            <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-[#8C572F] border-2 border-[#FFFCF8]" />
+                            <p className="text-[10px] font-bold text-[#8C572F] uppercase tracking-wider">{fmt(evo.fecha)}</p>
+                            {evo.nota && <p className="text-xs text-[#3D2B1F] mt-0.5 leading-relaxed">{evo.nota}</p>}
+                            {evo.foto_url && (
+                              <img src={evo.foto_url} alt="evolución" className="w-full h-32 object-cover rounded-xl mt-1.5" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}
