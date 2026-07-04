@@ -296,11 +296,16 @@ export default function PrevencionPage() {
       const ext = fotoEvo.name.split('.').pop() || 'jpg'
       const path = `${user.id}/evoluciones/${nueva.id}.${ext}`
       const { error: uploadErr } = await supabase.storage.from('fotos-salud').upload(path, fotoEvo, { upsert: true })
-      if (!uploadErr) {
+      if (uploadErr) {
+        console.error('Error subiendo foto evolución:', uploadErr)
+      } else {
         const { data: urlData } = supabase.storage.from('fotos-salud').getPublicUrl(path)
+        const fotoFinalUrl = `${urlData.publicUrl}?t=${Date.now()}`
+        console.log('Foto URL generada:', fotoFinalUrl)
         await supabase.from('observacion_evoluciones').update({
-          foto_url: `${urlData.publicUrl}?t=${Date.now()}`
+          foto_url: fotoFinalUrl
         }).eq('id', nueva.id)
+        await new Promise(resolve => setTimeout(resolve, 300))
       }
     }
 
