@@ -51,17 +51,6 @@ export default function PrevencionPage() {
   const [enfermedades, setEnfermedades] = useState<any[]>([])
   const [examenes, setExamenes] = useState<any[]>([])
   const [revisiones, setRevisiones] = useState<any[]>([])
-  // MEJORA 1: evoluciones por observación
-  const [evoluciones, setEvoluciones] = useState<Record<string, any[]>>({})
-  const [obsExpandida, setObsExpandida] = useState<string | null>(null)
-  const [modalEvo, setModalEvo] = useState<string | null>(null) // id de obs para agregar evolución
-  const [formEvo, setFormEvo] = useState<any>({})
-  const [fotoEvo, setFotoEvo] = useState<File | null>(null)
-  const [fotoEvoPreview, setFotoEvoPreview] = useState<string | null>(null)
-  // MEJORA 2: marcar como resuelta
-  const [modalResolverObs, setModalResolverObs] = useState<string | null>(null)
-  const [fechaResolucion, setFechaResolucion] = useState('')
-
   const [loading, setLoading] = useState(true)
   const [seccionesAbiertas, setSeccionesAbiertas] = useState<Set<string>>(new Set())
 
