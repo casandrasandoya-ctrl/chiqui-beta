@@ -178,12 +178,17 @@ export default function PrevencionPage() {
         await supabase.from('antiparasitarios').insert({ ...base, ...form })
       }
     } else if (modal === 'obs') {
-      const { data: nuevaObs } = await supabase.from('observaciones').insert({
-        ...base, ...form,
-        estado: 'activa',
-        fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0]
-      }).select('id').single()
-      if (nuevaObs && fotoSalud) await subirFotoSalud('observaciones', nuevaObs.id, user.id)
+      if (editandoId) {
+        await supabase.from('observaciones').update({ ...form }).eq('id', editandoId)
+        if (fotoSalud) await subirFotoSalud('observaciones', editandoId, user.id)
+      } else {
+        const { data: nuevaObs } = await supabase.from('observaciones').insert({
+          ...base, ...form,
+          estado: 'activa',
+          fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0]
+        }).select('id').single()
+        if (nuevaObs && fotoSalud) await subirFotoSalud('observaciones', nuevaObs.id, user.id)
+      }
     } else if (modal === 'medicamento') {
       await supabase.from('medicamentos').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0], indicado_por_vet: !!form.indicado_por_vet })
     } else if (modal === 'enfermedad') {
@@ -312,6 +317,24 @@ export default function PrevencionPage() {
       estado: 'activa',
       fecha_resolucion: null,
     }).eq('id', obsId)
+    if (mascota) await cargarDatos(mascota.id)
+  }
+
+  function editarObs(o: any) {
+    setEditandoId(o.id)
+    setForm({
+      titulo: o.titulo || '',
+      tipo: o.tipo || '',
+      descripcion: o.descripcion || '',
+      fecha_inicio: o.fecha_inicio || '',
+    })
+    setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('')
+    setModal('obs')
+  }
+
+  async function eliminarObs(id: string) {
+    if (!confirm('¿Eliminar esta observación? Esta acción no se puede deshacer.')) return
+    await supabase.from('observaciones').delete().eq('id', id)
     if (mascota) await cargarDatos(mascota.id)
   }
 
@@ -675,7 +698,11 @@ export default function PrevencionPage() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <p className="font-bold text-sm">{o.titulo}</p>
-                          <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-[#F07A30]/20 text-[#F07A30]">Activa</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-[#F07A30]/20 text-[#F07A30]">Activa</span>
+                            <button onClick={() => editarObs(o)} className="text-[#8A7560] text-sm w-6 h-6 flex items-center justify-center">✏️</button>
+                            <button onClick={() => eliminarObs(o.id)} className="text-[#E05252] text-sm w-6 h-6 flex items-center justify-center">🗑️</button>
+                          </div>
                         </div>
                         {o.descripcion && <p className="text-xs text-[#8A7560] mt-1 leading-relaxed">{o.descripcion}</p>}
                         <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
@@ -692,7 +719,7 @@ export default function PrevencionPage() {
                         {obsExpandida === o.id ? '⌃ Ocultar evoluciones' : `⌄ Ver evoluciones${evoluciones[o.id] ? ` (${evoluciones[o.id].length})` : ''}`}
                       </button>
                       <button
-                        onClick={() => { setModalEvo(o.id); setFormEvo({}) }}
+                        onClick={() => { setModalEvo(o.id); setFormEvo({ fecha: '', nota: '' }) }}
                         className="px-3 py-2 rounded-xl text-xs font-bold bg-[#FFBD59] text-[#1A1200]"
                       >
                         + Evolución
@@ -924,7 +951,7 @@ export default function PrevencionPage() {
 
       {/* MODAL AGREGAR EVOLUCIÓN — MEJORA 1 */}
       {modalEvo && (
-        <div className="fixed inset-0 z-[60] overflow-hidden flex items-end justify-center bg-black/60" onClick={() => { setModalEvo(null); setFormEvo({}); setFotoEvo(null); setFotoEvoPreview(null) }}>
+        <div className="fixed inset-0 z-[60] overflow-hidden flex items-end justify-center bg-black/60" onClick={() => { setModalEvo(null); setFormEvo({ fecha: '', nota: '' }); setFotoEvo(null); setFotoEvoPreview(null) }}>
           <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 80px)' }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-base">📍 Nueva evolución</h2>
@@ -932,7 +959,7 @@ export default function PrevencionPage() {
                 <button onClick={guardarEvolucion} disabled={saving} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
                   {saving ? '...' : 'Guardar'}
                 </button>
-                <button onClick={() => { setModalEvo(null); setFormEvo({}); setFotoEvo(null); setFotoEvoPreview(null) }} className="text-[#8A7560] text-xl">✕</button>
+                <button onClick={() => { setModalEvo(null); setFormEvo({ fecha: '', nota: '' }); setFotoEvo(null); setFotoEvoPreview(null) }} className="text-[#8A7560] text-xl">✕</button>
               </div>
             </div>
             <div>
