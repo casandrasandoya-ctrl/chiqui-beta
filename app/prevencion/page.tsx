@@ -800,9 +800,10 @@ export default function PrevencionPage() {
                                 {evoluciones[o.id].map(evo => (
                                   <div key={evo.id} className="flex gap-2">
                                     <div className="w-2 h-2 rounded-full bg-[#8C572F] flex-shrink-0 mt-1" />
-                                    <div>
+                                    <div className="flex-1">
                                       <p className="text-xs font-bold text-[#8C572F]">{fmt(evo.fecha)}</p>
                                       {evo.nota && <p className="text-xs text-[#3D2B1F]">{evo.nota}</p>}
+                                      {evo.foto_url && <img src={evo.foto_url} alt="evolución" className="w-full h-32 object-cover rounded-xl mt-1.5" />}
                                     </div>
                                   </div>
                                 ))}
