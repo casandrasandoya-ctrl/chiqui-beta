@@ -37,12 +37,10 @@ const CATEGORIAS_EXAMEN: Record<string,{icon:string,label:string}> = {
   otro: { icon:'📄', label:'Otro examen' },
 }
 
-// Detecta senales anormales en los ultimos 7 dias para el motivo de consulta
 function detectarMotivosConsulta(registros: any[]): string[] {
   const hace7 = new Date()
   hace7.setDate(hace7.getDate() - 7)
   const recientes = registros.filter(r => new Date(r.fecha + 'T00:00:00') >= hace7)
-
   const senales: Set<string> = new Set()
   const CAMPOS_LABEL: Record<string,Record<string,string>> = {
     energia: { baja:'Energía baja', muy_baja:'Energía muy baja' },
@@ -65,7 +63,6 @@ function detectarMotivosConsulta(registros: any[]): string[] {
   return Array.from(senales).slice(0, 6)
 }
 
-// Seccion desplegable para el vet (Server Component — solo HTML/CSS)
 function SeccionVet({ titulo, children, abiertaPorDefecto = false }: { titulo: string, children: React.ReactNode, abiertaPorDefecto?: boolean }) {
   return (
     <details open={abiertaPorDefecto} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
@@ -109,7 +106,6 @@ export default async function VetPage({ searchParams }: Props) {
 
   const mascota = datos.mascota
 
-  // Datos adicionales: respiracion, temperatura y reproduccion
   const { data: respiracion } = await supabase
     .from('frecuencia_respiratoria')
     .select('*')
@@ -136,6 +132,7 @@ export default async function VetPage({ searchParams }: Props) {
     .select('*')
     .eq('mascota_id', datos.mascota.id)
     .order('fecha', { ascending: true })
+
   const registros = datos.registros || []
   const vacunas = datos.vacunas || []
   const antis = datos.antiparasitarios || []
@@ -205,7 +202,7 @@ export default async function VetPage({ searchParams }: Props) {
           </div>
         </div>
 
-        {/* Posible motivo de consulta — siempre visible */}
+        {/* Posible motivo de consulta */}
         <div className="bg-[#FBEAD9] rounded-2xl p-4 border border-[#CD7421]/30">
           <h2 className="font-bold text-xs text-[#CD7421] uppercase tracking-wider mb-2">
             🩺 Posible motivo de consulta
@@ -227,7 +224,7 @@ export default async function VetPage({ searchParams }: Props) {
           )}
         </div>
 
-        {/* ÁREA: Historial médico — Observaciones, Registros, Exámenes */}
+        {/* ÁREA: Historial médico */}
         <div className="flex items-center gap-2 mb-1">
           <img src="/chiqui/chiqui_examen.png" alt="" className="w-6 h-6 object-contain" />
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
@@ -239,9 +236,15 @@ export default async function VetPage({ searchParams }: Props) {
             <div className="space-y-3">
               {obs.map((o: any) => (
                 <div key={o.id} className="pb-3 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                  <p className="font-bold text-sm">{o.titulo}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-sm">{o.titulo}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${o.estado === 'activa' ? 'bg-[#F07A30]/20 text-[#F07A30]' : 'bg-[#4CAF7D]/20 text-[#4CAF7D]'}`}>
+                      {o.estado === 'activa' ? 'Activa' : 'Resuelta'}
+                    </span>
+                  </div>
                   {o.descripcion && <p className="text-sm text-[#8A7560] mt-0.5">{o.descripcion}</p>}
                   <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
+                  {o.fecha_resolucion && <p className="text-xs text-[#4CAF7D] mt-0.5">Resuelta: {fmt(o.fecha_resolucion)}</p>}
                   {o.foto_url && (
                     <img src={o.foto_url} alt={o.titulo} className="w-full h-40 object-cover rounded-xl mt-2" />
                   )}
@@ -271,67 +274,6 @@ export default async function VetPage({ searchParams }: Props) {
                     ))}
                   </div>
                   {r.nota && <p className="text-xs text-[#8A7560] mt-1 italic">📝 {r.nota}</p>}
-                </div>
-              ))}
-            </div>
-          </SeccionVet>
-        )}
-
-        {/* ÁREA: Prevención */}
-        <div className="flex items-center gap-2 mb-1">
-          <img src="/chiqui/chiqui_escudo.png" alt="" className="w-6 h-6 object-contain" />
-          <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Prevención</p>
-        </div>
-
-        {/* Vacunas */}
-        {vacunas.length > 0 && (
-          <SeccionVet titulo={`💉 Vacunas (${vacunas.length})`}>
-            <div className="space-y-2">
-              {vacunas.map((v: any) => (
-                <div key={v.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-sm">{v.nombre}</p>
-                    {v.proxima_fecha && <p className="text-xs text-[#8A7560]">Próxima: {fmt(v.proxima_fecha)}</p>}
-                  </div>
-                  <p className="text-xs text-[#8A7560] mt-0.5">Aplicada: {fmt(v.fecha_aplicacion)}{v.lote ? ` · Lote: ${v.lote}` : ''}</p>
-                </div>
-              ))}
-            </div>
-          </SeccionVet>
-        )}
-
-        {/* Antiparasitarios */}
-        {antis.length > 0 && (
-          <SeccionVet titulo={`💊 Antiparasitarios (${antis.length})`}>
-            <div className="space-y-2">
-              {antis.map((a: any) => (
-                <div key={a.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-sm">{a.nombre}</p>
-                    {a.proxima_fecha && <p className="text-xs text-[#8A7560]">Próxima: {fmt(a.proxima_fecha)}</p>}
-                  </div>
-                  <p className="text-xs text-[#8A7560] mt-0.5">{a.tipo} · {fmt(a.fecha_aplicacion)}</p>
-                </div>
-              ))}
-            </div>
-          </SeccionVet>
-        )}
-
-        {/* Medicamentos */}
-        {medicamentos.length > 0 && (
-          <SeccionVet titulo={`🩹 Medicamentos (${medicamentos.length})`}>
-            <div className="space-y-2">
-              {medicamentos.map((med: any) => (
-                <div key={med.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-sm">{med.nombre}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
-                      {med.estado === 'activo' ? 'Activo' : 'Finalizado'}
-                    </span>
-                  </div>
-                  {med.dosis && <p className="text-xs text-[#8A7560] mt-0.5">{med.dosis}{med.frecuencia ? ` · ${med.frecuencia}` : ''}</p>}
-                  <p className="text-xs text-[#8A7560] mt-0.5">Desde: {fmt(med.fecha_inicio)}{med.fecha_fin ? ` hasta ${fmt(med.fecha_fin)}` : ''}</p>
-                  {med.motivo && <p className="text-xs text-[#8A7560] mt-0.5">Motivo: {med.motivo}</p>}
                 </div>
               ))}
             </div>
@@ -394,13 +336,70 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
+        {/* ÁREA: Prevención */}
+        <div className="flex items-center gap-2 mb-1">
+          <img src="/chiqui/chiqui_escudo.png" alt="" className="w-6 h-6 object-contain" />
+          <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Prevención</p>
+        </div>
+
+        {vacunas.length > 0 && (
+          <SeccionVet titulo={`💉 Vacunas (${vacunas.length})`}>
+            <div className="space-y-2">
+              {vacunas.map((v: any) => (
+                <div key={v.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-sm">{v.nombre}</p>
+                    {v.proxima_fecha && <p className="text-xs text-[#8A7560]">Próxima: {fmt(v.proxima_fecha)}</p>}
+                  </div>
+                  <p className="text-xs text-[#8A7560] mt-0.5">Aplicada: {fmt(v.fecha_aplicacion)}{v.lote ? ` · Lote: ${v.lote}` : ''}</p>
+                </div>
+              ))}
+            </div>
+          </SeccionVet>
+        )}
+
+        {antis.length > 0 && (
+          <SeccionVet titulo={`💊 Antiparasitarios (${antis.length})`}>
+            <div className="space-y-2">
+              {antis.map((a: any) => (
+                <div key={a.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-sm">{a.nombre}</p>
+                    {a.proxima_fecha && <p className="text-xs text-[#8A7560]">Próxima: {fmt(a.proxima_fecha)}</p>}
+                  </div>
+                  <p className="text-xs text-[#8A7560] mt-0.5">{a.tipo} · {fmt(a.fecha_aplicacion)}</p>
+                </div>
+              ))}
+            </div>
+          </SeccionVet>
+        )}
+
+        {medicamentos.length > 0 && (
+          <SeccionVet titulo={`🩹 Medicamentos (${medicamentos.length})`}>
+            <div className="space-y-2">
+              {medicamentos.map((med: any) => (
+                <div key={med.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-sm">{med.nombre}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
+                      {med.estado === 'activo' ? 'Activo' : 'Finalizado'}
+                    </span>
+                  </div>
+                  {med.dosis && <p className="text-xs text-[#8A7560] mt-0.5">{med.dosis}{med.frecuencia ? ` · ${med.frecuencia}` : ''}</p>}
+                  <p className="text-xs text-[#8A7560] mt-0.5">Desde: {fmt(med.fecha_inicio)}{med.fecha_fin ? ` hasta ${fmt(med.fecha_fin)}` : ''}</p>
+                  {med.motivo && <p className="text-xs text-[#8A7560] mt-0.5">Motivo: {med.motivo}</p>}
+                </div>
+              ))}
+            </div>
+          </SeccionVet>
+        )}
+
         {/* ÁREA: Signos vitales */}
         <div className="flex items-center gap-2 mb-1 mt-2">
           <img src="/chiqui/chiqui_temperatura.png" alt="" className="w-6 h-6 object-contain" />
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Signos vitales</p>
         </div>
 
-        {/* Frecuencia respiratoria */}
         {respiracion && respiracion.length > 0 && (
           <SeccionVet titulo={`🫁 Frecuencia respiratoria (${respiracion.length})`}>
             <div className="space-y-2">
@@ -421,7 +420,6 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
-        {/* Temperatura corporal */}
         {temperatura && temperatura.length > 0 && (
           <SeccionVet titulo={`🌡️ Temperatura corporal (${temperatura.length})`}>
             <div className="space-y-2">
@@ -443,7 +441,6 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
-        {/* Ciclo reproductivo */}
         {ciclos && ciclos.length > 0 && (
           <SeccionVet titulo={`🌸 Ciclo reproductivo (${ciclos.length})`}>
             <div className="space-y-2">
@@ -462,7 +459,6 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
-        {/* Línea de vida reproductiva */}
         {etapas && etapas.length > 0 && (
           <SeccionVet titulo={`📍 Línea de vida reproductiva (${etapas.length})`}>
             <div className="space-y-2">
