@@ -7,7 +7,7 @@ const MESES = [
 ]
 
 interface Props {
-  value: string       // formato YYYY-MM-DD
+  value: string
   onChange: (v: string) => void
   label?: string
   opcional?: boolean
@@ -18,15 +18,13 @@ export default function FechaSelector({ value, onChange, label, opcional, placeh
   const [abierto, setAbierto] = useState(false)
   const anioActual = new Date().getFullYear()
 
-  // Parsear value actual
   const [anio, mes, dia] = value ? value.split('-').map(Number) : [null, null, null]
 
   const [selAnio, setSelAnio] = useState<number | null>(anio || null)
-  const [selMes, setSelMes] = useState<number | null>(mes ? mes - 1 : null) // 0-indexed
+  const [selMes, setSelMes] = useState<number | null>(mes ? mes - 1 : null)
   const [selDia, setSelDia] = useState<number | null>(dia || null)
   const [paso, setPaso] = useState<'anio' | 'mes' | 'dia'>('anio')
 
-  // Sincronizar si value cambia externamente
   useEffect(() => {
     if (value) {
       const [a, m, d] = value.split('-').map(Number)
@@ -40,7 +38,6 @@ export default function FechaSelector({ value, onChange, label, opcional, placeh
 
   function elegirAnio(a: number) {
     setSelAnio(a); setPaso('mes')
-    // Resetear día si no cabe en el nuevo año/mes
     if (selMes !== null && selDia !== null) {
       const maxDias = diasEnMes(a, selMes)
       if (selDia > maxDias) setSelDia(null)
@@ -82,7 +79,6 @@ export default function FechaSelector({ value, onChange, label, opcional, placeh
   const anios = Array.from({ length: 15 }, (_, i) => anioActual - i)
   const maxDias = selAnio !== null && selMes !== null ? diasEnMes(selAnio, selMes) : 31
   const dias = Array.from({ length: maxDias }, (_, i) => i + 1)
-
   const tieneValor = selAnio && selMes !== null && selDia
 
   return (
@@ -92,8 +88,6 @@ export default function FechaSelector({ value, onChange, label, opcional, placeh
           {label} {opcional && <span className="text-[#8A7560]">(opcional)</span>}
         </p>
       )}
-
-      {/* Trigger */}
       <button
         type="button"
         onClick={() => { setAbierto(v => !v); setPaso('anio') }}
@@ -109,12 +103,8 @@ export default function FechaSelector({ value, onChange, label, opcional, placeh
           <span className="text-[#8A7560] text-xs">{abierto ? '⌃' : '⌄'}</span>
         </div>
       </button>
-
-      {/* Panel selector */}
       {abierto && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl shadow-sm overflow-hidden">
-
-          {/* Header del paso actual */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#EEE2D4] bg-[#FBEAD9]">
             <div className="flex gap-2">
               {['anio','mes','dia'].map((p, i) => (
@@ -130,55 +120,66 @@ export default function FechaSelector({ value, onChange, label, opcional, placeh
             </div>
             <button type="button" onClick={() => setAbierto(false)} className="text-[#8A7560] text-sm">✕</button>
           </div>
-
-          {/* Año */}
           {paso === 'anio' && (
             <div className="grid grid-cols-3 gap-1 p-3 max-h-48 overflow-y-auto">
               {anios.map(a => (
-                <button
-                  key={a}
-                  type="button"
-                  onClick={() => elegirAnio(a)}
-                  className={`py-2.5 rounded-xl text-sm font-semibold ${selAnio === a ? 'bg-[#FFBD59] text-[#1A1200]' : 'bg-[#F5EDE3] text-[#3D2B1F]'}`}
-                >
+                <button key={a} type="button" onClick={() => elegirAnio(a)}
+                  className={`py-2.5 rounded-xl text-sm font-semibold ${selAnio === a ? 'bg-[#FFBD59] text-[#1A1200]' : 'bg-[#F5EDE3] text-[#3D2B1F]'}`}>
                   {a}
                 </button>
               ))}
             </div>
           )}
-
-          {/* Mes */}
           {paso === 'mes' && (
             <div className="grid grid-cols-3 gap-1 p-3">
               {MESES.map((m, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => elegirMes(i)}
-                  className={`py-2.5 rounded-xl text-xs font-semibold ${selMes === i ? 'bg-[#FFBD59] text-[#1A1200]' : 'bg-[#F5EDE3] text-[#3D2B1F]'}`}
-                >
+                <button key={i} type="button" onClick={() => elegirMes(i)}
+                  className={`py-2.5 rounded-xl text-xs font-semibold ${selMes === i ? 'bg-[#FFBD59] text-[#1A1200]' : 'bg-[#F5EDE3] text-[#3D2B1F]'}`}>
                   {m.substring(0,3)}
                 </button>
               ))}
             </div>
           )}
-
-          {/* Día */}
           {paso === 'dia' && (
-            <div className="grid grid-cols-7 gap-1 p-3">
-              {dias.map(d => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => elegirDia(d)}
-                  className={`py-2 rounded-lg text-xs font-semibold ${selDia === d ? 'bg-[#FFBD59] text-[#1A1200]' : 'bg-[#F5EDE3] text-[#3D2B1F]'}`}
-                >
-                  {d}
-                </button>
-              ))}
+            <div className="p-3">
+              {/* Cabecera días de la semana */}
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {['L','M','M','J','V','S','D'].map((d, i) => (
+                  <div key={i} className="text-center text-[10px] font-bold text-[#8A7560] py-0.5">{d}</div>
+                ))}
+              </div>
+              {/* Grilla de días con offset según el primer día del mes */}
+              <div className="grid grid-cols-7 gap-1">
+                {(() => {
+                  if (selAnio === null || selMes === null) return null
+                  // getDay() devuelve 0=Dom..6=Sab, convertir a 0=Lun..6=Dom
+                  const primerDia = new Date(selAnio, selMes, 1)
+                  const offsetDom = primerDia.getDay() // 0=Dom
+                  const offsetLun = offsetDom === 0 ? 6 : offsetDom - 1
+                  const celdas = []
+                  // Celdas vacías al inicio
+                  for (let i = 0; i < offsetLun; i++) {
+                    celdas.push(<div key={`e${i}`} />)
+                  }
+                  // Días del mes
+                  for (let d = 1; d <= maxDias; d++) {
+                    const diaSemana = new Date(selAnio, selMes, d).getDay()
+                    const esFinde = diaSemana === 0 || diaSemana === 6
+                    celdas.push(
+                      <button key={d} type="button" onClick={() => elegirDia(d)}
+                        className={`py-1.5 rounded-lg text-center flex flex-col items-center leading-none ${selDia === d ? 'bg-[#FFBD59] text-[#1A1200]' : esFinde ? 'bg-[#F5EDE3] text-[#8C572F]' : 'bg-[#F5EDE3] text-[#3D2B1F]'}`}>
+                        <span className="text-[9px] font-semibold opacity-70">
+                          {['D','L','M','M','J','V','S'][diaSemana]}
+                        </span>
+                        <span className="text-xs font-bold">{d}</span>
+                      </button>
+                    )
+                  }
+                  return celdas
+                })()}
+              </div>
             </div>
           )}
-
         </div>
       )}
     </div>
