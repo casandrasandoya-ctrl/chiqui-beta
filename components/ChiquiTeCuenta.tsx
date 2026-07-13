@@ -40,6 +40,13 @@ const TARJETAS_PERRO = [
   { emoji: '😴', cat: 'comp', titulo: '¿Cuánto duermo?', pregunta: '¿Es normal que mi perro duerma tantas horas?', texto: 'Si soy adulto, dormir 12 a 14 horas es completamente normal. Si soy cachorro o senior, puedo descansar hasta 18 o 20 horas al día.' },
   { emoji: '🏃', cat: 'bien', titulo: 'Ejercicio según mi edad', pregunta: '¿Cuánto ejercicio necesita un perro según su edad?', texto: 'Si soy cachorro, necesito 5 minutos de ejercicio por cada mes de vida, dos veces al día. Si soy adulto, entre 30 y 60 minutos. Si ya soy senior, prefiero paseos más suaves.' },
   { emoji: '🌿', cat: 'seg', titulo: 'Plantas tóxicas', pregunta: '¿Qué plantas pueden ser tóxicas para perros?', texto: 'Si tienes azaleas, hortensias, lirios o áloe vera, mejor mantenlas lejos de mí. Aunque sean lindas, pueden ser peligrosas para mi salud.' },
+
+  // GRUPO 5: Movimiento y articulaciones
+  { emoji: '🦴', cat: 'mov', titulo: '¿Le cuesta levantarse?', pregunta: '¿Notas que tardo más en ponerme de pie?', texto: 'Después de dormir o descansar, si necesito unos segundos para levantarme o caminar, podría estar sintiendo rigidez o molestias articulares.' },
+  { emoji: '🐾', cat: 'mov', titulo: '¿Cojea aunque sea un rato?', pregunta: '¿A veces apoyo menos una patita?', texto: 'Aunque solo ocurra por momentos, una cojera nunca es normal. Obsérvala y regístrala en CHIQUI para comentarla con mi veterinario.' },
+  { emoji: '🛋️', cat: 'mov', titulo: '¿Ya no quiere saltar?', pregunta: '¿Evito subir al sillón, al auto o a la cama?', texto: 'Si antes lo hacía con facilidad y ahora dudo o necesito ayuda, podría estar sintiendo dolor o incomodidad al moverme.' },
+  { emoji: '🚶', cat: 'mov', titulo: '¿Se cansa más rápido?', pregunta: '¿Mis paseos duran menos que antes?', texto: 'Si camino más lento, me detengo con frecuencia o pierdo energía antes de lo habitual, podría haber molestias en mis articulaciones.' },
+  { emoji: '😔', cat: 'mov', titulo: '¿Está más irritable?', pregunta: '¿Ya no quiero jugar como antes?', texto: 'El dolor también puede cambiar mi ánimo. Si evito juegos, me aíslo o me molesto cuando me tocan, vale la pena que lo observes.' },
 ]
 
 const TARJETAS_GATO = [
@@ -77,6 +84,13 @@ const TARJETAS_GATO = [
   { emoji: '⚫', cat: 'salud', titulo: 'Heces negras', pregunta: '¿Las heces negras en gatos son una urgencia?', texto: 'Si mis deposiciones son negras y pegajosas, podrían contener sangre digerida. Es una señal importante y conviene que un veterinario me evalúe pronto.' },
   { emoji: '🔴', cat: 'salud', titulo: 'Sangre en las heces', pregunta: '¿Qué hago si veo sangre en las heces de mi gato?', texto: 'Si ves sangre roja brillante, generalmente proviene de la parte final del intestino. Si la sangre es oscura o viene mezclada con las heces, el origen puede estar más arriba en el aparato digestivo. En ambos casos, avísale a mi veterinario.' },
   { emoji: '🤮', cat: 'salud', titulo: 'Vomité... ¿debo preocuparme?', pregunta: '¿Cuándo el vómito de un gato requiere atención veterinaria?', texto: 'A veces vomitamos por bolas de pelo. Pero si vomito varias veces en un día, hay sangre o dejo de comer por más de 24 horas, necesito que me vea un veterinario. No siempre es una bola de pelo.' },
+
+  // GRUPO 5: Movimiento y articulaciones
+  { emoji: '🛋️', cat: 'mov', titulo: '¿Ya no salta como antes?', pregunta: '¿Prefiero usar superficies más bajas?', texto: 'Si antes subía a muebles o ventanas con facilidad y ahora lo evito, podría estar sintiendo molestias articulares.' },
+  { emoji: '⬇️', cat: 'mov', titulo: '¿Le cuesta bajar de los muebles?', pregunta: '¿Desciendo con más cuidado o dudo antes de hacerlo?', texto: 'Los gatos solemos ocultar el dolor. Cambios como este pueden ser una de las primeras señales.' },
+  { emoji: '🐾', cat: 'mov', titulo: '¿Camina diferente?', pregunta: '¿Cojeo o apoyo menos una pata?', texto: 'Aunque sea muy sutil o aparezca solo a veces, una alteración en mi marcha merece ser observada.' },
+  { emoji: '🧶', cat: 'mov', titulo: '¿Juega menos?', pregunta: '¿Ya no persigo juguetes como antes?', texto: 'Si duermo más de lo habitual, evito correr o pierdo interés por el juego, podría haber alguna molestia física.' },
+  { emoji: '🙈', cat: 'mov', titulo: '¿Está más serio o evita el contacto?', pregunta: '¿Me escondo más o no quiero que me acaricien?', texto: 'Los gatos muchas veces expresamos el dolor cambiando nuestro comportamiento. Si notas un cambio importante, regístralo y coméntalo con mi veterinario.' },
 ]
 
 // Tarjetas generales (para otras especies)
@@ -93,6 +107,7 @@ const COLORES_CAT: Record<string, { color: string; bg: string; border: string; l
   comp:  { color: '#6B3FA0', bg: '#F3EEFF', border: '#C9A8F0', label: 'Comportamiento' },
   bien:  { color: '#1A6B9A', bg: '#EBF6FC', border: '#8DCCED', label: 'Bienestar' },
   seg:   { color: '#B83232', bg: '#FDEAEA', border: '#F0AAAA', label: 'Seguridad' },
+  mov:   { color: '#4B5563', bg: '#F1F2F4', border: '#C7CBD1', label: 'Movilidad' },
 }
 
 interface Props {
@@ -102,16 +117,16 @@ interface Props {
 export default function ChiquiTeCuenta({ especie }: Props) {
   // Seleccionar 5 tarjetas del dia — rotan segun dia del año
   // Cada grupo de 5 tarjetas en el array trata UN solo tema.
-  // grupoIndex elige cuál de los 5 grupos mostrar — rota al azar
+  // grupoIndex elige cuál de los 6 grupos mostrar — rota al azar
   // cada vez que se monta el componente (al entrar a la app).
-  const [grupoIndex] = useState(() => Math.floor(Math.random() * 5))
+  const [grupoIndex] = useState(() => Math.floor(Math.random() * 6))
 
   const tarjetasHoy = useMemo(() => {
     const lista = especie === 'Perro' ? TARJETAS_PERRO
       : especie === 'Gato' ? TARJETAS_GATO
       : TARJETAS_GENERAL
 
-    if (lista.length < 25) return lista.slice(0, 5) // fallback TARJETAS_GENERAL
+    if (lista.length < 30) return lista.slice(0, 5) // fallback TARJETAS_GENERAL
 
     const inicio = grupoIndex * 5
     return lista.slice(inicio, inicio + 5)
@@ -119,7 +134,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
 
   const [expandido, setExpandido] = useState<number | null>(null)
 
-  // Sexta tarjeta — una por cada uno de los 5 grupos temáticos.
+  // Sexta tarjeta — una por cada uno de los 6 grupos temáticos.
   // Definida por especie porque el grupo 1, 2, 4 difieren entre perro y gato.
   const GRUPOS_PERRO = [
     { img: '/chiqui/chiqui_chef.png', titulo: '¿Sabes qué puede comer tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué sí y qué no puede comer.' },
@@ -127,6 +142,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
     { img: '/chiqui/chiqui_doctor.png', titulo: '¿Sabes cuáles son sus signos vitales normales?', texto: 'Lee los tips de Chiqui y aprende a reconocerlos en casa.' },
     { img: '/chiqui/chiqui_caca.png', titulo: '¿Sabes leer las heces de tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué te dice cada color y forma.' },
     { img: '/chiqui/chiqui_paseo.png', titulo: '¿Conoces sus señales de bienestar?', texto: 'Lee los tips de Chiqui sobre comportamiento, ejercicio y cuidado diario.' },
+    { img: '/chiqui/chiqui_tranquilo.png', titulo: '¿Conoces las señales de molestias articulares?', texto: 'Lee los tips de Chiqui y aprende a detectar cambios en su movimiento.' },
   ]
   const GRUPOS_GATO = [
     { img: '/chiqui/chiqui_chef.png', titulo: '¿Sabes qué puede comer tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué sí y qué no puede comer.' },
@@ -134,6 +150,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
     { img: '/chiqui/chiqui_doctor.png', titulo: '¿Sabes cuáles son sus signos de salud?', texto: 'Lee los tips de Chiqui y aprende a reconocerlos en casa.' },
     { img: '/chiqui/chiqui_juguetes.png', titulo: '¿Sabes cómo enriquecer su día a día?', texto: 'Lee los tips de Chiqui sobre juego y enriquecimiento ambiental.' },
     { img: '/chiqui/chiqui_caca.png', titulo: '¿Sabes leer las heces de tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué te dice cada color y forma.' },
+    { img: '/chiqui/chiqui_tranquilo.png', titulo: '¿Sabes reconocer molestias articulares en tu gato?', texto: 'Lee los tips de Chiqui y aprende a detectar cambios sutiles en su movimiento.' },
   ]
   const sextaTarjeta = useMemo(() => {
     const grupos = especie === 'Gato' ? GRUPOS_GATO : GRUPOS_PERRO
