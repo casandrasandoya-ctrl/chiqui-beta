@@ -245,6 +245,7 @@ function RegistroContenido() {
   const [abierto, setAbierto] = useState('energia')
   const [gruposAbiertos, setGruposAbiertos] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
+  const [errorGuardado, setErrorGuardado] = useState('')
   const [cargando, setCargando] = useState(true)
   const [yaRegistro, setYaRegistro] = useState(false)
 
@@ -259,7 +260,7 @@ function RegistroContenido() {
       setMascotaId(m.id)
       setMascotaNombre(m.nombre)
       setEspecie(m.especie || '')
-      const hoy = fechaUrl || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0]
+      const hoy = fechaUrl || new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
       setFechaRegistro(hoy)
       const { data: r } = await supabase.from('registros_diarios').select('*').eq('mascota_id', m.id).eq('fecha', hoy).maybeSingle()
       if (r) {
@@ -321,7 +322,7 @@ function RegistroContenido() {
     setMiniModal(null)
     setAbierto('energia')
     setGruposAbiertos(new Set())
-    const hoy = fechaUrl || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0]
+    const hoy = fechaUrl || new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
     const { data: r } = await supabase.from('registros_diarios').select('*').eq('mascota_id', nueva.id).eq('fecha', hoy).maybeSingle()
     if (r) {
       setYaRegistro(true)
@@ -425,9 +426,10 @@ function RegistroContenido() {
   async function guardar() {
     if (!Object.keys(sel).length) return
     setLoading(true)
+    setErrorGuardado('')
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase.from('registros_diarios').upsert({
+    if (!user) { setLoading(false); return }
+    const { error } = await supabase.from('registros_diarios').upsert({
       mascota_id: mascotaId, user_id: user.id, fecha: fechaRegistro,
       estado_dia: calcEstado(sel), nota: nota || null,
       energia: sel.energia || null, animo: sel.animo || null,
@@ -452,6 +454,12 @@ function RegistroContenido() {
       seguimiento_lesion: cuidados.has('seguimiento_lesion'),
       peino: cuidados.has('peino'), shampoo_seco: cuidados.has('shampoo_seco'),
     }, { onConflict: 'mascota_id,fecha' })
+    if (error) {
+      console.error('Error guardando registro diario:', error)
+      setErrorGuardado('No se pudo guardar. Revisa tu conexión e intenta de nuevo.')
+      setLoading(false)
+      return
+    }
     router.push('/dashboard')
     router.refresh()
   }
@@ -686,6 +694,9 @@ function RegistroContenido() {
       </div>
 
       <div className="mx-4 mt-4">
+        {errorGuardado && (
+          <p className="text-center text-xs text-[#E05252] mb-2 bg-[#E05252]/10 rounded-xl py-2 px-3">{errorGuardado}</p>
+        )}
         <button onClick={guardar} disabled={loading || !completadas}
           className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
           {loading ? 'Guardando...' : yaRegistro ? 'Guardar cambios ✓' : 'Guardar registro de hoy ✓'}

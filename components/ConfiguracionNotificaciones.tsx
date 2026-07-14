@@ -20,6 +20,11 @@ export default function ConfiguracionNotificaciones() {
   const [error, setError] = useState('')
   const [soportado, setSoportado] = useState(true)
   const [iosNoInstalado, setIosNoInstalado] = useState(false)
+  // Permiso bloqueado a nivel de navegador/SO (Android vuelve a pedirlo
+  // al instalar la app desde Google Play, ya que la trata como app
+  // nueva). Si el usuario ya lo rechazó, el navegador NO deja volver a
+  // pedirlo con un clic -- hay que avisarle que vaya a Configuración.
+  const [permisoDenegado, setPermisoDenegado] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -31,6 +36,15 @@ export default function ConfiguracionNotificaciones() {
       // (no instalada), mostramos instrucciones en vez del boton.
       if (esIOS() && !estaInstalada()) {
         setIosNoInstalado(true)
+      }
+
+      // Detectar si el permiso del navegador ya quedó denegado
+      // (ej. Android tras reinstalar desde Google Play). Si es así, no
+      // tiene sentido mostrar el botón "Activar" -- nunca va a
+      // funcionar hasta que la persona lo habilite manualmente desde
+      // Configuración del teléfono.
+      if (soporta && typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+        setPermisoDenegado(true)
       }
 
       const { data: { user } } = await supabase.auth.getUser()
@@ -58,6 +72,11 @@ export default function ConfiguracionNotificaciones() {
     setError('')
     const resultado = await activarNotificaciones()
     if (!resultado.exito) {
+      // Si el navegador devuelve el permiso como denegado justo en este
+      // intento, actualizamos el aviso persistente también.
+      if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+        setPermisoDenegado(true)
+      }
       setError(resultado.error || 'No se pudo activar.')
       setProcesando(false)
       return
@@ -113,13 +132,21 @@ export default function ConfiguracionNotificaciones() {
           <div className="bg-[#FBEAD9] rounded-xl p-3 text-xs text-[#7A4A2F] leading-relaxed">
             <p className="font-semibold mb-1">📲 Un paso más en iPhone</p>
             <p>
-              Para recibir notificaciones, primero agrega CHIQUI a tu pantalla de inicio: toca el botón
-              de compartir (⬆️) en Safari, y elige "Agregar a inicio". Después abre la app desde ahí.
+              Para recibir notificaciones, primero agrega CHIQUI a tu pantalla de inicio: toca el botón de compartir (⬆️) en Safari, y elige "Agregar a inicio". Después abre la app desde ahí.
             </p>
           </div>
         )}
 
-        {soportado && !iosNoInstalado && (
+        {soportado && !iosNoInstalado && permisoDenegado && (
+          <div className="bg-[#F07A30]/10 rounded-xl p-3 text-xs text-[#8C572F] leading-relaxed">
+            <p className="font-semibold mb-1">🔕 Las notificaciones están bloqueadas</p>
+            <p>
+              Actívalas desde Configuración de tu teléfono → Apps → CHIQUI → Notificaciones, y vuelve a abrir la app.
+            </p>
+          </div>
+        )}
+
+        {soportado && !iosNoInstalado && !permisoDenegado && (
           <>
             <div className="mb-3">
               <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Hora del recordatorio</label>
