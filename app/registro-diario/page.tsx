@@ -243,6 +243,7 @@ function RegistroContenido() {
   const [miniError, setMiniError] = useState('')
   const [miniGuardando, setMiniGuardando] = useState(false)
   const [abierto, setAbierto] = useState('energia')
+  const [gruposAbiertos, setGruposAbiertos] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [yaRegistro, setYaRegistro] = useState(false)
@@ -294,8 +295,10 @@ function RegistroContenido() {
       limpieza_dental: 'limpieza_dental', limpieza_oidos: 'limpieza_oidos',
       tratamiento_dermatologico: 'tratamiento_dermatologico',
       cambio_alimento: 'cambio_alimento', probo_alimento_nuevo: 'probo_alimento_nuevo', cargo_dispensador: 'cargo_dispensador',
+      alimente_hoy: 'alimente_hoy',
       control_peso: 'control_peso', procedimiento_cirugia: 'procedimiento_cirugia',
       seguimiento_lesion: 'seguimiento_lesion',
+      peino: 'peino', shampoo_seco: 'shampoo_seco',
     }
     Object.entries(mapaCuidados).forEach(([columna, valor]) => {
       if (r[columna]) cuidadosExistentes.add(valor)
@@ -317,6 +320,7 @@ function RegistroContenido() {
     setCuidados(new Set())
     setMiniModal(null)
     setAbierto('energia')
+    setGruposAbiertos(new Set())
     const hoy = fechaUrl || new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santiago'})).toISOString().split('T')[0]
     const { data: r } = await supabase.from('registros_diarios').select('*').eq('mascota_id', nueva.id).eq('fecha', hoy).maybeSingle()
     if (r) {
@@ -343,6 +347,15 @@ function RegistroContenido() {
       nuevoSel[cat.id] = 'normal'
     })
     setSel(nuevoSel)
+  }
+
+  function toggleGrupoCuidados(titulo: string) {
+    setGruposAbiertos(prev => {
+      const nuevo = new Set(prev)
+      if (nuevo.has(titulo)) nuevo.delete(titulo)
+      else nuevo.add(titulo)
+      return nuevo
+    })
   }
 
   function toggleCuidado(valor: string) {
@@ -434,8 +447,10 @@ function RegistroContenido() {
       limpieza_dental: cuidados.has('limpieza_dental'), limpieza_oidos: cuidados.has('limpieza_oidos'),
       tratamiento_dermatologico: cuidados.has('tratamiento_dermatologico'),
       cambio_alimento: cuidados.has('cambio_alimento'), probo_alimento_nuevo: cuidados.has('probo_alimento_nuevo'), cargo_dispensador: cuidados.has('cargo_dispensador'),
+      alimente_hoy: cuidados.has('alimente_hoy'),
       control_peso: cuidados.has('control_peso'), procedimiento_cirugia: cuidados.has('procedimiento_cirugia'),
       seguimiento_lesion: cuidados.has('seguimiento_lesion'),
+      peino: cuidados.has('peino'), shampoo_seco: cuidados.has('shampoo_seco'),
     }, { onConflict: 'mascota_id,fecha' })
     router.push('/dashboard')
     router.refresh()
@@ -580,7 +595,7 @@ function RegistroContenido() {
         })}
       </div>
 
-      {/* CUIDADOS — organizados en 5 grupos */}
+      {/* CUIDADOS — organizados en 5 grupos, cada uno desplegable */}
       <div className="mx-4 mt-4">
         <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
           Cuidados de hoy · opcional, puedes marcar varios
@@ -602,8 +617,11 @@ function RegistroContenido() {
             { value: 'limpieza_dental', emoji: '🦷', label: 'Limpieza dental' },
             { value: 'limpieza_oidos', emoji: '👂', label: 'Limpieza de oídos' },
             { value: 'tratamiento_dermatologico', emoji: '🧴', label: 'Tratamiento dermatológico' },
+            { value: 'peino', emoji: '💇', label: 'Lo peiné' },
+            { value: 'shampoo_seco', emoji: '🧼', label: 'Shampoo en seco' },
           ]},
           { titulo: 'Alimentación', img: '/chiqui/chiqui_chef.png', items: [
+            { value: 'alimente_hoy', emoji: '🥘', label: 'Alimenté a mi mascota' },
             { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
             { value: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó un alimento nuevo' },
             { value: 'cargo_dispensador', emoji: '🤖', label: 'Cargué el dispensador de comida/agua' },
@@ -613,32 +631,49 @@ function RegistroContenido() {
             { value: 'procedimiento_cirugia', emoji: '🏥', label: 'Procedimiento o cirugía' },
             { value: 'seguimiento_lesion', emoji: '📸', label: 'Seguimiento de lesión o recuperación' },
           ]},
-        ].map(grupo => (
-          <div key={grupo.titulo} className="mb-3 last:mb-0">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <img src={grupo.img} alt="" className="w-5 h-5 object-contain" />
-              <p className="text-[11px] font-semibold text-[#CD7421]">{grupo.titulo}</p>
+        ].map(grupo => {
+          const abiertoGrupo = gruposAbiertos.has(grupo.titulo)
+          const marcadosEnGrupo = grupo.items.filter(c => cuidados.has(c.value)).length
+          return (
+            <div key={grupo.titulo} className="mb-2 last:mb-0 rounded-xl border border-[#EEE2D4] overflow-hidden bg-[#FFFCF8]">
+              <button
+                type="button"
+                onClick={() => toggleGrupoCuidados(grupo.titulo)}
+                className="w-full flex items-center gap-1.5 px-3 py-2.5 text-left"
+              >
+                <img src={grupo.img} alt="" className="w-5 h-5 object-contain" />
+                <p className="flex-1 text-[11px] font-semibold text-[#CD7421]">{grupo.titulo}</p>
+                {marcadosEnGrupo > 0 && (
+                  <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">
+                    {marcadosEnGrupo}
+                  </span>
+                )}
+                <span className="text-[#8A7560] text-sm">{abiertoGrupo ? '▾' : '›'}</span>
+              </button>
+
+              {abiertoGrupo && (
+                <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-2">
+                  {grupo.items.map(c => {
+                    const activo = cuidados.has(c.value)
+                    return (
+                      <button
+                        key={c.value}
+                        onClick={() => toggleCuidado(c.value)}
+                        className="flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
+                        style={activo
+                          ? { background: '#FFBD5920', borderColor: '#FFBD59', borderWidth: '1.5px' }
+                          : { background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
+                      >
+                        <span className="text-base flex-shrink-0">{c.emoji}</span>
+                        <span className="text-xs font-medium text-[#3D2B1F]">{c.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {grupo.items.map(c => {
-                const activo = cuidados.has(c.value)
-                return (
-                  <button
-                    key={c.value}
-                    onClick={() => toggleCuidado(c.value)}
-                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
-                    style={activo
-                      ? { background: '#FFBD5920', borderColor: '#FFBD59', borderWidth: '1.5px' }
-                      : { background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
-                  >
-                    <span className="text-base flex-shrink-0">{c.emoji}</span>
-                    <span className="text-xs font-medium text-[#3D2B1F]">{c.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="mx-4 mt-4">

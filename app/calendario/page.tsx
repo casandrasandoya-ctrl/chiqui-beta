@@ -31,10 +31,10 @@ function puntosDelDia(reg: any): string[] {
   if (reg.fue_al_vet) puntos.push('#8C572F')
   // Vacuna, antiparasitario, medicamento
   if (reg.vacuna_hoy || reg.anti_hoy || reg.medicamento_hoy) puntos.push('#4AABDB')
-  // Higiene (baño, uñas, oídos, dental, dermatológico)
-  if (reg.se_bano || reg.corte_unas || reg.limpieza_dental || reg.limpieza_oidos || reg.tratamiento_dermatologico) puntos.push('#4CAF7D')
-  // Alimentación (comida, dispensador, cambio de alimento)
-  if (reg.alimento || reg.cambio_alimento || reg.probo_alimento_nuevo || reg.cargo_dispensador) puntos.push('#FFBD59')
+  // Higiene (baño, uñas, oídos, dental, dermatológico, peinado, shampoo seco)
+  if (reg.se_bano || reg.corte_unas || reg.limpieza_dental || reg.limpieza_oidos || reg.tratamiento_dermatologico || reg.peino || reg.shampoo_seco) puntos.push('#4CAF7D')
+  // Alimentación (comida, dispensador, cambio de alimento, alimentó hoy)
+  if (reg.alimento || reg.cambio_alimento || reg.probo_alimento_nuevo || reg.cargo_dispensador || reg.alimente_hoy) puntos.push('#FFBD59')
   // Eventos importantes (cirugía, peso, lesión)
   if (reg.control_peso || reg.procedimiento_cirugia || reg.seguimiento_lesion) puntos.push('#F07A30')
   return puntos
@@ -113,6 +113,29 @@ export default function CalendarioPage() {
     if (mascota) await cargarRegistros(mascota.id, nm, na)
   }
 
+  // Swipe horizontal para cambiar de mes -- complementa los botones de
+  // flecha, no los reemplaza. Umbral de 50px para evitar que un scroll
+  // vertical accidental dispare el cambio de mes.
+  const [touchStartX, setTouchStartX] = useState<number | null>(null)
+  const [touchStartY, setTouchStartY] = useState<number | null>(null)
+
+  function onTouchStartGrid(e: React.TouchEvent) {
+    setTouchStartX(e.touches[0].clientX)
+    setTouchStartY(e.touches[0].clientY)
+  }
+
+  function onTouchEndGrid(e: React.TouchEvent) {
+    if (touchStartX === null || touchStartY === null) return
+    const deltaX = e.changedTouches[0].clientX - touchStartX
+    const deltaY = e.changedTouches[0].clientY - touchStartY
+    setTouchStartX(null)
+    setTouchStartY(null)
+    // Ignorar si el movimiento fue mas vertical que horizontal (scroll)
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaX) < Math.abs(deltaY)) return
+    if (deltaX > 0) cambiarMes(-1)
+    else cambiarMes(1)
+  }
+
   const diasEnMes = new Date(año, mes + 1, 0).getDate()
   const primerDia = (new Date(año, mes, 1).getDay() + 6) % 7 // lunes=0
   const hoy = new Date()
@@ -160,8 +183,12 @@ export default function CalendarioPage() {
         ))}
       </div>
 
-      {/* Grid días */}
-      <div className="grid grid-cols-7 gap-1 px-3">
+      {/* Grid días -- soporta swipe horizontal ademas de los botones de flecha */}
+      <div
+        className="grid grid-cols-7 gap-1 px-3"
+        onTouchStart={onTouchStartGrid}
+        onTouchEnd={onTouchEndGrid}
+      >
         {Array(primerDia).fill(null).map((_, i) => <div key={`e${i}`} />)}
         {Array(diasEnMes).fill(null).map((_, i) => {
           const d = i + 1

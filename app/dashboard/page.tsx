@@ -83,7 +83,7 @@ export default async function Dashboard({ searchParams }: Props) {
     return Math.round((hoyDate.getTime() - fechaDate.getTime()) / 86400000)
   }
 
-  // Definición de los 12 cuidados posibles, organizados por grupo (mismo
+  // Definición de los cuidados posibles, organizados por grupo (mismo
   // orden que en el registro diario), cada uno con la columna booleana
   // que hay que consultar en registros_diarios.
   const definicionCuidados = [
@@ -97,8 +97,12 @@ export default async function Dashboard({ searchParams }: Props) {
     { grupo: 'Higiene y bienestar', columna: 'limpieza_dental', label: 'Limpieza dental', emoji: '🦷' },
     { grupo: 'Higiene y bienestar', columna: 'limpieza_oidos', label: 'Limpieza de oídos', emoji: '👂' },
     { grupo: 'Higiene y bienestar', columna: 'tratamiento_dermatologico', label: 'Tratamiento dermatológico', emoji: '🧴' },
+    { grupo: 'Higiene y bienestar', columna: 'peino', label: 'Lo peiné', emoji: '💇' },
+    { grupo: 'Higiene y bienestar', columna: 'shampoo_seco', label: 'Shampoo en seco', emoji: '🧼' },
+    { grupo: 'Alimentación', columna: 'alimente_hoy', label: 'Alimenté a mi mascota', emoji: '🥘' },
     { grupo: 'Alimentación', columna: 'cambio_alimento', label: 'Cambio de alimento', emoji: '🥣' },
     { grupo: 'Alimentación', columna: 'probo_alimento_nuevo', label: 'Alimento nuevo', emoji: '🎁' },
+    { grupo: 'Alimentación', columna: 'cargo_dispensador', label: 'Cargué el dispensador', emoji: '🤖' },
     { grupo: 'Eventos importantes', columna: 'control_peso', label: 'Control de peso', emoji: '⚖️' },
     { grupo: 'Eventos importantes', columna: 'procedimiento_cirugia', label: 'Procedimiento/cirugía', emoji: '🏥' },
     { grupo: 'Eventos importantes', columna: 'seguimiento_lesion', label: 'Seguimiento de lesión', emoji: '📸' },
