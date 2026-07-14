@@ -79,6 +79,7 @@ export default function PrevencionPage() {
   const [fotoEvo, setFotoEvo] = useState<File | null>(null)
   const [fotoEvoPreview, setFotoEvoPreview] = useState<string | null>(null)
   const [savingEvo, setSavingEvo] = useState(false)
+  const [editandoEvoId, setEditandoEvoId] = useState<string | null>(null)
 
   useEffect(() => {
     const anyModal = modal || menuAbierto || modalEvo || modalResolverObs
@@ -285,12 +286,24 @@ export default function PrevencionPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSavingEvo(false); return }
 
-    const { data: nueva } = await supabase.from('observacion_evoluciones').insert({
-      observacion_id: obsId,
-      user_id: user.id,
-      fecha: formEvo.fecha,
-      nota: formEvo.nota || null,
-    }).select('id').single()
+    let evoId: string | null = null
+    if (editandoEvoId) {
+      // Edición: actualizar fecha y nota de la evolución existente
+      await supabase.from('observacion_evoluciones').update({
+        fecha: formEvo.fecha,
+        nota: formEvo.nota || null,
+      }).eq('id', editandoEvoId)
+      evoId = editandoEvoId
+    } else {
+      const { data: nuevaIns } = await supabase.from('observacion_evoluciones').insert({
+        observacion_id: obsId,
+        user_id: user.id,
+        fecha: formEvo.fecha,
+        nota: formEvo.nota || null,
+      }).select('id').single()
+      evoId = nuevaIns?.id || null
+    }
+    const nueva = evoId ? { id: evoId } : null
 
     if (nueva && fotoEvo) {
       const ext = fotoEvo.name.split('.').pop() || 'jpg'
@@ -314,7 +327,33 @@ export default function PrevencionPage() {
     setFormEvo({ fecha: '', nota: '' })
     setFotoEvo(null)
     setFotoEvoPreview(null)
+    setEditandoEvoId(null)
     setSavingEvo(false)
+  }
+
+  function editarEvo(evo: any, obsId: string) {
+    setEditandoEvoId(evo.id)
+    setFormEvo({ fecha: evo.fecha || '', nota: evo.nota || '' })
+    setFotoEvo(null)
+    setFotoEvoPreview(evo.foto_url || null)
+    setModalEvo(obsId)
+  }
+
+  async function eliminarEvo(evo: any, obsId: string) {
+    if (!confirm('¿Eliminar esta evolución? Esta acción no se puede deshacer.')) return
+    // Borrar foto del storage si existe
+    if (evo.foto_url) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // Reconstruir el path: userId/evoluciones/evoId.ext
+        const match = evo.foto_url.match(/evoluciones\/([^?]+)/)
+        if (match) {
+          await supabase.storage.from('fotos-salud').remove([`${user.id}/evoluciones/${match[1]}`])
+        }
+      }
+    }
+    await supabase.from('observacion_evoluciones').delete().eq('id', evo.id)
+    await cargarEvoluciones(obsId)
   }
 
   async function reactivarObs(obsId: string) {
@@ -711,7 +750,7 @@ export default function PrevencionPage() {
                         </div>
                         {o.descripcion && <p className="text-xs text-[#8A7560] mt-1 leading-relaxed">{o.descripcion}</p>}
                         <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
-                        {o.foto_url && <img src={o.foto_url} alt={o.titulo} className="w-full h-40 object-cover rounded-xl mt-2" />}
+                        {o.foto_url && obsExpandida !== o.id && <img src={o.foto_url} alt={o.titulo} className="w-full max-h-64 object-contain bg-[#FBEAD9] rounded-xl mt-2" />}
                       </div>
                     </div>
 
@@ -724,7 +763,7 @@ export default function PrevencionPage() {
                         {obsExpandida === o.id ? '⌃ Ocultar evoluciones' : `⌄ Ver evoluciones${evoluciones[o.id] ? ` (${evoluciones[o.id].length})` : ''}`}
                       </button>
                       <button
-                        onClick={() => { setModalEvo(o.id); setFormEvo({ fecha: '', nota: '' }) }}
+                        onClick={() => { setModalEvo(o.id); setEditandoEvoId(null); setFormEvo({ fecha: '', nota: '' }); setFotoEvo(null); setFotoEvoPreview(null) }}
                         className="px-3 py-2 rounded-xl text-xs font-bold bg-[#FFBD59] text-[#1A1200]"
                       >
                         + Evolución
@@ -738,28 +777,42 @@ export default function PrevencionPage() {
                     </div>
                   </div>
 
-                  {/* TIMELINE DE EVOLUCIONES */}
+                  {/* TIMELINE DE EVOLUCIONES — incluye la entrada inicial integrada cronológicamente */}
                   {obsExpandida === o.id && (
                     <div className="border-t border-[#EEE2D4] bg-[#F5EDE3]/50 px-4 py-3">
                       {!evoluciones[o.id] ? (
                         <p className="text-xs text-[#8A7560] text-center py-2">Cargando...</p>
-                      ) : evoluciones[o.id].length === 0 ? (
-                        <p className="text-xs text-[#8A7560] text-center py-2">Sin evoluciones registradas aún. Toca "+ Evolución" para agregar una.</p>
                       ) : (
                         <div className="space-y-3">
-                          {evoluciones[o.id].map((evo, idx) => (
+                          {/* Combinar evoluciones + entrada inicial, ordenadas más reciente primero */}
+                          {[
+                            ...evoluciones[o.id].map((evo: any) => ({ ...evo, esInicial: false })),
+                            { id: `inicial-${o.id}`, fecha: o.fecha_inicio, nota: o.descripcion, foto_url: o.foto_url, esInicial: true },
+                          ]
+                            .sort((a: any, b: any) => (b.fecha || '').localeCompare(a.fecha || ''))
+                            .map((evo: any, idx: number, arr: any[]) => (
                             <div key={evo.id} className="flex gap-3">
                               {/* Línea de tiempo */}
                               <div className="flex flex-col items-center">
-                                <div className="w-2.5 h-2.5 rounded-full bg-[#8C572F] flex-shrink-0 mt-0.5" />
-                                {idx < evoluciones[o.id].length - 1 && (
+                                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5 ${evo.esInicial ? 'bg-[#CD7421]' : 'bg-[#8C572F]'}`} />
+                                {idx < arr.length - 1 && (
                                   <div className="w-0.5 flex-1 bg-[#EEE2D4] mt-1" />
                                 )}
                               </div>
                               <div className="flex-1 pb-3">
-                                <p className="text-xs font-bold text-[#8C572F]">{fmt(evo.fecha)}</p>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-bold text-[#8C572F]">
+                                    {fmt(evo.fecha)}{evo.esInicial ? ' · Inicio' : ''}
+                                  </p>
+                                  {!evo.esInicial && (
+                                    <div className="flex items-center gap-1">
+                                      <button onClick={() => editarEvo(evo, o.id)} className="text-[#8A7560] text-xs w-6 h-6 flex items-center justify-center">✏️</button>
+                                      <button onClick={() => eliminarEvo(evo, o.id)} className="text-[#E05252] text-xs w-6 h-6 flex items-center justify-center">🗑️</button>
+                                    </div>
+                                  )}
+                                </div>
                                 {evo.nota && <p className="text-xs text-[#3D2B1F] mt-0.5 leading-relaxed">{evo.nota}</p>}
-                                {evo.foto_url && <img src={evo.foto_url} alt="" className="w-full h-32 object-cover rounded-xl mt-1.5" />}
+                                {evo.foto_url && <img src={evo.foto_url} alt="" className="w-full max-h-64 object-contain bg-[#FFFCF8] rounded-xl mt-1.5" />}
                               </div>
                             </div>
                           ))}
@@ -955,62 +1008,6 @@ export default function PrevencionPage() {
         </div>
       )}
 
-      {/* MODAL AGREGAR EVOLUCIÓN — MEJORA 1 */}
-      {modalEvo && (
-        <div className="fixed inset-0 z-[60] overflow-hidden flex items-end justify-center bg-black/60" onClick={() => { setModalEvo(null); setFormEvo({ fecha: '', nota: '' }); setFotoEvo(null); setFotoEvoPreview(null) }}>
-          <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 80px)' }} onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-base">📍 Nueva evolución</h2>
-              <div className="flex items-center gap-2">
-                <button onClick={() => guardarEvolucion(modalEvo!)} disabled={savingEvo} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
-                  {saving ? '...' : 'Guardar'}
-                </button>
-                <button onClick={() => { setModalEvo(null); setFormEvo({ fecha: '', nota: '' }); setFotoEvo(null); setFotoEvoPreview(null) }} className="text-[#8A7560] text-xl">✕</button>
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha</label>
-              <FechaSelector value={formEvo.fecha || ''} onChange={v => setFormEvo((p: any) => ({ ...p, fecha: v }))} />
-            </div>
-            <div>
-              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nota / observación</label>
-              <textarea className={IC} rows={3} placeholder="¿Cómo está hoy? ¿Mejoró, empeoró, igual?" value={formEvo.nota || ''} onChange={e => setFormEvo((p: any) => ({ ...p, nota: e.target.value }))} />
-            </div>
-            <div>
-              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Foto (opcional)</label>
-              <div className="flex items-center gap-3">
-                <label className="w-16 h-16 rounded-xl bg-[#FFFCF8] border border-[#EEE2D4] flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer">
-                  {fotoEvoPreview ? <img src={fotoEvoPreview} alt="" className="w-full h-full object-cover" /> : <span className="text-xl">📷</span>}
-                  <input type="file" accept="image/*" onChange={elegirFotoEvo} className="hidden" />
-                </label>
-                <p className="text-xs text-[#8A7560]">Toca para agregar una foto del estado actual.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL MARCAR COMO RESUELTA — MEJORA 2 */}
-      {modalResolverObs && (
-        <div className="fixed inset-0 z-[60] overflow-hidden flex items-end justify-center bg-black/60" onClick={() => { setModalResolverObs(null); setFechaResolucion('') }}>
-          <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4" style={{ maxHeight: 'calc(100vh - 80px)' }} onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-base">✅ Marcar como resuelta</h2>
-              <div className="flex items-center gap-2">
-                <button onClick={() => marcarResuelta(modalResolverObs!)} disabled={saving} className="bg-[#4CAF7D] text-white text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-40">
-                  {saving ? '...' : 'Confirmar'}
-                </button>
-                <button onClick={() => { setModalResolverObs(null); setFechaResolucion('') }} className="text-[#8A7560] text-xl">✕</button>
-              </div>
-            </div>
-            <p className="text-sm text-[#8A7560]">¿Cuándo se resolvió esta observación?</p>
-            <div>
-              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Fecha de resolución</label>
-              <FechaSelector value={fechaResolucion} onChange={setFechaResolucion} placeholder="Hoy si no recuerdas" />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* MODAL AGREGAR/EDITAR */}
       {modal && (
@@ -1182,12 +1179,12 @@ export default function PrevencionPage() {
       {/* MODAL: Nueva evolución */}
       {modalEvo && (
         <div className="fixed inset-0 z-[60] overflow-hidden flex items-end justify-center bg-black/60"
-          onClick={() => setModalEvo(null)}>
+          onClick={() => { setModalEvo(null); setEditandoEvoId(null); setFotoEvo(null); setFotoEvoPreview(null) }}>
           <div className="w-full max-w-[480px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-4 overflow-y-auto"
             style={{ maxHeight: 'calc(100vh - 80px)', paddingBottom: '24px' }}
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-base">📝 Nueva evolución</h2>
+              <h2 className="font-bold text-base">{editandoEvoId ? '✏️ Editar evolución' : '📝 Nueva evolución'}</h2>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => guardarEvolucion(modalEvo)}
@@ -1196,7 +1193,7 @@ export default function PrevencionPage() {
                 >
                   {savingEvo ? '...' : 'Guardar'}
                 </button>
-                <button onClick={() => setModalEvo(null)} className="text-[#8A7560] text-xl">✕</button>
+                <button onClick={() => { setModalEvo(null); setEditandoEvoId(null); setFotoEvo(null); setFotoEvoPreview(null) }} className="text-[#8A7560] text-xl">✕</button>
               </div>
             </div>
             <div>
