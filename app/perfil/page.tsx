@@ -61,7 +61,11 @@ export default function PerfilPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       setUserEmail(user.email || '')
-      setUserNombre((user.user_metadata as any)?.nombre || '')
+      // Google guarda el nombre bajo "full_name" o "name" (no "nombre",
+      // que es la llave que usa nuestro registro con email/contraseña) --
+      // probamos las 3 para que funcione sin importar como haya entrado.
+      const meta = user.user_metadata as any
+      setUserNombre(meta?.nombre || meta?.full_name || meta?.name || '')
       const { data: todasMascotas } = await supabase.from('mascotas').select('*').order('created_at', { ascending: true })
       if (!todasMascotas || !todasMascotas.length) { router.push('/mascota/nueva'); return }
       setMascotas(todasMascotas)
