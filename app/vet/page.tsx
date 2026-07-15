@@ -31,6 +31,23 @@ function fueraDeRango(valor: string, rangoMin: number | null, rangoMax: number |
   return v < rangoMin || v > rangoMax
 }
 
+// Para vacunas: cada NOMBRE de vacuna (ej. "Séxtuple", "Antirrábica")
+// es un tratamiento independiente con su propio calendario -- así que
+// para saber si algo está "vencido", hay que mirar solo la aplicación
+// MÁS RECIENTE de cada nombre, no todo el historial completo (una
+// vacuna vieja que ya fue reemplazada por una más nueva del mismo tipo
+// no debería seguir contando como "vencida").
+function masRecientesPorNombre(lista: any[]): any[] {
+  const porNombre = new Map<string, any>()
+  for (const item of lista) {
+    const existente = porNombre.get(item.nombre)
+    if (!existente || (item.fecha_aplicacion || '') > (existente.fecha_aplicacion || '')) {
+      porNombre.set(item.nombre, item)
+    }
+  }
+  return Array.from(porNombre.values())
+}
+
 const EC: Record<string,string> = { verde:'#4CAF7D', amarillo:'#F5C842', naranjo:'#F07A30', rojo:'#E05252' }
 const EL: Record<string,string> = { verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' }
 
@@ -113,19 +130,23 @@ function construirResumenClinico(params: {
     }
   }
 
-  // Vacunas
+  // Vacunas: solo se cuenta como "vencida" si la aplicación MÁS
+  // RECIENTE de ese nombre de vacuna ya pasó su próxima fecha -- una
+  // vacuna vieja reemplazada por una más nueva no cuenta.
   if (vacunas.length > 0) {
-    const vencidas = vacunas.filter((v: any) => v.proxima_fecha && new Date(v.proxima_fecha + 'T00:00:00') < hoy)
+    const vigentesPorNombre = masRecientesPorNombre(vacunas)
+    const vencidas = vigentesPorNombre.filter((v: any) => v.proxima_fecha && new Date(v.proxima_fecha + 'T00:00:00') < hoy)
     resumen.push(vencidas.length > 0
       ? `💉 ${vencidas.length} vacuna${vencidas.length === 1 ? '' : 's'} vencida${vencidas.length === 1 ? '' : 's'}.`
       : '💉 Vacunas al día.')
   }
 
-  // Antiparasitario: se mira la próxima fecha más reciente registrada
+  // Antiparasitario: se mira la ÚLTIMA DOSIS APLICADA (por
+  // fecha_aplicacion, no por proxima_fecha) -- una dosis vieja del
+  // historial que ya fue reemplazada no debe seguir contando.
   if (antis.length > 0) {
-    const conProxima = antis.filter((a: any) => a.proxima_fecha).sort((a: any, b: any) => b.proxima_fecha.localeCompare(a.proxima_fecha))
-    const masReciente = conProxima[0]
-    const vigente = masReciente && new Date(masReciente.proxima_fecha + 'T00:00:00') >= hoy
+    const masReciente = antis.slice().sort((a: any, b: any) => (b.fecha_aplicacion || '').localeCompare(a.fecha_aplicacion || ''))[0]
+    const vigente = masReciente?.proxima_fecha && new Date(masReciente.proxima_fecha + 'T00:00:00') >= hoy
     resumen.push(vigente ? '🪱 Antiparasitario vigente.' : '🪱 Antiparasitario vencido o sin próxima fecha registrada.')
   }
 
@@ -348,7 +369,7 @@ export default async function VetPage({ searchParams }: Props) {
           {mascota.especie}{mascota.raza ? ` · ${mascota.raza}` : ''}
           {mascota.fecha_nacimiento ? ` · ${calcEdad(mascota.fecha_nacimiento)}` : ''}
           {mascota.sexo ? ` · ${mascota.sexo}` : ''}
-          {mascota.castrado ? ' · Castrado/a' : ''}
+          {mascota.castrado ? ' · Esterilizado/a' : ''}
         </p>
         {mascota.alergias && (
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E05252]/20 text-white">
@@ -361,7 +382,7 @@ export default async function VetPage({ searchParams }: Props) {
 
         {/* 1. Ficha del paciente -- prácticamente igual, se agrega Estado
             reproductivo explícito (antes solo aparecía implícito como
-            "Castrado/a" en el header). */}
+            "Esterilizado/a" en el header). */}
         <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4]">
           <div className="flex items-center gap-2 mb-3">
             <img src="/chiqui/chiqui_registro.png" alt="" className="w-6 h-6 object-contain" />
@@ -369,7 +390,7 @@ export default async function VetPage({ searchParams }: Props) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
-              ['Estado reproductivo', mascota.castrado ? 'Castrado/a' : 'Entero/a'],
+              ['Estado reproductivo', mascota.castrado ? 'Esterilizado/a' : 'Entero/a'],
               ['Peso actual', mascota.peso_actual ? `${mascota.peso_actual} kg` : '—'],
               ['Alimentación', mascota.alimentacion_tipo || '—'],
               ['Marca / proteína', mascota.alimentacion_marca || '—'],
@@ -578,11 +599,14 @@ export default async function VetPage({ searchParams }: Props) {
         </div>
 
         {/* 7. Vacunas -- estado + próxima primero, historial detrás de un
-            desplegable. */}
+            desplegable. Solo se considera la aplicación más reciente
+            de CADA nombre de vacuna (una vacuna vieja reemplazada por
+            una más nueva del mismo tipo no cuenta como "vencida"). */}
         {vacunas.length > 0 && (() => {
-          const conProxima = vacunas.filter((v: any) => v.proxima_fecha).sort((a: any, b: any) => a.proxima_fecha.localeCompare(b.proxima_fecha))
           const hoy = new Date()
-          const vencidas = vacunas.filter((v: any) => v.proxima_fecha && new Date(v.proxima_fecha + 'T00:00:00') < hoy)
+          const vigentesPorNombre = masRecientesPorNombre(vacunas)
+          const vencidas = vigentesPorNombre.filter((v: any) => v.proxima_fecha && new Date(v.proxima_fecha + 'T00:00:00') < hoy)
+          const conProxima = vigentesPorNombre.filter((v: any) => v.proxima_fecha).sort((a: any, b: any) => a.proxima_fecha.localeCompare(b.proxima_fecha))
           const proxima = conProxima.find((v: any) => new Date(v.proxima_fecha + 'T00:00:00') >= hoy) || conProxima[0]
           return (
             <SeccionVet titulo={`💉 Vacunas (${vacunas.length})`}>
@@ -604,20 +628,24 @@ export default async function VetPage({ searchParams }: Props) {
           )
         })()}
 
-        {/* 8. Antiparasitarios -- mismo criterio que Vacunas. */}
+        {/* 8. Antiparasitarios -- a diferencia de Vacunas, aquí se mira
+            SOLO la última dosis aplicada en general (por
+            fecha_aplicacion), sin importar el nombre del producto --
+            es "cuándo toca la próxima dosis", y cambiar de producto
+            (ej. de Mebermic a Simpárica trío) no debería dejar
+            marcado "vencido" algo que ya fue reemplazado. */}
         {antis.length > 0 && (() => {
-          const conProxima = antis.filter((a: any) => a.proxima_fecha).sort((a: any, b: any) => a.proxima_fecha.localeCompare(b.proxima_fecha))
           const hoy = new Date()
-          const vencidos = antis.filter((a: any) => a.proxima_fecha && new Date(a.proxima_fecha + 'T00:00:00') < hoy)
-          const proximo = conProxima.find((a: any) => new Date(a.proxima_fecha + 'T00:00:00') >= hoy) || conProxima[0]
+          const masReciente = antis.slice().sort((a: any, b: any) => (b.fecha_aplicacion || '').localeCompare(a.fecha_aplicacion || ''))[0]
+          const vencido = masReciente?.proxima_fecha && new Date(masReciente.proxima_fecha + 'T00:00:00') < hoy
           return (
             <SeccionVet titulo={`💊 Antiparasitarios (${antis.length})`}>
               <div className="mb-3 pb-3 border-b border-[#EEE2D4]">
-                <p className="text-xs font-bold" style={{ color: vencidos.length > 0 ? '#E05252' : '#4CAF7D' }}>
-                  {vencidos.length > 0 ? `⚠️ ${vencidos.length} vencido${vencidos.length === 1 ? '' : 's'}` : '✅ Al día'}
+                <p className="text-xs font-bold" style={{ color: vencido ? '#E05252' : '#4CAF7D' }}>
+                  {vencido ? '⚠️ Vencido' : '✅ Al día'}
                 </p>
-                {proximo?.proxima_fecha && (
-                  <p className="text-xs text-[#8A7560] mt-0.5">Próxima: {proximo.nombre} · {fmt(proximo.proxima_fecha)}</p>
+                {masReciente?.proxima_fecha && (
+                  <p className="text-xs text-[#8A7560] mt-0.5">Próxima: {masReciente.nombre} · {fmt(masReciente.proxima_fecha)}</p>
                 )}
               </div>
               <details>
