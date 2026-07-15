@@ -5,22 +5,24 @@ import FechaSelector from '@/components/FechaSelector'
 
 interface Props {
   mascotaId: string
+  especie?: string
 }
 
-// Plantillas: solo el NOMBRE y orden de cada parámetro, respetando el
-// orden exacto en que suelen venir en el informe del laboratorio (sin
-// inventar categorías clínicas). El rango de referencia NO se
-// hardcodea aquí -- varía según laboratorio, así que se recuerda del
-// examen anterior del mismo tipo (ver cargarUltimosRangos), o se deja
-// en blanco la primera vez.
-const TIPOS_EXAMEN: { valor: string; label: string; emoji: string; parametros: string[] }[] = [
+// Plantillas: nombre, orden, y si el parámetro es NUMÉRICO (con
+// unidad/rango) o de TEXTO (descriptivo, como "Negativo" o "Amarillo
+// claro" -- no tiene sentido pedirle unidad ni rango a esos). El orden
+// respeta el informe real del laboratorio, sin inventar categorías
+// clínicas.
+interface ParametroPlantilla { nombre: string; tipo: 'numero' | 'texto' }
+
+const TIPOS_EXAMEN: { valor: string; label: string; emoji: string; parametros: ParametroPlantilla[] }[] = [
   {
     valor: 'bioquimico', label: 'Perfil bioquímico', emoji: '🧪',
     parametros: [
       'Proteínas Totales', 'Albúmina', 'Globulinas', 'Bilirrubina Total',
       'Colesterol', 'Glucosa', 'Calcio', 'Fósforo', 'Urea', 'Nus (BUN)',
       'Creatinina', 'Fosfatasa Alcalina', 'GPT/ALT', 'GOT/AST', 'GGT',
-    ],
+    ].map(nombre => ({ nombre, tipo: 'numero' as const })),
   },
   {
     valor: 'hemograma', label: 'Hemograma', emoji: '🩸',
@@ -31,21 +33,43 @@ const TIPOS_EXAMEN: { valor: string; label: string; emoji: string; parametros: s
       'Eosinófilos Absolutos', 'Basófilos Absolutos', 'Juveniles Absolutos',
       'Baciliformes Absolutos', 'Segmentados Absolutos',
       'Linfocitos Absolutos', 'Monocitos Absolutos',
-    ],
+    ].map(nombre => ({ nombre, tipo: 'numero' as const })),
   },
   {
+    // Solo Densidad urinaria (USG) y pH son realmente numéricos con
+    // rango de referencia. El resto (evaluación física y química con
+    // tira reactiva, y sedimento al microscopio) son descriptivos --
+    // "Negativo", "Trazas", "1+", "Amarillo claro", "Escasos", etc.
     valor: 'orina', label: 'Examen de orina', emoji: '💛',
     parametros: [
-      'Color', 'Aspecto', 'Densidad urinaria (USG)', 'pH', 'Proteínas',
-      'Glucosa', 'Cetonas', 'Bilirrubina', 'Sangre / Hemoglobina',
-      'Urobilinógeno', 'Nitritos', 'Glóbulos rojos (RBC)',
-      'Glóbulos blancos (WBC)', 'Células epiteliales', 'Bacterias',
-      'Cristales', 'Cilindros', 'Moco',
+      { nombre: 'Color', tipo: 'texto' },
+      { nombre: 'Aspecto', tipo: 'texto' },
+      { nombre: 'Densidad urinaria (USG)', tipo: 'numero' },
+      { nombre: 'pH', tipo: 'numero' },
+      { nombre: 'Proteínas', tipo: 'texto' },
+      { nombre: 'Glucosa', tipo: 'texto' },
+      { nombre: 'Cetonas', tipo: 'texto' },
+      { nombre: 'Bilirrubina', tipo: 'texto' },
+      { nombre: 'Sangre / Hemoglobina', tipo: 'texto' },
+      { nombre: 'Urobilinógeno', tipo: 'texto' },
+      { nombre: 'Nitritos', tipo: 'texto' },
+      { nombre: 'Glóbulos rojos (RBC)', tipo: 'texto' },
+      { nombre: 'Glóbulos blancos (WBC)', tipo: 'texto' },
+      { nombre: 'Células epiteliales', tipo: 'texto' },
+      { nombre: 'Bacterias', tipo: 'texto' },
+      { nombre: 'Cristales', tipo: 'texto' },
+      { nombre: 'Cilindros', tipo: 'texto' },
+      { nombre: 'Moco', tipo: 'texto' },
     ],
   },
   {
+    // Numéricos, pero SIN rango por defecto -- los valores de T4/T3/TSH
+    // varían mucho entre laboratorios y métodos de medición, así que
+    // siempre se copian del informe real (o del examen anterior, una
+    // vez que ya se haya cargado uno).
     valor: 'tiroides', label: 'Perfil tiroideo', emoji: '🦴',
-    parametros: ['T4 Total', 'T4 Libre', 'T3 Total', 'T3 Libre', 'TSH', 'Anticuerpos anti-tiroglobulina (TgAA)'],
+    parametros: ['T4 Total', 'T4 Libre', 'T3 Total', 'T3 Libre', 'TSH', 'Anticuerpos anti-tiroglobulina (TgAA)']
+      .map(nombre => ({ nombre, tipo: 'numero' as const })),
   },
 ]
 
@@ -55,6 +79,7 @@ interface Fila {
   unidad: string
   rangoMin: string
   rangoMax: string
+  tipoValor: 'numero' | 'texto'
 }
 
 // Rangos de referencia por defecto, tomados directo de los informes
@@ -105,6 +130,26 @@ const RANGOS_DEFECTO: Record<string, Record<string, { min: number; max: number; 
     'Linfocitos Absolutos': { min: 1, max: 4.8, unidad: 'K/µL' },
     'Monocitos Absolutos': { min: 0.15, max: 1.35, unidad: 'K/µL' },
   },
+  orina: {
+    // pH es igual para perros y gatos. Densidad urinaria (USG) SÍ
+    // cambia por especie (perro: 1.015-1.045, gato: 1.035-1.060) --
+    // por eso no va aquí fijo, se calcula en obtenerRangoDefecto()
+    // usando la especie de la mascota.
+    'pH': { min: 5, max: 7.5, unidad: '' },
+  },
+  // Tiroides queda sin rangos por defecto a propósito -- ver nota en
+  // TIPOS_EXAMEN.
+}
+
+// Densidad urinaria (USG) depende de la especie -- se calcula aparte
+// en vez de ir fijo en RANGOS_DEFECTO.
+function obtenerRangoDefecto(tipoExamen: string, parametro: string, especieMascota?: string): { min: number; max: number; unidad: string } | undefined {
+  if (tipoExamen === 'orina' && parametro === 'Densidad urinaria (USG)') {
+    if (especieMascota === 'Gato') return { min: 1.035, max: 1.060, unidad: '' }
+    if (especieMascota === 'Perro') return { min: 1.015, max: 1.045, unidad: '' }
+    return undefined // especie desconocida -- se deja en blanco, mejor que adivinar mal
+  }
+  return RANGOS_DEFECTO[tipoExamen]?.[parametro]
 }
 
 function estaFueraDeRango(valor: string, rangoMin: string, rangoMax: string): boolean | null {
@@ -115,7 +160,7 @@ function estaFueraDeRango(valor: string, rangoMin: string, rangoMax: string): bo
   return v < min || v > max
 }
 
-export default function ExamenesLab({ mascotaId }: Props) {
+export default function ExamenesLab({ mascotaId, especie }: Props) {
   const supabase = createClient()
   const [abierto, setAbierto] = useState(false)
   const [tipo, setTipo] = useState('bioquimico')
@@ -151,6 +196,15 @@ export default function ExamenesLab({ mascotaId }: Props) {
   // plantilla, y si ya hubo un examen de ese mismo tipo antes, copia el
   // rango/unidad de la última vez -- así no hay que volver a
   // escribirlos cada examen.
+  // Busca si un parámetro es de tipo 'numero' o 'texto' según la
+  // plantilla de ese tipo de examen. Si no se encuentra (ej. un
+  // parámetro que se escribió a mano con "+ agregar parámetro"),
+  // asume 'numero' por defecto.
+  function buscarTipoValor(tipoExamen: string, parametro: string): 'numero' | 'texto' {
+    const plantilla = TIPOS_EXAMEN.find(t => t.valor === tipoExamen)
+    return plantilla?.parametros.find(p => p.nombre === parametro)?.tipo || 'numero'
+  }
+
   async function iniciarFormulario(tipoElegido: string) {
     setTipo(tipoElegido)
     setError('')
@@ -169,11 +223,12 @@ export default function ExamenesLab({ mascotaId }: Props) {
     }
 
     setFilas(plantilla.parametros.map(p => {
-      const anterior = mapaAnterior[p]
-      const defecto = RANGOS_DEFECTO[tipoElegido]?.[p]
+      const anterior = mapaAnterior[p.nombre]
+      const defecto = p.tipo === 'numero' ? obtenerRangoDefecto(tipoElegido, p.nombre, especie) : undefined
       return {
-        parametro: p,
+        parametro: p.nombre,
         valor: '',
+        tipoValor: p.tipo,
         unidad: anterior?.unidad || (defecto ? defecto.unidad : ''),
         rangoMin: anterior?.rangoMin || (defecto ? String(defecto.min) : ''),
         rangoMax: anterior?.rangoMax || (defecto ? String(defecto.max) : ''),
@@ -186,7 +241,7 @@ export default function ExamenesLab({ mascotaId }: Props) {
   }
 
   function agregarFilaExtra() {
-    setFilas(prev => [...prev, { parametro: '', valor: '', unidad: '', rangoMin: '', rangoMax: '' }])
+    setFilas(prev => [...prev, { parametro: '', valor: '', unidad: '', rangoMin: '', rangoMax: '', tipoValor: 'numero' }])
   }
 
   // Carga un examen ya guardado en el formulario, para editarlo. Reusa
@@ -200,17 +255,19 @@ export default function ExamenesLab({ mascotaId }: Props) {
     setNota(ex.nota || '')
     const resultados = (ex.examen_resultados || []).slice().sort((a: any, b: any) => a.orden - b.orden)
     setFilas(resultados.map((r: any) => {
+      const tipoValor = buscarTipoValor(ex.tipo, r.parametro)
       // Si este examen se creó antes de que existieran los rangos por
       // defecto, puede tener unidad/rango vacíos aunque el parámetro
       // sea uno conocido -- en ese caso, rellenamos con el valor
-      // típico igual que al crear un examen nuevo.
-      const defecto = RANGOS_DEFECTO[ex.tipo]?.[r.parametro]
+      // típico igual que al crear un examen nuevo (solo si es numérico).
+      const defecto = tipoValor === 'numero' ? obtenerRangoDefecto(ex.tipo, r.parametro, especie) : undefined
       const tieneUnidad = r.unidad !== null && r.unidad !== undefined && r.unidad !== ''
       const tieneMin = r.rango_min !== null && r.rango_min !== undefined
       const tieneMax = r.rango_max !== null && r.rango_max !== undefined
       return {
         parametro: r.parametro,
         valor: r.valor,
+        tipoValor,
         unidad: tieneUnidad ? r.unidad : (defecto ? defecto.unidad : ''),
         rangoMin: tieneMin ? String(r.rango_min) : (defecto ? String(defecto.min) : ''),
         rangoMax: tieneMax ? String(r.rango_max) : (defecto ? String(defecto.max) : ''),
@@ -381,7 +438,8 @@ export default function ExamenesLab({ mascotaId }: Props) {
             <div className="mb-3">
               <p className="text-[10px] text-[#8A7560] mb-2">Deja vacío lo que tu examen no incluya. El rango viene precargado con valores típicos de referencia — ajústalo si tu laboratorio usa otros.</p>
               {filas.map((f, i) => {
-                const fuera = estaFueraDeRango(f.valor, f.rangoMin, f.rangoMax)
+                const esTexto = f.tipoValor === 'texto'
+                const fuera = !esTexto && estaFueraDeRango(f.valor, f.rangoMin, f.rangoMax)
                 return (
                   <div key={i} className="py-2 border-b border-[#F5EDE3]">
                     <div className="flex items-center gap-2 mb-1">
@@ -392,36 +450,41 @@ export default function ExamenesLab({ mascotaId }: Props) {
                         placeholder="Parámetro"
                       />
                       <input
-                        className="w-20 text-xs text-center rounded-lg px-2 py-1.5 focus:outline-none"
+                        className={esTexto ? 'flex-1 text-xs rounded-lg px-2 py-1.5 focus:outline-none' : 'w-20 text-xs text-center rounded-lg px-2 py-1.5 focus:outline-none'}
                         style={fuera ? { background: '#FDEAEA', color: '#993C1D', fontWeight: 600 } : { background: '#F5EDE3', color: '#3D2B1F' }}
                         value={f.valor}
                         onChange={e => actualizarFila(i, 'valor', e.target.value)}
-                        placeholder="—"
+                        placeholder={esTexto ? 'ej. Negativo, Amarillo claro...' : '—'}
                       />
                     </div>
-                    <div className="flex items-center gap-1.5 pl-1.5">
-                      <span className="text-[9px] text-[#8A7560]">Unidad</span>
-                      <input
-                        className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
-                        value={f.unidad}
-                        onChange={e => actualizarFila(i, 'unidad', e.target.value)}
-                        placeholder="ud."
-                      />
-                      <span className="text-[9px] text-[#8A7560] ml-1.5">Mín</span>
-                      <input
-                        className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
-                        value={f.rangoMin}
-                        onChange={e => actualizarFila(i, 'rangoMin', e.target.value)}
-                        placeholder="min"
-                      />
-                      <span className="text-[9px] text-[#8A7560] ml-1.5">Máx</span>
-                      <input
-                        className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
-                        value={f.rangoMax}
-                        onChange={e => actualizarFila(i, 'rangoMax', e.target.value)}
-                        placeholder="max"
-                      />
-                    </div>
+                    {/* Unidad/Mín/Máx solo tienen sentido para parámetros
+                        numéricos -- "Color" o "Proteínas" (tira reactiva)
+                        no traen un rango que comparar. */}
+                    {!esTexto && (
+                      <div className="flex items-center gap-1.5 pl-1.5">
+                        <span className="text-[9px] text-[#8A7560]">Unidad</span>
+                        <input
+                          className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
+                          value={f.unidad}
+                          onChange={e => actualizarFila(i, 'unidad', e.target.value)}
+                          placeholder="ud."
+                        />
+                        <span className="text-[9px] text-[#8A7560] ml-1.5">Mín</span>
+                        <input
+                          className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
+                          value={f.rangoMin}
+                          onChange={e => actualizarFila(i, 'rangoMin', e.target.value)}
+                          placeholder="min"
+                        />
+                        <span className="text-[9px] text-[#8A7560] ml-1.5">Máx</span>
+                        <input
+                          className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
+                          value={f.rangoMax}
+                          onChange={e => actualizarFila(i, 'rangoMax', e.target.value)}
+                          placeholder="max"
+                        />
+                      </div>
+                    )}
                   </div>
                 )
               })}
