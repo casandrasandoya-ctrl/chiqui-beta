@@ -94,7 +94,7 @@ export default function AnalisisPage() {
   const [tempReciente, setTempReciente] = useState<any>(null)
   const [celoInfo, setCeloInfo] = useState<any>(null)
   const [rutinas, setRutinas] = useState<RutinaCalculada[]>([])
-  const [abiertaRutinas, setAbiertaRutinas] = useState(true)
+  const [abiertaRutinas, setAbiertaRutinas] = useState(false)
 
   // Misma función que en el dashboard: devuelve la fecha en zona horaria
   // de Chile en vez de UTC, para que el cálculo de racha sea correcto.
@@ -117,19 +117,41 @@ export default function AnalisisPage() {
   // 30 días), pero solo las columnas de fecha + los 19 cuidados
   // booleanos -- así el query queda liviano aunque la mascota tenga
   // meses o años de registros.
+  // Vacunas, Antiparasitarios y Medicamentos se pueden agregar de 2
+  // formas: marcando el checkbox en Registro Diario (que guarda
+  // vacuna_hoy/anti_hoy/medicamento_hoy = true ahí), O agregándolos
+  // directo en Prevención (que los guarda en su propia tabla, sin tocar
+  // registros_diarios). Para que "cada cuánto" cuente TODAS las veces,
+  // sin importar por dónde se agregaron, hay que combinar ambas fuentes
+  // para estos 3 cuidados en particular.
+  const TABLA_EXTRA: Record<string, { tabla: string; campoFecha: string }> = {
+    vacuna_hoy: { tabla: 'vacunas', campoFecha: 'fecha_aplicacion' },
+    anti_hoy: { tabla: 'antiparasitarios', campoFecha: 'fecha_aplicacion' },
+    medicamento_hoy: { tabla: 'medicamentos', campoFecha: 'fecha_inicio' },
+  }
+
   async function cargarRutinas(mascotaId: string) {
     const columnas = ['fecha', ...CUIDADOS_RUTINA.map(c => c.columna)].join(', ')
-    const { data } = await supabase
-      .from('registros_diarios')
-      .select(columnas)
-      .eq('mascota_id', mascotaId)
-      .order('fecha', { ascending: true })
+    const [{ data }, { data: vacunasData }, { data: antisData }, { data: medsData }] = await Promise.all([
+      supabase.from('registros_diarios').select(columnas).eq('mascota_id', mascotaId).order('fecha', { ascending: true }),
+      supabase.from('vacunas').select('fecha_aplicacion').eq('mascota_id', mascotaId),
+      supabase.from('antiparasitarios').select('fecha_aplicacion').eq('mascota_id', mascotaId),
+      supabase.from('medicamentos').select('fecha_inicio').eq('mascota_id', mascotaId),
+    ])
 
     const historial = (data || []) as any[]
+    const fechasExtra: Record<string, string[]> = {
+      vacuna_hoy: (vacunasData || []).map((v: any) => v.fecha_aplicacion).filter(Boolean),
+      anti_hoy: (antisData || []).map((a: any) => a.fecha_aplicacion).filter(Boolean),
+      medicamento_hoy: (medsData || []).map((m: any) => m.fecha_inicio).filter(Boolean),
+    }
 
     const calculadas: RutinaCalculada[] = CUIDADOS_RUTINA
       .map(c => {
-        const fechas = historial.filter(r => r[c.columna]).map(r => r.fecha as string)
+        const fechasRegistro = historial.filter(r => r[c.columna]).map(r => r.fecha as string)
+        // Combinamos y quitamos duplicados (por si el mismo día quedó
+        // marcado en registro diario Y agregado en Prevención).
+        const fechas = Array.from(new Set([...fechasRegistro, ...(fechasExtra[c.columna] || [])]))
         const { ocurrencias, promedioDias, ultimaFecha, proximaEstimadaDias } = calcularRutina(fechas)
         if (ocurrencias === 0 || !ultimaFecha) return null
         const hoy = new Date()
