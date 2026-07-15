@@ -55,11 +55,6 @@ export default function PerfilPage() {
   const [editandoNombre, setEditandoNombre] = useState(false)
   const [nombreInput, setNombreInput] = useState('')
   const [savingNombre, setSavingNombre] = useState(false)
-  // Nombres del tutor principal (dueño) y del co-tutor activo, si existe.
-  // Se obtienen via RPC porque perfil_usuario tiene RLS por user_id -- no
-  // se puede leer directamente el nombre de otra persona (el co-tutor)
-  // desde el cliente.
-  const [tutores, setTutores] = useState<{ dueno_nombre: string | null; cotutor_nombre: string | null } | null>(null)
 
   useEffect(() => {
     async function init() {
@@ -73,17 +68,10 @@ export default function PerfilPage() {
       const m = determinarMascotaActiva(todasMascotas)!
       setMascota(m)
       setForm(m)
-      await cargarTutores(m.id)
       setLoading(false)
     }
     init()
   }, [])
-
-  async function cargarTutores(mascotaId: string) {
-    const { data } = await supabase.rpc('obtener_tutores_mascota', { p_mascota_id: mascotaId })
-    if (data && !data.error) setTutores(data)
-    else setTutores(null)
-  }
 
   function cambiarMascota(nueva: Mascota) {
     guardarMascotaActivaId(nueva.id)
@@ -92,7 +80,6 @@ export default function PerfilPage() {
     // Cerramos el modo edicion al cambiar, para no terminar editando los
     // datos de una mascota pensando que es otra.
     setEditando(false)
-    cargarTutores(nueva.id)
   }
 
   async function guardar() {
@@ -126,10 +113,9 @@ export default function PerfilPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSavingNombre(false); return }
 
-    // Se guarda en dos lugares: metadata de auth (de donde lee "Mi
-    // cuenta") y perfil_usuario (de donde lee la tarjeta "Tutores"),
-    // para que ambos queden sincronizados al instante.
-    const [{ error: errAuth }, { error: errPerfil }] = await Promise.all([
+    // Se guarda en metadata de auth (de donde lee "Mi cuenta") y también
+    // en perfil_usuario, para mantener ambos lugares sincronizados.
+    const [{ error: errAuth }] = await Promise.all([
       supabase.auth.updateUser({ data: { nombre: nuevo } }),
       supabase.from('perfil_usuario').update({ nombre: nuevo }).eq('id', user.id),
     ])
@@ -137,8 +123,6 @@ export default function PerfilPage() {
     if (!errAuth) setUserNombre(nuevo)
     setEditandoNombre(false)
     setSavingNombre(false)
-
-    if (!errPerfil && mascota) await cargarTutores(mascota.id)
     if (!errAuth) showToast('Nombre actualizado')
   }
 
@@ -208,24 +192,6 @@ export default function PerfilPage() {
 
       {/* Selector de mascota */}
       {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
-
-      {/* Tutor / Co-tutor -- solo lectura, informativo */}
-      {tutores && (tutores.dueno_nombre || tutores.cotutor_nombre) && (
-        <div className="mx-4 mt-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
-          <div className="flex items-center gap-2.5 mb-2">
-            <span className="text-lg">🧑‍🤝‍🧑</span>
-            <p className="text-[10px] text-[#8A7560] uppercase tracking-wider font-semibold">Tutores</p>
-          </div>
-          <div className="space-y-1">
-            {tutores.dueno_nombre && (
-              <p className="text-sm text-[#3D2B1F]"><span className="text-[#8A7560]">Tutor:</span> {tutores.dueno_nombre}</p>
-            )}
-            {tutores.cotutor_nombre && (
-              <p className="text-sm text-[#3D2B1F]"><span className="text-[#8A7560]">Co-tutor:</span> {tutores.cotutor_nombre}</p>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Etapa de vida */}
       {etapa && (
