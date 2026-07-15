@@ -37,6 +37,22 @@ const CATEGORIAS_EXAMEN: Record<string,{icon:string,label:string}> = {
   otro: { icon:'📄', label:'Otro examen' },
 }
 
+// Exámenes de laboratorio ESTRUCTURADOS (distinto del bloque de arriba,
+// que son PDFs adjuntos). Mismas 4 categorías que en Prevención.
+const TIPOS_EXAMEN_LAB: Record<string,{icon:string,label:string}> = {
+  bioquimico: { icon:'🧪', label:'Perfil bioquímico' },
+  hemograma: { icon:'🩸', label:'Hemograma' },
+  orina: { icon:'💛', label:'Examen de orina' },
+  tiroides: { icon:'🦴', label:'Perfil tiroideo' },
+}
+
+function fueraDeRango(valor: string, rangoMin: number | null, rangoMax: number | null): boolean {
+  if (rangoMin === null || rangoMax === null) return false
+  const v = parseFloat(String(valor).replace(',', '.'))
+  if (isNaN(v)) return false
+  return v < rangoMin || v > rangoMax
+}
+
 function detectarMotivosConsulta(registros: any[]): string[] {
   const hace7 = new Date()
   hace7.setDate(hace7.getDate() - 7)
@@ -153,6 +169,7 @@ export default async function VetPage({ searchParams }: Props) {
   const examenes = datos.examenes || []
   const enfermedades = datos.enfermedades || []
   const medicamentos = datos.medicamentos || []
+  const examenesLab = datos.examenes_lab || []
 
   const motivosConsulta = detectarMotivosConsulta(registros)
 
@@ -249,7 +266,6 @@ export default async function VetPage({ searchParams }: Props) {
             <div className="space-y-4">
               {obs.map((o: any) => (
                 <div key={o.id} className="pb-4 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                  {/* Header */}
                   <div className="flex items-center justify-between mb-1">
                     <p className="font-bold text-sm">{o.titulo}</p>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${o.estado === 'activa' ? 'bg-[#F07A30]/20 text-[#F07A30]' : 'bg-[#4CAF7D]/20 text-[#4CAF7D]'}`}>
@@ -263,7 +279,6 @@ export default async function VetPage({ searchParams }: Props) {
                     <img src={o.foto_url} alt={o.titulo} className="w-full h-36 object-cover rounded-xl mt-2" />
                   )}
 
-                  {/* Timeline de evoluciones — solo lectura */}
                   {o.evoluciones && o.evoluciones.length > 0 && (
                     <div className="mt-3 relative">
                       <p className="text-[10px] font-bold text-[#8A7560] uppercase tracking-wider mb-2">
@@ -343,7 +358,7 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
-        {/* Exámenes */}
+        {/* Exámenes (PDF adjunto) */}
         {examenesConUrl.length > 0 && (
           <SeccionVet titulo={`📄 Exámenes (${examenesConUrl.length})`}>
             <div className="space-y-2">
@@ -365,6 +380,51 @@ export default async function VetPage({ searchParams }: Props) {
                         📄 Ver / descargar PDF
                       </a>
                     )}
+                  </div>
+                )
+              })}
+            </div>
+          </SeccionVet>
+        )}
+
+        {/* Exámenes de laboratorio ESTRUCTURADOS -- justo al lado del bloque
+            de PDFs, ya que ambos son "resultados de exámenes". Los valores
+            fuera de rango se destacan de inmediato, para que el veterinario
+            los detecte al primer vistazo sin tener que leer cada número. */}
+        {examenesLab.length > 0 && (
+          <SeccionVet titulo={`🧫 Exámenes de laboratorio (${examenesLab.length})`}>
+            <div className="space-y-4">
+              {examenesLab.map((ex: any) => {
+                const infoTipo = TIPOS_EXAMEN_LAB[ex.tipo] || { icon: '🧫', label: ex.tipo }
+                const resultados = (ex.resultados || []).slice().sort((a: any, b: any) => a.orden - b.orden)
+                const cantidadFuera = resultados.filter((r: any) => fueraDeRango(r.valor, r.rango_min, r.rango_max)).length
+                return (
+                  <div key={ex.id} className="pb-4 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-bold text-sm">{infoTipo.icon} {infoTipo.label}</p>
+                      <span className="text-xs text-[#8A7560]">{fmt(ex.fecha)}</span>
+                    </div>
+                    {ex.peso_kg && <p className="text-xs text-[#8A7560] mb-1.5">Peso ese día: {ex.peso_kg} kg</p>}
+                    {cantidadFuera > 0 && (
+                      <p className="text-xs font-bold text-[#993C1D] mb-2">⚠️ {cantidadFuera} valor{cantidadFuera === 1 ? '' : 'es'} fuera de rango</p>
+                    )}
+                    <div className="bg-[#FBEAD9] rounded-xl p-2.5">
+                      {resultados.map((r: any) => {
+                        const fuera = fueraDeRango(r.valor, r.rango_min, r.rango_max)
+                        return (
+                          <div key={r.id} className="flex items-center justify-between py-1 border-b border-[#F5EDE3] last:border-0">
+                            <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
+                            <span className="text-xs font-semibold" style={{ color: fuera ? '#993C1D' : '#3D2B1F' }}>
+                              {r.valor} {r.unidad || ''}
+                              {r.rango_min !== null && r.rango_max !== null && (
+                                <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
+                              )}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {ex.nota && <p className="text-xs text-[#8A7560] mt-2 italic">📝 {ex.nota}</p>}
                   </div>
                 )
               })}
