@@ -52,6 +52,9 @@ export default function PerfilPage() {
   const [loading, setLoading] = useState(true)
   const [userEmail, setUserEmail] = useState('')
   const [userNombre, setUserNombre] = useState('')
+  const [editandoNombre, setEditandoNombre] = useState(false)
+  const [nombreInput, setNombreInput] = useState('')
+  const [savingNombre, setSavingNombre] = useState(false)
   // Nombres del tutor principal (dueño) y del co-tutor activo, si existe.
   // Se obtienen via RPC porque perfil_usuario tiene RLS por user_id -- no
   // se puede leer directamente el nombre de otra persona (el co-tutor)
@@ -114,6 +117,29 @@ export default function PerfilPage() {
       showToast('Perfil actualizado')
     }
     setSaving(false)
+  }
+
+  async function guardarNombre() {
+    const nuevo = nombreInput.trim()
+    if (!nuevo) return
+    setSavingNombre(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSavingNombre(false); return }
+
+    // Se guarda en dos lugares: metadata de auth (de donde lee "Mi
+    // cuenta") y perfil_usuario (de donde lee la tarjeta "Tutores"),
+    // para que ambos queden sincronizados al instante.
+    const [{ error: errAuth }, { error: errPerfil }] = await Promise.all([
+      supabase.auth.updateUser({ data: { nombre: nuevo } }),
+      supabase.from('perfil_usuario').update({ nombre: nuevo }).eq('id', user.id),
+    ])
+
+    if (!errAuth) setUserNombre(nuevo)
+    setEditandoNombre(false)
+    setSavingNombre(false)
+
+    if (!errPerfil && mascota) await cargarTutores(mascota.id)
+    if (!errAuth) showToast('Nombre actualizado')
   }
 
   async function cerrarSesion() {
@@ -319,7 +345,39 @@ export default function PerfilPage() {
         {userNombre && (
           <div className="px-4 py-3 border-b border-[#EEE2D4]">
             <p className="text-xs text-[#8A7560]">Nombre</p>
-            <p className="text-sm mt-0.5">{userNombre}</p>
+            {!editandoNombre ? (
+              <div className="flex items-center justify-between mt-0.5">
+                <p className="text-sm">{userNombre}</p>
+                <button
+                  onClick={() => { setNombreInput(userNombre); setEditandoNombre(true) }}
+                  className="text-xs font-bold text-[#FFBD59]"
+                >
+                  ✏️ Editar
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mt-1.5">
+                <input
+                  value={nombreInput}
+                  onChange={e => setNombreInput(e.target.value)}
+                  autoFocus
+                  className="flex-1 bg-[#FBEAD9] border border-[#EEE2D4] rounded-lg px-3 py-2 text-[#3D2B1F] text-sm focus:outline-none"
+                />
+                <button
+                  onClick={guardarNombre}
+                  disabled={savingNombre || !nombreInput.trim()}
+                  className="bg-[#FFBD59] text-[#1A1200] font-bold text-xs px-3 py-2 rounded-lg disabled:opacity-50"
+                >
+                  {savingNombre ? '...' : 'Guardar'}
+                </button>
+                <button
+                  onClick={() => setEditandoNombre(false)}
+                  className="text-[#8A7560] text-xs px-2"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
           </div>
         )}
         <div className="px-4 py-3 border-b border-[#EEE2D4]">
