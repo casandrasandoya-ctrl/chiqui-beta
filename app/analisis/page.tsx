@@ -12,6 +12,74 @@ const ESTADO_COLOR: Record<string, string> = {
   verde: '#4CAF7D', amarillo: '#F5C842', naranjo: '#F07A30', rojo: '#E05252'
 }
 
+// Definición de los 19 cuidados que se pueden calcular como "rutina"
+// (cada cuánto ocurren). Mismo set que ya existe en registro-diario y
+// dashboard, con su emoji y label consistentes.
+const CUIDADOS_RUTINA: { columna: string; label: string; emoji: string; grupo: string }[] = [
+  { columna: 'fue_al_vet', label: 'Visitas al veterinario', emoji: '🏥', grupo: 'Cuidados básicos' },
+  { columna: 'se_bano', label: 'Baños', emoji: '🛁', grupo: 'Cuidados básicos' },
+  { columna: 'corte_unas', label: 'Corte de uñas', emoji: '✂️', grupo: 'Cuidados básicos' },
+  { columna: 'compro_alimento', label: 'Compras de alimento', emoji: '🥣', grupo: 'Cuidados básicos' },
+  { columna: 'medicamento_hoy', label: 'Medicamentos', emoji: '💊', grupo: 'Prevención' },
+  { columna: 'vacuna_hoy', label: 'Vacunas', emoji: '💉', grupo: 'Prevención' },
+  { columna: 'anti_hoy', label: 'Antiparasitarios', emoji: '🪱', grupo: 'Prevención' },
+  { columna: 'limpieza_dental', label: 'Limpieza dental', emoji: '🦷', grupo: 'Higiene y bienestar' },
+  { columna: 'limpieza_oidos', label: 'Limpieza de oídos', emoji: '👂', grupo: 'Higiene y bienestar' },
+  { columna: 'tratamiento_dermatologico', label: 'Tratamiento dermatológico', emoji: '🧴', grupo: 'Higiene y bienestar' },
+  { columna: 'peino', label: 'Peinados', emoji: '💇', grupo: 'Higiene y bienestar' },
+  { columna: 'shampoo_seco', label: 'Shampoo en seco', emoji: '🧼', grupo: 'Higiene y bienestar' },
+  { columna: 'alimente_hoy', label: 'Alimentación', emoji: '🥘', grupo: 'Alimentación' },
+  { columna: 'cambio_alimento', label: 'Cambios de alimento', emoji: '🎁', grupo: 'Alimentación' },
+  { columna: 'probo_alimento_nuevo', label: 'Alimentos nuevos probados', emoji: '🆕', grupo: 'Alimentación' },
+  { columna: 'cargo_dispensador', label: 'Dispensador cargado', emoji: '🤖', grupo: 'Alimentación' },
+  { columna: 'control_peso', label: 'Controles de peso', emoji: '⚖️', grupo: 'Eventos importantes' },
+  { columna: 'procedimiento_cirugia', label: 'Procedimientos o cirugías', emoji: '🏥', grupo: 'Eventos importantes' },
+  { columna: 'seguimiento_lesion', label: 'Seguimientos de lesión', emoji: '📸', grupo: 'Eventos importantes' },
+]
+
+interface RutinaCalculada {
+  columna: string
+  label: string
+  emoji: string
+  grupo: string
+  ocurrencias: number
+  promedioDias: number | null
+  ultimaFecha: string
+  diasDesdeUltima: number
+  proximaEstimadaDias: number | null
+}
+
+// A partir de una lista de fechas (YYYY-MM-DD) donde ocurrió un cuidado,
+// calcula: cuántas veces ocurrió, el promedio de días entre ocurrencias
+// consecutivas, la fecha de la última vez, cuántos días pasaron desde
+// esa última vez, y en cuántos días más se estimaría la próxima (solo
+// si hay al menos 2 ocurrencias, ya que con 1 sola no hay intervalo que
+// promediar).
+function calcularRutina(fechas: string[]): { ocurrencias: number; promedioDias: number | null; ultimaFecha: string | null; proximaEstimadaDias: number | null } {
+  if (fechas.length === 0) return { ocurrencias: 0, promedioDias: null, ultimaFecha: null, proximaEstimadaDias: null }
+  const ordenadas = [...fechas].sort()
+  const ultimaFecha = ordenadas[ordenadas.length - 1]
+
+  if (ordenadas.length === 1) {
+    return { ocurrencias: 1, promedioDias: null, ultimaFecha, proximaEstimadaDias: null }
+  }
+
+  const intervalos: number[] = []
+  for (let i = 1; i < ordenadas.length; i++) {
+    const a = new Date(ordenadas[i - 1] + 'T00:00:00')
+    const b = new Date(ordenadas[i] + 'T00:00:00')
+    intervalos.push(Math.round((b.getTime() - a.getTime()) / 86400000))
+  }
+  const promedioDias = Math.round(intervalos.reduce((s, v) => s + v, 0) / intervalos.length)
+
+  const hoy = new Date()
+  const ultima = new Date(ultimaFecha + 'T00:00:00')
+  const diasDesdeUltima = Math.round((hoy.getTime() - ultima.getTime()) / 86400000)
+  const proximaEstimadaDias = promedioDias - diasDesdeUltima
+
+  return { ocurrencias: ordenadas.length, promedioDias, ultimaFecha, proximaEstimadaDias }
+}
+
 export default function AnalisisPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -25,9 +93,11 @@ export default function AnalisisPage() {
   const [respReciente, setRespReciente] = useState<any>(null)
   const [tempReciente, setTempReciente] = useState<any>(null)
   const [celoInfo, setCeloInfo] = useState<any>(null)
+  const [rutinas, setRutinas] = useState<RutinaCalculada[]>([])
+  const [abiertaRutinas, setAbiertaRutinas] = useState(true)
 
-  // Misma funcion que en el dashboard: devuelve la fecha en zona horaria
-  // de Chile en vez de UTC, para que el calculo de racha sea correcto.
+  // Misma función que en el dashboard: devuelve la fecha en zona horaria
+  // de Chile en vez de UTC, para que el cálculo de racha sea correcto.
   function fechaChile(date: Date = new Date()): string {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(date)
   }
@@ -43,6 +113,55 @@ export default function AnalisisPage() {
     setRegistros(r || [])
   }
 
+  // Rutinas de cuidado: trae TODO el historial de la mascota (no solo
+  // 30 días), pero solo las columnas de fecha + los 19 cuidados
+  // booleanos -- así el query queda liviano aunque la mascota tenga
+  // meses o años de registros.
+  async function cargarRutinas(mascotaId: string) {
+    const columnas = ['fecha', ...CUIDADOS_RUTINA.map(c => c.columna)].join(', ')
+    const { data } = await supabase
+      .from('registros_diarios')
+      .select(columnas)
+      .eq('mascota_id', mascotaId)
+      .order('fecha', { ascending: true })
+
+    const historial = (data || []) as any[]
+
+    const calculadas: RutinaCalculada[] = CUIDADOS_RUTINA
+      .map(c => {
+        const fechas = historial.filter(r => r[c.columna]).map(r => r.fecha as string)
+        const { ocurrencias, promedioDias, ultimaFecha, proximaEstimadaDias } = calcularRutina(fechas)
+        if (ocurrencias === 0 || !ultimaFecha) return null
+        const hoy = new Date()
+        const ultima = new Date(ultimaFecha + 'T00:00:00')
+        const diasDesdeUltima = Math.round((hoy.getTime() - ultima.getTime()) / 86400000)
+        return {
+          columna: c.columna,
+          label: c.label,
+          emoji: c.emoji,
+          grupo: c.grupo,
+          ocurrencias,
+          promedioDias,
+          ultimaFecha,
+          diasDesdeUltima,
+          proximaEstimadaDias,
+        }
+      })
+      .filter(Boolean) as RutinaCalculada[]
+
+    // Ordenar por las que tienen promedio calculado primero (más útiles),
+    // y dentro de esas, las que tienen la próxima estimada más próxima
+    // primero (lo más "urgente" arriba).
+    calculadas.sort((a, b) => {
+      if (a.promedioDias === null && b.promedioDias === null) return 0
+      if (a.promedioDias === null) return 1
+      if (b.promedioDias === null) return -1
+      return (a.proximaEstimadaDias ?? 999) - (b.proximaEstimadaDias ?? 999)
+    })
+
+    setRutinas(calculadas)
+  }
+
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -53,46 +172,48 @@ export default function AnalisisPage() {
       const m = determinarMascotaActiva(todasMascotas)!
       setMascota(m)
       await cargarRegistros(m.id)
-      // Respiracion reciente
-    const { data: resp } = await supabase
-      .from('frecuencia_respiratoria')
-      .select('rpm, fecha')
-      .eq('mascota_id', m.id)
-      .order('fecha', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    setRespReciente(resp)
+      await cargarRutinas(m.id)
 
-    // Temperatura reciente
-    const { data: temp } = await supabase
-      .from('temperatura_corporal')
-      .select('temperatura, fecha')
-      .eq('mascota_id', m.id)
-      .order('fecha', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    setTempReciente(temp)
+      // Respiración reciente
+      const { data: resp } = await supabase
+        .from('frecuencia_respiratoria')
+        .select('rpm, fecha')
+        .eq('mascota_id', m.id)
+        .order('fecha', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      setRespReciente(resp)
 
-    // Celo activo
-    const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30)
-    const { data: ciclosRecientes } = await supabase
-      .from('ciclos_reproductivos')
-      .select('tipo, fecha_inicio, fecha_termino')
-      .eq('mascota_id', m.id)
-      .eq('tipo', 'celo')
-    const hoy = new Date()
-    const celoActivo = (ciclosRecientes || []).find((cc: any) => {
-      const inicio = new Date(cc.fecha_inicio + 'T00:00:00')
-      if (inicio > hoy) return false
-      if (!cc.fecha_termino) return (hoy.getTime() - inicio.getTime()) / 86400000 < 21
-      return hoy <= new Date(cc.fecha_termino + 'T00:00:00')
-    })
-    if (celoActivo) {
-      const dia = Math.ceil((hoy.getTime() - new Date(celoActivo.fecha_inicio + 'T00:00:00').getTime()) / 86400000) + 1
-      setCeloInfo({ dia })
-    }
+      // Temperatura reciente
+      const { data: temp } = await supabase
+        .from('temperatura_corporal')
+        .select('temperatura, fecha')
+        .eq('mascota_id', m.id)
+        .order('fecha', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      setTempReciente(temp)
 
-    setLoading(false)
+      // Celo activo
+      const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30)
+      const { data: ciclosRecientes } = await supabase
+        .from('ciclos_reproductivos')
+        .select('tipo, fecha_inicio, fecha_termino')
+        .eq('mascota_id', m.id)
+        .eq('tipo', 'celo')
+      const hoy = new Date()
+      const celoActivo = (ciclosRecientes || []).find((cc: any) => {
+        const inicio = new Date(cc.fecha_inicio + 'T00:00:00')
+        if (inicio > hoy) return false
+        if (!cc.fecha_termino) return (hoy.getTime() - inicio.getTime()) / 86400000 < 21
+        return hoy <= new Date(cc.fecha_termino + 'T00:00:00')
+      })
+      if (celoActivo) {
+        const dia = Math.ceil((hoy.getTime() - new Date(celoActivo.fecha_inicio + 'T00:00:00').getTime()) / 86400000) + 1
+        setCeloInfo({ dia })
+      }
+
+      setLoading(false)
     }
     init()
   }, [])
@@ -102,7 +223,9 @@ export default function AnalisisPage() {
     guardarMascotaActivaId(nueva.id)
     setMascota(nueva)
     await cargarRegistros(nueva.id)
-    // Respiracion reciente
+    await cargarRutinas(nueva.id)
+
+    // Respiración reciente
     const { data: resp } = await supabase
       .from('frecuencia_respiratoria')
       .select('rpm, fecha')
@@ -139,6 +262,8 @@ export default function AnalisisPage() {
     if (celoActivo) {
       const dia = Math.ceil((hoy.getTime() - new Date(celoActivo.fecha_inicio + 'T00:00:00').getTime()) / 86400000) + 1
       setCeloInfo({ dia })
+    } else {
+      setCeloInfo(null)
     }
 
     setLoading(false)
@@ -181,8 +306,6 @@ export default function AnalisisPage() {
   const ultimos7 = registros.slice(0, 7).reverse()
 
   // --- Cálculos de Paseo (solo aplica a perros) ---
-  // Mapeo de cada rango de duración a minutos estimados (punto medio del
-  // rango), ya que el registro guarda un rango, no un numero exacto.
   const MINUTOS_POR_PASEO: Record<string, number> = {
     no_paseo: 0,
     '10_30min': 20,
@@ -193,20 +316,15 @@ export default function AnalisisPage() {
 
   const esPerro = mascota?.especie === 'Perro'
 
-  // Minutos totales estimados de paseo en los ultimos 30 dias (todo el
-  // periodo cargado).
   const minutosPaseoMes = registros.reduce((acc, r) => acc + (MINUTOS_POR_PASEO[r.paseo] || 0), 0)
   const horasPaseoMes = Math.floor(minutosPaseoMes / 60)
   const minRestantesPaseoMes = minutosPaseoMes % 60
 
-  // Racha de dias CONSECUTIVOS paseados, contando hacia atras desde hoy.
-  // Se corta apenas hay un dia sin registro o con "no_paseo".
   function calcularRachaPaseo(): { racha: number; enRiesgo: boolean } {
     const hoy = new Date()
     const hoyStr = fechaChile(hoy)
     const regHoy = registros.find(r => r.fecha === hoyStr)
     const tieneHoy = regHoy && regHoy.paseo && regHoy.paseo !== 'no_paseo'
-    // Si hoy no registró paseo aún, empezar desde ayer para no romper la racha
     const inicio = tieneHoy ? 0 : 1
     let racha = 0
     for (let i = inicio; i < 30; i++) {
@@ -224,7 +342,6 @@ export default function AnalisisPage() {
   }
   const { racha: rachaPaseo, enRiesgo: rachaEnRiesgo } = calcularRachaPaseo()
 
-  // Minutos de paseo por cada uno de los ultimos 7 dias, para el grafico.
   const paseoUltimos7 = Array(7).fill(null).map((_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i))
     const fechaStr = fechaChile(d)
@@ -234,10 +351,6 @@ export default function AnalisisPage() {
   const maxMinutosSemana = Math.max(...paseoUltimos7.map(p => p.minutos), 1)
 
   // --- Normalidad por categoría (últimos 30 días) ---
-  // Para cada categoría, calcula el % de días donde el valor registrado
-  // fue exactamente "normal", sobre el total de días donde esa
-  // categoría SI tuvo algun valor (no sobre el total de registros, ya
-  // que algunas categorias pueden quedar sin tocar algunos dias).
   const CATEGORIAS_NORMALIDAD = [
     { campo: 'energia', label: 'Energía', icon: '⚡', valoresPositivos: ['muy_alta', 'alta', 'normal'] },
     { campo: 'animo', label: 'Ánimo', icon: '😄', valoresPositivos: ['muy_feliz', 'feliz', 'normal'] },
@@ -261,14 +374,21 @@ export default function AnalisisPage() {
     })
     .filter(Boolean) as { campo: string; label: string; icon: string; pct: number; dias: number }[]
 
-  // Ordenado de mas irregular (pct mas bajo) a menos, para que lo que
-  // merece mas atencion aparezca primero.
   normalidadPorCategoria.sort((a, b) => a.pct - b.pct)
 
   function colorNormalidad(pct: number): string {
     if (pct >= 80) return '#4CAF7D'
     if (pct >= 50) return '#F5C842'
     return '#E05252'
+  }
+
+  // Texto amigable para "próxima estimada" / "días desde"
+  function textoProxima(dias: number | null): string {
+    if (dias === null) return ''
+    if (dias < 0) return `Ya pasaron ${Math.abs(dias)} días de lo esperado`
+    if (dias === 0) return 'Estimado para hoy'
+    if (dias === 1) return 'Estimado para mañana'
+    return `Estimado en ${dias} días`
   }
 
   return (
@@ -307,6 +427,52 @@ export default function AnalisisPage() {
           ))
         )}
       </div>
+
+      {/* Rutinas de cuidado — cada cuánto, sobre todo el historial */}
+      {rutinas.length > 0 && (
+        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+          <button onClick={() => setAbiertaRutinas(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+            <div className="flex items-center gap-2.5">
+              <span className="text-lg">🔁</span>
+              <div>
+                <p className="font-bold text-sm text-[#3D2B1F]">Rutinas de cuidado</p>
+                <p className="text-[10px] text-[#8A7560]">Cada cuánto haces cada cosa, según todo el historial</p>
+              </div>
+            </div>
+            <span className="text-[#8A7560] text-lg">{abiertaRutinas ? '⌃' : '⌄'}</span>
+          </button>
+          {abiertaRutinas && (
+            <div className="border-t border-[#EEE2D4] divide-y divide-[#EEE2D4]">
+              {rutinas.map(r => (
+                <div key={r.columna} className="px-4 py-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base flex-shrink-0">{r.emoji}</span>
+                    <p className="text-xs font-semibold text-[#3D2B1F] flex-1">{r.label}</p>
+                  </div>
+                  {r.promedioDias !== null ? (
+                    <>
+                      <p className="text-xs text-[#8A7560] leading-relaxed">
+                        Cada <span className="font-semibold text-[#3D2B1F]">{r.promedioDias} días</span> en promedio · {r.ocurrencias} registros
+                      </p>
+                      <p className="text-[11px] text-[#8A7560] mt-0.5">
+                        Última vez: hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'}
+                      </p>
+                      <p className="text-[11px] font-semibold mt-0.5" style={{ color: (r.proximaEstimadaDias ?? 0) < 0 ? '#F07A30' : '#4CAF7D' }}>
+                        {textoProxima(r.proximaEstimadaDias)}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-[#8A7560]">
+                      Solo 1 registro hasta ahora (hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'}) — falta otro para calcular un promedio.
+                    </p>
+                  )}
+                </div>
+              ))}
+              <p className="text-[10px] text-[#8A7560] px-4 py-2.5 italic">Calculado sobre todo el historial registrado de {mascota?.nombre}, no solo los últimos 30 días.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Resumen estadístico */}
       {total > 0 && <>
@@ -411,8 +577,6 @@ export default function AnalisisPage() {
             ))}
           </div>
         </div>
-
-        {/* Lo observado este mes incluye normalidad + signos vitales + celo — ver sección abajo */}
 
         {/* Normalidad por categoría — desplegable */}
         {(normalidadPorCategoria.length > 0 || respReciente || tempReciente || celoInfo) && (
