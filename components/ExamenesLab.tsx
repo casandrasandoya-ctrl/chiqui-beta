@@ -128,6 +128,8 @@ export default function ExamenesLab({ mascotaId }: Props) {
   const [examenes, setExamenes] = useState<any[]>([])
   const [expandido, setExpandido] = useState<string | null>(null)
   const [cargandoLista, setCargandoLista] = useState(true)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [comparando, setComparando] = useState<string | null>(null)
 
   useEffect(() => {
     cargarExamenes()
@@ -186,6 +188,44 @@ export default function ExamenesLab({ mascotaId }: Props) {
     setFilas(prev => [...prev, { parametro: '', valor: '', unidad: '', rangoMin: '', rangoMax: '' }])
   }
 
+  // Carga un examen ya guardado en el formulario, para editarlo. Reusa
+  // exactamente los mismos campos que "Nuevo examen" -- al guardar, en
+  // vez de crear uno nuevo, actualiza el existente.
+  function editarExamen(ex: any) {
+    setEditandoId(ex.id)
+    setTipo(ex.tipo)
+    setFecha(ex.fecha)
+    setPesoKg(ex.peso_kg !== null && ex.peso_kg !== undefined ? String(ex.peso_kg) : '')
+    setNota(ex.nota || '')
+    const resultados = (ex.examen_resultados || []).slice().sort((a: any, b: any) => a.orden - b.orden)
+    setFilas(resultados.map((r: any) => ({
+      parametro: r.parametro,
+      valor: r.valor,
+      unidad: r.unidad || '',
+      rangoMin: r.rango_min !== null && r.rango_min !== undefined ? String(r.rango_min) : '',
+      rangoMax: r.rango_max !== null && r.rango_max !== undefined ? String(r.rango_max) : '',
+    })))
+    setError('')
+    setAbierto(true)
+    setExpandido(null)
+  }
+
+  function cancelarEdicion() {
+    setEditandoId(null)
+    setFecha('')
+    setPesoKg('')
+    setNota('')
+    setFilas([])
+    setError('')
+  }
+
+  async function eliminarExamen(id: string) {
+    if (!confirm('¿Eliminar este examen y todos sus resultados? Esta acción no se puede deshacer.')) return
+    await supabase.from('examenes_lab').delete().eq('id', id)
+    if (editandoId === id) cancelarEdicion()
+    await cargarExamenes()
+  }
+
   async function guardarExamen() {
     if (!fecha) { setError('Selecciona la fecha del examen.'); return }
     const conValor = filas.filter(f => f.parametro.trim() && f.valor.trim())
@@ -196,27 +236,53 @@ export default function ExamenesLab({ mascotaId }: Props) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setGuardando(false); return }
 
-    const { data: examen, error: errExamen } = await supabase
-      .from('examenes_lab')
-      .insert({
-        mascota_id: mascotaId,
-        user_id: user.id,
-        tipo,
-        fecha,
-        peso_kg: pesoKg ? parseFloat(pesoKg.replace(',', '.')) : null,
-        nota: nota || null,
-      })
-      .select()
-      .single()
+    let examenId = editandoId
 
-    if (errExamen || !examen) {
-      setError('No se pudo guardar el examen. Intenta de nuevo.')
-      setGuardando(false)
-      return
+    if (editandoId) {
+      // Modo edición: actualizar el examen existente y reemplazar
+      // todos sus resultados (borrar los viejos, insertar los nuevos --
+      // más simple y confiable que tratar de "parchar" fila por fila).
+      const { error: errUpdate } = await supabase
+        .from('examenes_lab')
+        .update({
+          tipo,
+          fecha,
+          peso_kg: pesoKg ? parseFloat(pesoKg.replace(',', '.')) : null,
+          nota: nota || null,
+        })
+        .eq('id', editandoId)
+
+      if (errUpdate) {
+        setError('No se pudo actualizar el examen. Intenta de nuevo.')
+        setGuardando(false)
+        return
+      }
+
+      await supabase.from('examen_resultados').delete().eq('examen_id', editandoId)
+    } else {
+      const { data: examen, error: errExamen } = await supabase
+        .from('examenes_lab')
+        .insert({
+          mascota_id: mascotaId,
+          user_id: user.id,
+          tipo,
+          fecha,
+          peso_kg: pesoKg ? parseFloat(pesoKg.replace(',', '.')) : null,
+          nota: nota || null,
+        })
+        .select()
+        .single()
+
+      if (errExamen || !examen) {
+        setError('No se pudo guardar el examen. Intenta de nuevo.')
+        setGuardando(false)
+        return
+      }
+      examenId = examen.id
     }
 
     const filasParaGuardar = conValor.map((f, i) => ({
-      examen_id: examen.id,
+      examen_id: examenId,
       parametro: f.parametro.trim(),
       valor: f.valor.trim(),
       unidad: f.unidad.trim() || null,
@@ -228,11 +294,12 @@ export default function ExamenesLab({ mascotaId }: Props) {
     const { error: errResultados } = await supabase.from('examen_resultados').insert(filasParaGuardar)
 
     if (errResultados) {
-      setError('El examen se creó, pero hubo un problema guardando algunos valores.')
+      setError('El examen se guardó, pero hubo un problema guardando algunos valores.')
       setGuardando(false)
       return
     }
 
+    setEditandoId(null)
     setFecha('')
     setPesoKg('')
     setNota('')
@@ -361,15 +428,24 @@ export default function ExamenesLab({ mascotaId }: Props) {
 
           {error && <p className="text-xs text-[#E05252] mb-2">{error}</p>}
 
+          {editandoId && (
+            <div className="bg-[#4AABDB]/10 rounded-xl px-3 py-2 mb-2 flex items-center justify-between">
+              <span className="text-[11px] text-[#4AABDB] font-semibold">Editando examen existente</span>
+              <button onClick={cancelarEdicion} className="text-[11px] text-[#8A7560] font-semibold">Cancelar</button>
+            </div>
+          )}
+
           <button
             onClick={guardarExamen}
             disabled={guardando}
             className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3 rounded-xl text-sm disabled:opacity-50"
           >
-            {guardando ? 'Guardando...' : 'Guardar examen'}
+            {guardando ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Guardar examen'}
           </button>
 
-          {/* Lista de exámenes ya guardados */}
+          {/* Lista de exámenes ya guardados -- agrupados por tipo, para
+              que la comparación entre fechas tenga sentido (Hemograma
+              con Hemograma, no mezclado con Bioquímico). */}
           <div className="mt-5 pt-4 border-t border-[#EEE2D4]">
             <p className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2">Historial</p>
             {cargandoLista ? (
@@ -377,42 +453,114 @@ export default function ExamenesLab({ mascotaId }: Props) {
             ) : examenes.length === 0 ? (
               <p className="text-xs text-[#8A7560]">Aún no hay exámenes registrados.</p>
             ) : (
-              examenes.map(ex => {
-                const infoTipo = TIPOS_EXAMEN.find(t => t.valor === ex.tipo)
-                const resultados = (ex.examen_resultados || []).sort((a: any, b: any) => a.orden - b.orden)
-                const abiertoEx = expandido === ex.id
+              TIPOS_EXAMEN.map(t => {
+                const deEsteTipo = examenes.filter(e => e.tipo === t.valor)
+                if (deEsteTipo.length === 0) return null
+                const enComparacion = comparando === t.valor
+
+                // Unión de todos los parámetros que aparecen en cualquiera
+                // de los exámenes de este tipo, respetando el orden de la
+                // plantilla primero, y agregando al final cualquier
+                // parámetro extra que se haya escrito a mano.
+                const parametrosUnion: string[] = [...t.parametros]
+                for (const ex of deEsteTipo) {
+                  for (const r of (ex.examen_resultados || [])) {
+                    if (!parametrosUnion.includes(r.parametro)) parametrosUnion.push(r.parametro)
+                  }
+                }
+                const examenesAsc = deEsteTipo.slice().sort((a, b) => a.fecha.localeCompare(b.fecha))
+
                 return (
-                  <div key={ex.id} className="mb-2 border border-[#EEE2D4] rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => setExpandido(abiertoEx ? null : ex.id)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 text-left bg-[#FBEAD9]"
-                    >
-                      <span className="text-xs font-semibold text-[#3D2B1F]">
-                        {infoTipo?.emoji} {infoTipo?.label || ex.tipo} · {new Date(ex.fecha + 'T00:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
-                      <span className="text-[#8A7560] text-xs">{abiertoEx ? '⌃' : '⌄'}</span>
-                    </button>
-                    {abiertoEx && (
-                      <div className="p-3">
-                        {ex.peso_kg && <p className="text-[11px] text-[#8A7560] mb-2">Peso: {ex.peso_kg} kg</p>}
-                        {resultados.map((r: any) => {
-                          const fuera = r.rango_min !== null && r.rango_max !== null
-                            ? estaFueraDeRango(r.valor, String(r.rango_min), String(r.rango_max))
-                            : null
-                          return (
-                            <div key={r.id} className="flex items-center justify-between py-1 border-b border-[#F5EDE3] last:border-0">
-                              <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
-                              <span className="text-xs font-semibold" style={{ color: fuera ? '#993C1D' : '#3D2B1F' }}>
-                                {r.valor} {r.unidad || ''}
-                                {r.rango_min !== null && r.rango_max !== null && (
-                                  <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
-                                )}
-                              </span>
-                            </div>
-                          )
-                        })}
-                        {ex.nota && <p className="text-[11px] text-[#8A7560] italic mt-2">📝 {ex.nota}</p>}
+                  <div key={t.valor} className="mb-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[11px] font-bold text-[#8C572F]">{t.emoji} {t.label} ({deEsteTipo.length})</p>
+                      {deEsteTipo.length >= 2 && (
+                        <button
+                          onClick={() => setComparando(enComparacion ? null : t.valor)}
+                          className="text-[10px] font-semibold text-[#4AABDB]"
+                        >
+                          {enComparacion ? 'Ver lista' : '↔ Comparar'}
+                        </button>
+                      )}
+                    </div>
+
+                    {enComparacion ? (
+                      <div className="overflow-x-auto border border-[#EEE2D4] rounded-xl">
+                        <table className="text-[10px] border-collapse">
+                          <thead>
+                            <tr>
+                              <th className="sticky left-0 bg-[#FBEAD9] text-left px-2 py-1.5 font-semibold text-[#8A7560] border-b border-[#EEE2D4] min-w-[110px]">Parámetro</th>
+                              {examenesAsc.map(ex => (
+                                <th key={ex.id} className="px-2 py-1.5 font-semibold text-[#8A7560] border-b border-l border-[#EEE2D4] min-w-[70px] whitespace-nowrap">
+                                  {new Date(ex.fecha + 'T00:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {parametrosUnion.map(p => (
+                              <tr key={p}>
+                                <td className="sticky left-0 bg-[#FFFCF8] px-2 py-1.5 text-[#3D2B1F] border-b border-[#F5EDE3] whitespace-nowrap">{p}</td>
+                                {examenesAsc.map(ex => {
+                                  const r = (ex.examen_resultados || []).find((rr: any) => rr.parametro === p)
+                                  const fuera = r && r.rango_min !== null && r.rango_max !== null
+                                    ? estaFueraDeRango(r.valor, String(r.rango_min), String(r.rango_max))
+                                    : false
+                                  return (
+                                    <td key={ex.id} className="px-2 py-1.5 border-b border-l border-[#F5EDE3] text-center" style={fuera ? { color: '#993C1D', fontWeight: 600, background: '#FDEAEA' } : { color: '#3D2B1F' }}>
+                                      {r ? r.valor : '—'}
+                                    </td>
+                                  )
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
+                    ) : (
+                      deEsteTipo.map(ex => {
+                        const resultados = (ex.examen_resultados || []).slice().sort((a: any, b: any) => a.orden - b.orden)
+                        const abiertoEx = expandido === ex.id
+                        return (
+                          <div key={ex.id} className="mb-2 border border-[#EEE2D4] rounded-xl overflow-hidden">
+                            <button
+                              onClick={() => setExpandido(abiertoEx ? null : ex.id)}
+                              className="w-full flex items-center justify-between px-3 py-2.5 text-left bg-[#FBEAD9]"
+                            >
+                              <span className="text-xs font-semibold text-[#3D2B1F]">
+                                {new Date(ex.fecha + 'T00:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                              <span className="text-[#8A7560] text-xs">{abiertoEx ? '⌃' : '⌄'}</span>
+                            </button>
+                            {abiertoEx && (
+                              <div className="p-3">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <button onClick={() => editarExamen(ex)} className="text-[11px] font-semibold text-[#8C572F]">✏️ Editar</button>
+                                  <button onClick={() => eliminarExamen(ex.id)} className="text-[11px] font-semibold text-[#E05252]">🗑️ Eliminar</button>
+                                </div>
+                                {ex.peso_kg && <p className="text-[11px] text-[#8A7560] mb-2">Peso: {ex.peso_kg} kg</p>}
+                                {resultados.map((r: any) => {
+                                  const fuera = r.rango_min !== null && r.rango_max !== null
+                                    ? estaFueraDeRango(r.valor, String(r.rango_min), String(r.rango_max))
+                                    : null
+                                  return (
+                                    <div key={r.id} className="flex items-center justify-between py-1 border-b border-[#F5EDE3] last:border-0">
+                                      <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
+                                      <span className="text-xs font-semibold" style={{ color: fuera ? '#993C1D' : '#3D2B1F' }}>
+                                        {r.valor} {r.unidad || ''}
+                                        {r.rango_min !== null && r.rango_max !== null && (
+                                          <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  )
+                                })}
+                                {ex.nota && <p className="text-[11px] text-[#8A7560] italic mt-2">📝 {ex.nota}</p>}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })
                     )}
                   </div>
                 )
