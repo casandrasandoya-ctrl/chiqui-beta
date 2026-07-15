@@ -540,7 +540,7 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
                 // de los exámenes de este tipo, respetando el orden de la
                 // plantilla primero, y agregando al final cualquier
                 // parámetro extra que se haya escrito a mano.
-                const parametrosUnion: string[] = [...t.parametros]
+                const parametrosUnion: string[] = t.parametros.map(p => p.nombre)
                 for (const ex of deEsteTipo) {
                   for (const r of (ex.examen_resultados || [])) {
                     if (!parametrosUnion.includes(r.parametro)) parametrosUnion.push(r.parametro)
