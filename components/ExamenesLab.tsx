@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import FechaSelector from '@/components/FechaSelector'
 
@@ -130,6 +130,7 @@ export default function ExamenesLab({ mascotaId }: Props) {
   const [cargandoLista, setCargandoLista] = useState(true)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [comparando, setComparando] = useState<string | null>(null)
+  const formRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     cargarExamenes()
@@ -207,7 +208,11 @@ export default function ExamenesLab({ mascotaId }: Props) {
     })))
     setError('')
     setAbierto(true)
-    setExpandido(null)
+    // Ya no se colapsa la tarjeta del examen (antes se cerraba de golpe
+    // sin indicar adónde fueron los datos). En vez de eso, saltamos la
+    // pantalla hasta el formulario de arriba, que ya quedó lleno con
+    // los datos de este examen listos para editar.
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
 
   function cancelarEdicion() {
@@ -319,7 +324,7 @@ export default function ExamenesLab({ mascotaId }: Props) {
       </button>
 
       {abierto && (
-        <div className="border-t border-[#EEE2D4] p-4">
+        <div ref={formRef} className="border-t border-[#EEE2D4] p-4">
 
           {/* Selector de tipo */}
           <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Tipo de examen</label>
