@@ -452,10 +452,11 @@ export default function PrevencionPage() {
               <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí puedes contarme cuánto pesa tu compañero cada vez que lo controlen.</p>
             </div>
             <PesoTracker mascotaId={mascota.id} pesoActual={mascota.peso_actual} />
-            <ExamenesLab mascotaId={mascota.id} />
-          </div>
+                      </div>
         )}
       </div>
+
+{mascota && <ExamenesLab mascotaId={mascota.id} />}
 
       {/* FRECUENCIA RESPIRATORIA */}
       {mascota && (mascota.especie === 'Perro' || mascota.especie === 'Gato') && (
