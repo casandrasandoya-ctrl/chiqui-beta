@@ -57,6 +57,56 @@ interface Fila {
   rangoMax: string
 }
 
+// Rangos de referencia por defecto, tomados directo de los informes
+// reales del laboratorio (GammaVet) que ya usa Casandra. Sirven como
+// punto de partida editable -- distintos laboratorios pueden usar
+// rangos ligeramente distintos, así que si cambian de laboratorio,
+// pueden ajustarlos y desde ahí en adelante se recuerda ese nuevo
+// rango (ver cargarUltimosRangos).
+const RANGOS_DEFECTO: Record<string, Record<string, { min: number; max: number; unidad: string }>> = {
+  bioquimico: {
+    'Proteínas Totales': { min: 5.4, max: 8, unidad: 'g/dL' },
+    'Albúmina': { min: 2.5, max: 4, unidad: 'g/dL' },
+    'Globulinas': { min: 2.7, max: 4.4, unidad: 'g/dL' },
+    'Bilirrubina Total': { min: 0.1, max: 0.8, unidad: 'mg/dL' },
+    'Colesterol': { min: 135, max: 270, unidad: 'mg/dL' },
+    'Glucosa': { min: 65, max: 118, unidad: 'mg/dL' },
+    'Calcio': { min: 9, max: 11.3, unidad: 'mg/dL' },
+    'Fósforo': { min: 2.6, max: 6.2, unidad: 'mg/dL' },
+    'Urea': { min: 16, max: 58, unidad: 'mg/dL' },
+    'Nus (BUN)': { min: 8, max: 33, unidad: 'mg/dL' },
+    'Creatinina': { min: 0.5, max: 1.5, unidad: 'mg/dL' },
+    'Fosfatasa Alcalina': { min: 20, max: 156, unidad: 'U/L' },
+    'GPT/ALT': { min: 21, max: 102, unidad: 'U/L' },
+    'GOT/AST': { min: 23, max: 66, unidad: 'U/L' },
+    'GGT': { min: 2, max: 23, unidad: 'U/L' },
+  },
+  hemograma: {
+    'Eritrocitos': { min: 5.5, max: 9.1, unidad: 'M/µL' },
+    'Hematocrito': { min: 37, max: 62, unidad: '%' },
+    'Hemoglobina': { min: 13, max: 21, unidad: 'g/dL' },
+    'VCM': { min: 62, max: 75, unidad: 'fL' },
+    'HCM': { min: 20, max: 25, unidad: 'pg' },
+    'CHCM': { min: 31, max: 36, unidad: 'g/dL' },
+    'Plaquetas': { min: 173, max: 487, unidad: 'K/µL' },
+    'Leucocitos': { min: 5, max: 21, unidad: 'K/µL' },
+    'Eosinófilos': { min: 1, max: 9, unidad: '%' },
+    'Basófilos': { min: 0, max: 0.7, unidad: '%' },
+    'Juveniles': { min: 0, max: 0, unidad: '%' },
+    'Baciliformes': { min: 0, max: 0.4, unidad: '%' },
+    'Segmentados': { min: 60, max: 77, unidad: '%' },
+    'Linfocitos': { min: 14, max: 42, unidad: '%' },
+    'Monocitos': { min: 3, max: 9, unidad: '%' },
+    'Eosinófilos Absolutos': { min: 0.1, max: 1.25, unidad: 'K/µL' },
+    'Basófilos Absolutos': { min: 0, max: 0.5, unidad: 'K/µL' },
+    'Juveniles Absolutos': { min: 0, max: 0, unidad: 'K/µL' },
+    'Baciliformes Absolutos': { min: 0, max: 0.3, unidad: 'K/µL' },
+    'Segmentados Absolutos': { min: 3, max: 11.5, unidad: 'K/µL' },
+    'Linfocitos Absolutos': { min: 1, max: 4.8, unidad: 'K/µL' },
+    'Monocitos Absolutos': { min: 0.15, max: 1.35, unidad: 'K/µL' },
+  },
+}
+
 function estaFueraDeRango(valor: string, rangoMin: string, rangoMax: string): boolean | null {
   const v = parseFloat(valor.replace(',', '.'))
   const min = parseFloat(rangoMin.replace(',', '.'))
@@ -115,13 +165,17 @@ export default function ExamenesLab({ mascotaId }: Props) {
       }
     }
 
-    setFilas(plantilla.parametros.map(p => ({
-      parametro: p,
-      valor: '',
-      unidad: mapaAnterior[p]?.unidad || '',
-      rangoMin: mapaAnterior[p]?.rangoMin || '',
-      rangoMax: mapaAnterior[p]?.rangoMax || '',
-    })))
+    setFilas(plantilla.parametros.map(p => {
+      const anterior = mapaAnterior[p]
+      const defecto = RANGOS_DEFECTO[tipoElegido]?.[p]
+      return {
+        parametro: p,
+        valor: '',
+        unidad: anterior?.unidad || (defecto ? defecto.unidad : ''),
+        rangoMin: anterior?.rangoMin || (defecto ? String(defecto.min) : ''),
+        rangoMax: anterior?.rangoMax || (defecto ? String(defecto.max) : ''),
+      }
+    }))
   }
 
   function actualizarFila(idx: number, campo: keyof Fila, valor: string) {
@@ -243,45 +297,49 @@ export default function ExamenesLab({ mascotaId }: Props) {
           {/* Tabla de parámetros */}
           {filas.length > 0 && (
             <div className="mb-3">
-              <p className="text-[10px] text-[#8A7560] mb-1.5">Deja vacío lo que tu examen no incluya. El rango se recuerda del examen anterior si ya registraste uno.</p>
-              <div className="grid grid-cols-[1.4fr_0.8fr_0.6fr_0.5fr_0.5fr] gap-1 text-[10px] text-[#8A7560] pb-1 border-b border-[#EEE2D4]">
-                <span>Parámetro</span><span>Valor</span><span>Unidad</span><span>Mín</span><span>Máx</span>
-              </div>
+              <p className="text-[10px] text-[#8A7560] mb-2">Deja vacío lo que tu examen no incluya. El rango viene precargado con valores típicos de referencia — ajústalo si tu laboratorio usa otros.</p>
               {filas.map((f, i) => {
                 const fuera = estaFueraDeRango(f.valor, f.rangoMin, f.rangoMax)
                 return (
-                  <div key={i} className="grid grid-cols-[1.4fr_0.8fr_0.6fr_0.5fr_0.5fr] gap-1 items-center py-1.5 border-b border-[#F5EDE3]">
-                    <input
-                      className="text-xs text-[#3D2B1F] bg-transparent focus:outline-none focus:bg-[#FBEAD9] rounded px-1 py-1"
-                      value={f.parametro}
-                      onChange={e => actualizarFila(i, 'parametro', e.target.value)}
-                      placeholder="Parámetro"
-                    />
-                    <input
-                      className="text-xs rounded px-1.5 py-1 focus:outline-none"
-                      style={fuera ? { background: '#FDEAEA', color: '#993C1D', fontWeight: 600 } : { background: '#F5EDE3', color: '#3D2B1F' }}
-                      value={f.valor}
-                      onChange={e => actualizarFila(i, 'valor', e.target.value)}
-                      placeholder="—"
-                    />
-                    <input
-                      className="text-[10px] text-[#8A7560] bg-transparent focus:outline-none focus:bg-[#FBEAD9] rounded px-1 py-1"
-                      value={f.unidad}
-                      onChange={e => actualizarFila(i, 'unidad', e.target.value)}
-                      placeholder="ud."
-                    />
-                    <input
-                      className="text-[10px] text-[#8A7560] bg-transparent focus:outline-none focus:bg-[#FBEAD9] rounded px-1 py-1"
-                      value={f.rangoMin}
-                      onChange={e => actualizarFila(i, 'rangoMin', e.target.value)}
-                      placeholder="min"
-                    />
-                    <input
-                      className="text-[10px] text-[#8A7560] bg-transparent focus:outline-none focus:bg-[#FBEAD9] rounded px-1 py-1"
-                      value={f.rangoMax}
-                      onChange={e => actualizarFila(i, 'rangoMax', e.target.value)}
-                      placeholder="max"
-                    />
+                  <div key={i} className="py-2 border-b border-[#F5EDE3]">
+                    <div className="flex items-center gap-2 mb-1">
+                      <input
+                        className="flex-1 text-xs font-medium text-[#3D2B1F] bg-transparent focus:outline-none focus:bg-[#FBEAD9] rounded px-1.5 py-1.5"
+                        value={f.parametro}
+                        onChange={e => actualizarFila(i, 'parametro', e.target.value)}
+                        placeholder="Parámetro"
+                      />
+                      <input
+                        className="w-20 text-xs text-center rounded-lg px-2 py-1.5 focus:outline-none"
+                        style={fuera ? { background: '#FDEAEA', color: '#993C1D', fontWeight: 600 } : { background: '#F5EDE3', color: '#3D2B1F' }}
+                        value={f.valor}
+                        onChange={e => actualizarFila(i, 'valor', e.target.value)}
+                        placeholder="—"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5 pl-1.5">
+                      <span className="text-[9px] text-[#8A7560]">Unidad</span>
+                      <input
+                        className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
+                        value={f.unidad}
+                        onChange={e => actualizarFila(i, 'unidad', e.target.value)}
+                        placeholder="ud."
+                      />
+                      <span className="text-[9px] text-[#8A7560] ml-1.5">Mín</span>
+                      <input
+                        className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
+                        value={f.rangoMin}
+                        onChange={e => actualizarFila(i, 'rangoMin', e.target.value)}
+                        placeholder="min"
+                      />
+                      <span className="text-[9px] text-[#8A7560] ml-1.5">Máx</span>
+                      <input
+                        className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
+                        value={f.rangoMax}
+                        onChange={e => actualizarFila(i, 'rangoMax', e.target.value)}
+                        placeholder="max"
+                      />
+                    </div>
                   </div>
                 )
               })}
