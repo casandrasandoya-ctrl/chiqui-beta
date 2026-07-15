@@ -371,7 +371,7 @@ export default function ExamenesLab({ mascotaId }: Props) {
                   <div key={i} className="py-2 border-b border-[#F5EDE3]">
                     <div className="flex items-center gap-2 mb-1">
                       <input
-                        className="flex-1 text-xs font-medium text-[#3D2B1F] bg-transparent focus:outline-none focus:bg-[#FBEAD9] rounded px-1.5 py-1.5"
+                        className="w-40 text-xs font-medium text-[#3D2B1F] bg-transparent focus:outline-none focus:bg-[#FBEAD9] rounded px-1.5 py-1.5"
                         value={f.parametro}
                         onChange={e => actualizarFila(i, 'parametro', e.target.value)}
                         placeholder="Parámetro"
