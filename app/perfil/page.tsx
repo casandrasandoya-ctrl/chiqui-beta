@@ -51,6 +51,7 @@ export default function PerfilPage() {
   const [toast, setToast] = useState('')
   const [loading, setLoading] = useState(true)
   const [userEmail, setUserEmail] = useState('')
+  const [userNombre, setUserNombre] = useState('')
   // Nombres del tutor principal (dueño) y del co-tutor activo, si existe.
   // Se obtienen via RPC porque perfil_usuario tiene RLS por user_id -- no
   // se puede leer directamente el nombre de otra persona (el co-tutor)
@@ -62,6 +63,7 @@ export default function PerfilPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       setUserEmail(user.email || '')
+      setUserNombre((user.user_metadata as any)?.nombre || '')
       const { data: todasMascotas } = await supabase.from('mascotas').select('*').order('created_at', { ascending: true })
       if (!todasMascotas || !todasMascotas.length) { router.push('/mascota/nueva'); return }
       setMascotas(todasMascotas)
@@ -314,6 +316,12 @@ export default function PerfilPage() {
         <div className="px-4 py-3 border-b border-[#EEE2D4]">
           <h2 className="font-bold text-sm">Mi cuenta</h2>
         </div>
+        {userNombre && (
+          <div className="px-4 py-3 border-b border-[#EEE2D4]">
+            <p className="text-xs text-[#8A7560]">Nombre</p>
+            <p className="text-sm mt-0.5">{userNombre}</p>
+          </div>
+        )}
         <div className="px-4 py-3 border-b border-[#EEE2D4]">
           <p className="text-xs text-[#8A7560]">Email</p>
           <p className="text-sm mt-0.5">{userEmail}</p>
