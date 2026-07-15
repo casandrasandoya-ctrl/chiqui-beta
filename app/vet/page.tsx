@@ -1,4 +1,5 @@
 import { createVetClient } from '@/utils/supabase/vet-client'
+import ExamenesLabVet from '@/components/ExamenesLabVet'
 
 interface Props {
   searchParams: { token?: string }
@@ -35,22 +36,6 @@ const CATEGORIAS_EXAMEN: Record<string,{icon:string,label:string}> = {
   imagen: { icon:'📷', label:'Imagen (Rx / Eco)' },
   corazon: { icon:'❤️', label:'Examen cardíaco' },
   otro: { icon:'📄', label:'Otro examen' },
-}
-
-// Exámenes de laboratorio ESTRUCTURADOS (distinto del bloque de arriba,
-// que son PDFs adjuntos). Mismas 4 categorías que en Prevención.
-const TIPOS_EXAMEN_LAB: Record<string,{icon:string,label:string}> = {
-  bioquimico: { icon:'🧪', label:'Perfil bioquímico' },
-  hemograma: { icon:'🩸', label:'Hemograma' },
-  orina: { icon:'💛', label:'Examen de orina' },
-  tiroides: { icon:'🦴', label:'Perfil tiroideo' },
-}
-
-function fueraDeRango(valor: string, rangoMin: number | null, rangoMax: number | null): boolean {
-  if (rangoMin === null || rangoMax === null) return false
-  const v = parseFloat(String(valor).replace(',', '.'))
-  if (isNaN(v)) return false
-  return v < rangoMin || v > rangoMax
 }
 
 function detectarMotivosConsulta(registros: any[]): string[] {
@@ -388,47 +373,14 @@ export default async function VetPage({ searchParams }: Props) {
         )}
 
         {/* Exámenes de laboratorio ESTRUCTURADOS -- justo al lado del bloque
-            de PDFs, ya que ambos son "resultados de exámenes". Los valores
-            fuera de rango se destacan de inmediato, para que el veterinario
-            los detecte al primer vistazo sin tener que leer cada número. */}
+            de PDFs, ya que ambos son "resultados de exámenes". Por
+            defecto solo muestra el más reciente de cada tipo (con los
+            valores fuera de rango destacados); el veterinario puede
+            desplegar los anteriores o compararlos si lo necesita --
+            ver ExamenesLabVet.tsx. */}
         {examenesLab.length > 0 && (
           <SeccionVet titulo={`🧫 Exámenes de laboratorio (${examenesLab.length})`}>
-            <div className="space-y-4">
-              {examenesLab.map((ex: any) => {
-                const infoTipo = TIPOS_EXAMEN_LAB[ex.tipo] || { icon: '🧫', label: ex.tipo }
-                const resultados = (ex.resultados || []).slice().sort((a: any, b: any) => a.orden - b.orden)
-                const cantidadFuera = resultados.filter((r: any) => fueraDeRango(r.valor, r.rango_min, r.rango_max)).length
-                return (
-                  <div key={ex.id} className="pb-4 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-bold text-sm">{infoTipo.icon} {infoTipo.label}</p>
-                      <span className="text-xs text-[#8A7560]">{fmt(ex.fecha)}</span>
-                    </div>
-                    {ex.peso_kg && <p className="text-xs text-[#8A7560] mb-1.5">Peso ese día: {ex.peso_kg} kg</p>}
-                    {cantidadFuera > 0 && (
-                      <p className="text-xs font-bold text-[#993C1D] mb-2">⚠️ {cantidadFuera} valor{cantidadFuera === 1 ? '' : 'es'} fuera de rango</p>
-                    )}
-                    <div className="bg-[#FBEAD9] rounded-xl p-2.5">
-                      {resultados.map((r: any) => {
-                        const fuera = fueraDeRango(r.valor, r.rango_min, r.rango_max)
-                        return (
-                          <div key={r.id} className="flex items-center justify-between py-1 border-b border-[#F5EDE3] last:border-0">
-                            <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
-                            <span className="text-xs font-semibold" style={{ color: fuera ? '#993C1D' : '#3D2B1F' }}>
-                              {r.valor} {r.unidad || ''}
-                              {r.rango_min !== null && r.rango_max !== null && (
-                                <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
-                              )}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    {ex.nota && <p className="text-xs text-[#8A7560] mt-2 italic">📝 {ex.nota}</p>}
-                  </div>
-                )
-              })}
-            </div>
+            <ExamenesLabVet examenesLab={examenesLab} />
           </SeccionVet>
         )}
 
