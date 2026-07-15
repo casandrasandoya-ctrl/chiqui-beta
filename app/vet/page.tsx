@@ -364,13 +364,24 @@ export default async function VetPage({ searchParams }: Props) {
             <div className="text-xs text-white/80">Vista veterinaria · Solo lectura</div>
           </div>
         </div>
-        <h1 className="text-2xl font-bold">{mascota.nombre}</h1>
-        <p className="text-white/80 text-sm mt-1">
-          {mascota.especie}{mascota.raza ? ` · ${mascota.raza}` : ''}
-          {mascota.fecha_nacimiento ? ` · ${calcEdad(mascota.fecha_nacimiento)}` : ''}
-          {mascota.sexo ? ` · ${mascota.sexo}` : ''}
-          {mascota.castrado ? ' · Esterilizado/a' : ''}
-        </p>
+        <div className="flex items-center gap-3">
+          {mascota.foto_url ? (
+            <img src={mascota.foto_url} alt={mascota.nombre} className="w-16 h-16 rounded-full object-cover border-2 border-white/30 flex-shrink-0" />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-white/15 border-2 border-white/30 flex items-center justify-center text-2xl flex-shrink-0">
+              {mascota.especie === 'Gato' ? '🐱' : '🐶'}
+            </div>
+          )}
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold truncate">{mascota.nombre}</h1>
+            <p className="text-white/80 text-sm mt-0.5">
+              {mascota.especie}{mascota.raza ? ` · ${mascota.raza}` : ''}
+              {mascota.fecha_nacimiento ? ` · ${calcEdad(mascota.fecha_nacimiento)}` : ''}
+              {mascota.sexo ? ` · ${mascota.sexo}` : ''}
+              {mascota.castrado ? ' · Esterilizado/a' : ''}
+            </p>
+          </div>
+        </div>
         {mascota.alergias && (
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E05252]/20 text-white">
             ⚠️ Alergia: {mascota.alergias}
