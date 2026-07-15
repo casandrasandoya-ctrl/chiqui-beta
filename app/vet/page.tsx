@@ -20,6 +20,17 @@ function fmt(f: string): string {
   return `${d.getDate()} ${ms[d.getMonth()]} ${d.getFullYear()}`
 }
 
+function diasDesde(f: string): number {
+  return Math.round((new Date().getTime() - new Date(f + 'T00:00:00').getTime()) / 86400000)
+}
+
+function fueraDeRango(valor: string, rangoMin: number | null, rangoMax: number | null): boolean {
+  if (rangoMin === null || rangoMax === null) return false
+  const v = parseFloat(String(valor).replace(',', '.'))
+  if (isNaN(v)) return false
+  return v < rangoMin || v > rangoMax
+}
+
 const EC: Record<string,string> = { verde:'#4CAF7D', amarillo:'#F5C842', naranjo:'#F07A30', rojo:'#E05252' }
 const EL: Record<string,string> = { verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' }
 
@@ -64,6 +75,87 @@ function detectarMotivosConsulta(registros: any[]): string[] {
   return Array.from(senales).slice(0, 6)
 }
 
+// Construye el Resumen Clínico: resume información ya registrada, sin
+// emitir diagnósticos ni interpretar -- solo agrupa lo que ya existe
+// para que el veterinario entienda el panorama general en segundos,
+// antes de entrar al detalle de cada sección.
+function construirResumenClinico(params: {
+  historialPeso: any[]
+  vacunas: any[]
+  antis: any[]
+  obs: any[]
+  examenesLab: any[]
+}): string[] {
+  const { historialPeso, vacunas, antis, obs, examenesLab } = params
+  const resumen: string[] = []
+  const hoy = new Date()
+
+  // Peso: compara el registro más antiguo vs el más reciente dentro de
+  // los últimos 6 meses. Si hay menos de 2 registros en ese período, no
+  // hay nada confiable que decir, así que se omite la línea entera.
+  if (historialPeso && historialPeso.length >= 2) {
+    const hace6meses = new Date()
+    hace6meses.setMonth(hace6meses.getMonth() - 6)
+    const enPeriodo = historialPeso
+      .filter((p: any) => new Date(p.fecha + 'T00:00:00') >= hace6meses)
+      .sort((a: any, b: any) => a.fecha.localeCompare(b.fecha))
+    if (enPeriodo.length >= 2) {
+      const primero = enPeriodo[0].peso
+      const ultimo = enPeriodo[enPeriodo.length - 1].peso
+      const variacionPct = primero ? Math.abs((ultimo - primero) / primero) * 100 : 0
+      if (variacionPct < 5) {
+        resumen.push(`⚖️ Peso estable durante los últimos 6 meses (${ultimo} kg).`)
+      } else if (ultimo > primero) {
+        resumen.push(`⚖️ Peso aumentó de ${primero} kg a ${ultimo} kg en los últimos 6 meses.`)
+      } else {
+        resumen.push(`⚖️ Peso disminuyó de ${primero} kg a ${ultimo} kg en los últimos 6 meses.`)
+      }
+    }
+  }
+
+  // Vacunas
+  if (vacunas.length > 0) {
+    const vencidas = vacunas.filter((v: any) => v.proxima_fecha && new Date(v.proxima_fecha + 'T00:00:00') < hoy)
+    resumen.push(vencidas.length > 0
+      ? `💉 ${vencidas.length} vacuna${vencidas.length === 1 ? '' : 's'} vencida${vencidas.length === 1 ? '' : 's'}.`
+      : '💉 Vacunas al día.')
+  }
+
+  // Antiparasitario: se mira la próxima fecha más reciente registrada
+  if (antis.length > 0) {
+    const conProxima = antis.filter((a: any) => a.proxima_fecha).sort((a: any, b: any) => b.proxima_fecha.localeCompare(a.proxima_fecha))
+    const masReciente = conProxima[0]
+    const vigente = masReciente && new Date(masReciente.proxima_fecha + 'T00:00:00') >= hoy
+    resumen.push(vigente ? '🪱 Antiparasitario vigente.' : '🪱 Antiparasitario vencido o sin próxima fecha registrada.')
+  }
+
+  // Observaciones activas
+  const obsActivas = obs.filter((o: any) => o.estado === 'activa').length
+  if (obsActivas > 0) {
+    resumen.push(`👁️ ${obsActivas} observación${obsActivas === 1 ? '' : 'es'} activa${obsActivas === 1 ? '' : 's'}.`)
+  }
+
+  // Último perfil bioquímico + parámetros fuera de rango
+  const bioquimicos = examenesLab.filter((e: any) => e.tipo === 'bioquimico').sort((a: any, b: any) => b.fecha.localeCompare(a.fecha))
+  if (bioquimicos.length > 0) {
+    const ultimo = bioquimicos[0]
+    const dias = diasDesde(ultimo.fecha)
+    resumen.push(`🧪 Último perfil bioquímico hace ${dias} día${dias === 1 ? '' : 's'}.`)
+    const fuera = (ultimo.resultados || []).filter((r: any) => fueraDeRango(r.valor, r.rango_min, r.rango_max)).length
+    if (fuera > 0) resumen.push(`⚠️ ${fuera} parámetro${fuera === 1 ? '' : 's'} fuera de rango en el último bioquímico.`)
+  }
+
+  // Último hemograma
+  const hemogramas = examenesLab.filter((e: any) => e.tipo === 'hemograma').sort((a: any, b: any) => b.fecha.localeCompare(a.fecha))
+  if (hemogramas.length > 0) {
+    const ultimo = hemogramas[0]
+    const dias = diasDesde(ultimo.fecha)
+    resumen.push(`🩸 Último hemograma hace ${dias} día${dias === 1 ? '' : 's'}.`)
+  }
+
+  return resumen
+}
+
 function SeccionVet({ titulo, children, abiertaPorDefecto = false }: { titulo: string, children: React.ReactNode, abiertaPorDefecto?: boolean }) {
   return (
     <details open={abiertaPorDefecto} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
@@ -75,6 +167,67 @@ function SeccionVet({ titulo, children, abiertaPorDefecto = false }: { titulo: s
         {children}
       </div>
     </details>
+  )
+}
+
+function RegistroCard({ r }: { r: any }) {
+  return (
+    <div className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-sm font-semibold">{fmt(r.fecha)}</p>
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${EC[r.estado_dia]}20`, color: EC[r.estado_dia] }}>
+          {EL[r.estado_dia]}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+        {CAMPOS_SALUD.filter(([,k]) => r[k] && r[k] !== 'normal').map(([label, key]) => (
+          <span key={key} className="text-xs text-[#8A7560]">
+            <span className="font-medium text-[#3D2B1F]">{label}:</span> {r[key].replace(/_/g,' ')}
+          </span>
+        ))}
+      </div>
+      {r.nota && <p className="text-xs text-[#8A7560] mt-1 italic">📝 {r.nota}</p>}
+    </div>
+  )
+}
+
+function VacunaCard({ v }: { v: any }) {
+  return (
+    <div className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+      <div className="flex items-center justify-between">
+        <p className="font-semibold text-sm">{v.nombre}</p>
+        {v.proxima_fecha && <p className="text-xs text-[#8A7560]">Próxima: {fmt(v.proxima_fecha)}</p>}
+      </div>
+      <p className="text-xs text-[#8A7560] mt-0.5">Aplicada: {fmt(v.fecha_aplicacion)}{v.lote ? ` · Lote: ${v.lote}` : ''}</p>
+    </div>
+  )
+}
+
+function AntiCard({ a }: { a: any }) {
+  return (
+    <div className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+      <div className="flex items-center justify-between">
+        <p className="font-semibold text-sm">{a.nombre}</p>
+        {a.proxima_fecha && <p className="text-xs text-[#8A7560]">Próxima: {fmt(a.proxima_fecha)}</p>}
+      </div>
+      <p className="text-xs text-[#8A7560] mt-0.5">{a.tipo} · {fmt(a.fecha_aplicacion)}</p>
+    </div>
+  )
+}
+
+function MedicamentoCard({ med }: { med: any }) {
+  return (
+    <div className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+      <div className="flex items-center justify-between">
+        <p className="font-semibold text-sm">{med.nombre}</p>
+        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
+          {med.estado === 'activo' ? 'Activo' : 'Finalizado'}
+        </span>
+      </div>
+      {med.dosis && <p className="text-xs text-[#8A7560] mt-0.5">{med.dosis}{med.frecuencia ? ` · ${med.frecuencia}` : ''}</p>}
+      <p className="text-xs text-[#8A7560] mt-0.5">Desde: {fmt(med.fecha_inicio)}{med.fecha_fin ? ` hasta ${fmt(med.fecha_fin)}` : ''}</p>
+      {med.motivo && <p className="text-xs text-[#8A7560] mt-0.5">Motivo: {med.motivo}</p>}
+    </div>
   )
 }
 
@@ -106,6 +259,13 @@ export default async function VetPage({ searchParams }: Props) {
   }
 
   const mascota = datos.mascota
+
+  const { data: historialPeso } = await supabase
+    .from('historial_peso')
+    .select('*')
+    .eq('mascota_id', datos.mascota.id)
+    .order('fecha', { ascending: false })
+    .limit(20)
 
   const { data: respiracion } = await supabase
     .from('frecuencia_respiratoria')
@@ -157,6 +317,10 @@ export default async function VetPage({ searchParams }: Props) {
   const examenesLab = datos.examenes_lab || []
 
   const motivosConsulta = detectarMotivosConsulta(registros)
+  const resumenClinico = construirResumenClinico({ historialPeso: historialPeso || [], vacunas, antis, obs, examenesLab })
+
+  const medicamentosActivos = medicamentos.filter((m: any) => m.estado === 'activo')
+  const medicamentosFinalizados = medicamentos.filter((m: any) => m.estado !== 'activo')
 
   const examenesConUrl = await Promise.all(
     examenes.map(async (ex: any) => {
@@ -195,7 +359,9 @@ export default async function VetPage({ searchParams }: Props) {
 
       <div className="px-5 py-5 space-y-3">
 
-        {/* Ficha del paciente */}
+        {/* 1. Ficha del paciente -- prácticamente igual, se agrega Estado
+            reproductivo explícito (antes solo aparecía implícito como
+            "Castrado/a" en el header). */}
         <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4]">
           <div className="flex items-center gap-2 mb-3">
             <img src="/chiqui/chiqui_registro.png" alt="" className="w-6 h-6 object-contain" />
@@ -203,6 +369,7 @@ export default async function VetPage({ searchParams }: Props) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
+              ['Estado reproductivo', mascota.castrado ? 'Castrado/a' : 'Entero/a'],
               ['Peso actual', mascota.peso_actual ? `${mascota.peso_actual} kg` : '—'],
               ['Alimentación', mascota.alimentacion_tipo || '—'],
               ['Marca / proteína', mascota.alimentacion_marca || '—'],
@@ -217,7 +384,22 @@ export default async function VetPage({ searchParams }: Props) {
           </div>
         </div>
 
-        {/* Posible motivo de consulta */}
+        {/* 2. Resumen clínico -- NUEVO. Resume el historial completo, sin
+            diagnosticar. No compite con "Posible motivo de consulta"
+            (esa se basa solo en los últimos 7 días de registro diario). */}
+        {resumenClinico.length > 0 && (
+          <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4]">
+            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-2">📋 Resumen clínico</h2>
+            <ul className="space-y-1.5">
+              {resumenClinico.map((linea, i) => (
+                <li key={i} className="text-xs text-[#3D2B1F] leading-relaxed">{linea}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 3. Posible motivo de consulta -- se mantiene igual, función
+            distinta al Resumen clínico (esta mira solo los últimos 7 días). */}
         <div className="bg-[#FBEAD9] rounded-2xl p-4 border border-[#CD7421]/30">
           <h2 className="font-bold text-xs text-[#CD7421] uppercase tracking-wider mb-2">
             🩺 Posible motivo de consulta
@@ -245,13 +427,9 @@ export default async function VetPage({ searchParams }: Props) {
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
         </div>
 
-        {/* Observaciones -- timeline verdadera: la entrada inicial (con
-            fecha_inicio) se mezcla con las evoluciones en un solo orden
-            cronológico (más reciente primero), en vez de mostrar la
-            inicial siempre arriba y las evoluciones aparte. Cada
-            observación es colapsable individualmente (nested <details>,
-            sin JS) para que el veterinario no vea todo el historial de
-            golpe -- solo abre las que le interesan. */}
+        {/* 4. Observaciones -- tarjeta resumida por defecto (título,
+            estado, cantidad de actualizaciones, última fecha). Solo al
+            desplegar aparece la línea de tiempo completa con fotos. */}
         {obs.length > 0 && (
           <SeccionVet titulo={`👁️ Observaciones (${obs.length})`}>
             <div className="space-y-3">
@@ -273,11 +451,10 @@ export default async function VetPage({ searchParams }: Props) {
                           </span>
                         </div>
                         <p className="text-[11px] text-[#8A7560] mt-0.5">
-                          {totalActualizaciones > 1 ? `${totalActualizaciones} actualizaciones · ` : ''}
-                          Última: {fmt(puntos[0]?.fecha)}
+                          {totalActualizaciones} actualización{totalActualizaciones === 1 ? '' : 'es'} · Última actualización: {fmt(puntos[0]?.fecha)}
                         </p>
                       </div>
-                      <span className="text-[#8A7560] text-lg flex-shrink-0 ml-2 select-none">⌄</span>
+                      <span className="text-[11px] font-semibold text-[#4AABDB] flex-shrink-0 ml-2 select-none">▼ Ver evolución</span>
                     </summary>
 
                     <div className="p-3 border-t border-[#EEE2D4]">
@@ -309,29 +486,23 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
-        {/* Registros recientes */}
+        {/* 5. Registros diarios -- solo los 5 más recientes visibles de
+            entrada; el resto queda detrás de "Ver registros anteriores". */}
         {registros.length > 0 && (
           <SeccionVet titulo={`📋 Registros recientes (${registros.length})`}>
             <div className="space-y-2">
-              {registros.map((r: any) => (
-                <div key={r.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-semibold">{fmt(r.fecha)}</p>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${EC[r.estado_dia]}20`, color: EC[r.estado_dia] }}>
-                      {EL[r.estado_dia]}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                    {CAMPOS_SALUD.filter(([,k]) => r[k] && r[k] !== 'normal').map(([label, key]) => (
-                      <span key={key} className="text-xs text-[#8A7560]">
-                        <span className="font-medium text-[#3D2B1F]">{label}:</span> {r[key].replace(/_/g,' ')}
-                      </span>
-                    ))}
-                  </div>
-                  {r.nota && <p className="text-xs text-[#8A7560] mt-1 italic">📝 {r.nota}</p>}
-                </div>
-              ))}
+              {registros.slice(0, 5).map((r: any) => <RegistroCard key={r.id} r={r} />)}
             </div>
+            {registros.length > 5 && (
+              <details className="mt-2">
+                <summary className="text-xs font-semibold text-[#8C572F] cursor-pointer list-none">
+                  Ver registros anteriores ({registros.length - 5})
+                </summary>
+                <div className="space-y-2 mt-2">
+                  {registros.slice(5).map((r: any) => <RegistroCard key={r.id} r={r} />)}
+                </div>
+              </details>
+            )}
           </SeccionVet>
         )}
 
@@ -391,12 +562,9 @@ export default async function VetPage({ searchParams }: Props) {
           </SeccionVet>
         )}
 
-        {/* Exámenes de laboratorio ESTRUCTURADOS -- justo al lado del bloque
-            de PDFs, ya que ambos son "resultados de exámenes". Por
-            defecto solo muestra el más reciente de cada tipo (con los
-            valores fuera de rango destacados); el veterinario puede
-            desplegar los anteriores o compararlos si lo necesita --
-            ver ExamenesLabVet.tsx. */}
+        {/* 6. Exámenes de laboratorio -- resumido por defecto (fecha,
+            peso, parámetros fuera de rango con flechas), tabla completa
+            solo al desplegar. Ver ExamenesLabVet.tsx. */}
         {examenesLab.length > 0 && (
           <SeccionVet titulo={`🧫 Exámenes de laboratorio (${examenesLab.length})`}>
             <ExamenesLabVet examenesLab={examenesLab} />
@@ -409,55 +577,80 @@ export default async function VetPage({ searchParams }: Props) {
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Prevención</p>
         </div>
 
-        {vacunas.length > 0 && (
-          <SeccionVet titulo={`💉 Vacunas (${vacunas.length})`}>
-            <div className="space-y-2">
-              {vacunas.map((v: any) => (
-                <div key={v.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-sm">{v.nombre}</p>
-                    {v.proxima_fecha && <p className="text-xs text-[#8A7560]">Próxima: {fmt(v.proxima_fecha)}</p>}
-                  </div>
-                  <p className="text-xs text-[#8A7560] mt-0.5">Aplicada: {fmt(v.fecha_aplicacion)}{v.lote ? ` · Lote: ${v.lote}` : ''}</p>
+        {/* 7. Vacunas -- estado + próxima primero, historial detrás de un
+            desplegable. */}
+        {vacunas.length > 0 && (() => {
+          const conProxima = vacunas.filter((v: any) => v.proxima_fecha).sort((a: any, b: any) => a.proxima_fecha.localeCompare(b.proxima_fecha))
+          const hoy = new Date()
+          const vencidas = vacunas.filter((v: any) => v.proxima_fecha && new Date(v.proxima_fecha + 'T00:00:00') < hoy)
+          const proxima = conProxima.find((v: any) => new Date(v.proxima_fecha + 'T00:00:00') >= hoy) || conProxima[0]
+          return (
+            <SeccionVet titulo={`💉 Vacunas (${vacunas.length})`}>
+              <div className="mb-3 pb-3 border-b border-[#EEE2D4]">
+                <p className="text-xs font-bold" style={{ color: vencidas.length > 0 ? '#E05252' : '#4CAF7D' }}>
+                  {vencidas.length > 0 ? `⚠️ ${vencidas.length} vencida${vencidas.length === 1 ? '' : 's'}` : '✅ Al día'}
+                </p>
+                {proxima?.proxima_fecha && (
+                  <p className="text-xs text-[#8A7560] mt-0.5">Próxima: {proxima.nombre} · {fmt(proxima.proxima_fecha)}</p>
+                )}
+              </div>
+              <details>
+                <summary className="text-xs font-semibold text-[#8C572F] cursor-pointer list-none mb-2">Ver historial ({vacunas.length})</summary>
+                <div className="space-y-2 mt-2">
+                  {vacunas.map((v: any) => <VacunaCard key={v.id} v={v} />)}
                 </div>
-              ))}
-            </div>
-          </SeccionVet>
-        )}
+              </details>
+            </SeccionVet>
+          )
+        })()}
 
-        {antis.length > 0 && (
-          <SeccionVet titulo={`💊 Antiparasitarios (${antis.length})`}>
-            <div className="space-y-2">
-              {antis.map((a: any) => (
-                <div key={a.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-sm">{a.nombre}</p>
-                    {a.proxima_fecha && <p className="text-xs text-[#8A7560]">Próxima: {fmt(a.proxima_fecha)}</p>}
-                  </div>
-                  <p className="text-xs text-[#8A7560] mt-0.5">{a.tipo} · {fmt(a.fecha_aplicacion)}</p>
+        {/* 8. Antiparasitarios -- mismo criterio que Vacunas. */}
+        {antis.length > 0 && (() => {
+          const conProxima = antis.filter((a: any) => a.proxima_fecha).sort((a: any, b: any) => a.proxima_fecha.localeCompare(b.proxima_fecha))
+          const hoy = new Date()
+          const vencidos = antis.filter((a: any) => a.proxima_fecha && new Date(a.proxima_fecha + 'T00:00:00') < hoy)
+          const proximo = conProxima.find((a: any) => new Date(a.proxima_fecha + 'T00:00:00') >= hoy) || conProxima[0]
+          return (
+            <SeccionVet titulo={`💊 Antiparasitarios (${antis.length})`}>
+              <div className="mb-3 pb-3 border-b border-[#EEE2D4]">
+                <p className="text-xs font-bold" style={{ color: vencidos.length > 0 ? '#E05252' : '#4CAF7D' }}>
+                  {vencidos.length > 0 ? `⚠️ ${vencidos.length} vencido${vencidos.length === 1 ? '' : 's'}` : '✅ Al día'}
+                </p>
+                {proximo?.proxima_fecha && (
+                  <p className="text-xs text-[#8A7560] mt-0.5">Próxima: {proximo.nombre} · {fmt(proximo.proxima_fecha)}</p>
+                )}
+              </div>
+              <details>
+                <summary className="text-xs font-semibold text-[#8C572F] cursor-pointer list-none mb-2">Ver historial ({antis.length})</summary>
+                <div className="space-y-2 mt-2">
+                  {antis.map((a: any) => <AntiCard key={a.id} a={a} />)}
                 </div>
-              ))}
-            </div>
-          </SeccionVet>
-        )}
+              </details>
+            </SeccionVet>
+          )
+        })()}
 
+        {/* 9. Medicamentos -- activos primero (siempre visibles),
+            finalizados detrás de un desplegable. */}
         {medicamentos.length > 0 && (
           <SeccionVet titulo={`🩹 Medicamentos (${medicamentos.length})`}>
-            <div className="space-y-2">
-              {medicamentos.map((med: any) => (
-                <div key={med.id} className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-sm">{med.nombre}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
-                      {med.estado === 'activo' ? 'Activo' : 'Finalizado'}
-                    </span>
-                  </div>
-                  {med.dosis && <p className="text-xs text-[#8A7560] mt-0.5">{med.dosis}{med.frecuencia ? ` · ${med.frecuencia}` : ''}</p>}
-                  <p className="text-xs text-[#8A7560] mt-0.5">Desde: {fmt(med.fecha_inicio)}{med.fecha_fin ? ` hasta ${fmt(med.fecha_fin)}` : ''}</p>
-                  {med.motivo && <p className="text-xs text-[#8A7560] mt-0.5">Motivo: {med.motivo}</p>}
+            {medicamentosActivos.length > 0 ? (
+              <div className="space-y-2 mb-3">
+                {medicamentosActivos.map((med: any) => <MedicamentoCard key={med.id} med={med} />)}
+              </div>
+            ) : (
+              <p className="text-xs text-[#8A7560] mb-3">Sin medicamentos activos.</p>
+            )}
+            {medicamentosFinalizados.length > 0 && (
+              <details>
+                <summary className="text-xs font-semibold text-[#8C572F] cursor-pointer list-none">
+                  Finalizados ({medicamentosFinalizados.length})
+                </summary>
+                <div className="space-y-2 mt-2">
+                  {medicamentosFinalizados.map((med: any) => <MedicamentoCard key={med.id} med={med} />)}
                 </div>
-              ))}
-            </div>
+              </details>
+            )}
           </SeccionVet>
         )}
 

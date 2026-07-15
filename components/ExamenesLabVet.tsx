@@ -26,6 +26,18 @@ function fueraDeRango(valor: string, rangoMin: number | null, rangoMax: number |
   return v < rangoMin || v > rangoMax
 }
 
+// Flecha direccional para el resumen compacto: ↑ si el valor está por
+// sobre el máximo, ↓ si está por debajo del mínimo, '' si está dentro
+// de rango o no se puede calcular (valor no numérico o sin rango).
+function flechaDireccion(valor: string, rangoMin: number | null, rangoMax: number | null): string {
+  if (rangoMin === null || rangoMax === null) return ''
+  const v = parseFloat(String(valor).replace(',', '.'))
+  if (isNaN(v)) return ''
+  if (v > rangoMax) return '↑'
+  if (v < rangoMin) return '↓'
+  return ''
+}
+
 function TablaResultados({ resultados }: { resultados: any[] }) {
   const ordenados = resultados.slice().sort((a, b) => a.orden - b.orden)
   return (
@@ -59,9 +71,10 @@ function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
   const [verAnteriores, setVerAnteriores] = useState(false)
   const [comparando, setComparando] = useState(false)
   const [expandidoAnterior, setExpandidoAnterior] = useState<string | null>(null)
+  const [verCompleto, setVerCompleto] = useState(false)
 
   const resultadosUltimo = (ultimo.resultados || [])
-  const cantidadFueraUltimo = resultadosUltimo.filter((r: any) => fueraDeRango(r.valor, r.rango_min, r.rango_max)).length
+  const fueraDeRangoUltimo = resultadosUltimo.filter((r: any) => fueraDeRango(r.valor, r.rango_min, r.rango_max))
 
   // Para la comparación: unión de parámetros de todos los exámenes de
   // este tipo, en orden ascendente por fecha (igual que en la vista del
@@ -121,16 +134,42 @@ function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
         </div>
       ) : (
         <>
-          {/* Examen más reciente -- siempre visible por defecto */}
+          {/* Examen más reciente -- RESUMIDO por defecto: fecha, peso,
+              y la lista de parámetros fuera de rango con flecha (↑/↓).
+              La tabla completa con TODOS los parámetros solo aparece al
+              tocar "Ver examen completo". */}
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-[#8A7560]">Más reciente: {fmt(ultimo.fecha)}</span>
+            <span className="text-xs text-[#8A7560]">Último examen: {fmt(ultimo.fecha)}</span>
             {ultimo.peso_kg && <span className="text-xs text-[#8A7560]">Peso: {ultimo.peso_kg} kg</span>}
           </div>
-          {cantidadFueraUltimo > 0 && (
-            <p className="text-xs font-bold text-[#993C1D] mb-2">⚠️ {cantidadFueraUltimo} valor{cantidadFueraUltimo === 1 ? '' : 'es'} fuera de rango</p>
+
+          {fueraDeRangoUltimo.length > 0 ? (
+            <div className="bg-[#FDEAEA] rounded-xl p-2.5 mb-2">
+              <p className="text-xs font-bold text-[#993C1D] mb-1.5">
+                ⚠️ {fueraDeRangoUltimo.length} parámetro{fueraDeRangoUltimo.length === 1 ? '' : 's'} fuera de rango
+              </p>
+              <div className="space-y-0.5">
+                {fueraDeRangoUltimo.map((r: any) => (
+                  <p key={r.id} className="text-xs text-[#993C1D]">
+                    {r.parametro} {flechaDireccion(r.valor, r.rango_min, r.rango_max)}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs font-semibold text-[#4CAF7D] mb-2">✅ Todos los parámetros dentro de rango</p>
           )}
-          <TablaResultados resultados={resultadosUltimo} />
-          {ultimo.nota && <p className="text-xs text-[#8A7560] mt-2 italic">📝 {ultimo.nota}</p>}
+
+          <button onClick={() => setVerCompleto(v => !v)} className="text-[11px] font-semibold text-[#8C572F]">
+            {verCompleto ? '⌃ Ocultar examen completo' : '▼ Ver examen completo'}
+          </button>
+
+          {verCompleto && (
+            <div className="mt-2">
+              <TablaResultados resultados={resultadosUltimo} />
+              {ultimo.nota && <p className="text-xs text-[#8A7560] mt-2 italic">📝 {ultimo.nota}</p>}
+            </div>
+          )}
 
           {/* Exámenes anteriores del mismo tipo -- colapsados por defecto */}
           {anteriores.length > 0 && (
