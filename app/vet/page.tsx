@@ -245,47 +245,66 @@ export default async function VetPage({ searchParams }: Props) {
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
         </div>
 
-        {/* Observaciones con timeline de evoluciones */}
+        {/* Observaciones -- timeline verdadera: la entrada inicial (con
+            fecha_inicio) se mezcla con las evoluciones en un solo orden
+            cronológico (más reciente primero), en vez de mostrar la
+            inicial siempre arriba y las evoluciones aparte. Cada
+            observación es colapsable individualmente (nested <details>,
+            sin JS) para que el veterinario no vea todo el historial de
+            golpe -- solo abre las que le interesan. */}
         {obs.length > 0 && (
           <SeccionVet titulo={`👁️ Observaciones (${obs.length})`}>
-            <div className="space-y-4">
-              {obs.map((o: any) => (
-                <div key={o.id} className="pb-4 border-b border-[#EEE2D4] last:border-0 last:pb-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="font-bold text-sm">{o.titulo}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${o.estado === 'activa' ? 'bg-[#F07A30]/20 text-[#F07A30]' : 'bg-[#4CAF7D]/20 text-[#4CAF7D]'}`}>
-                      {o.estado === 'activa' ? 'Activa' : 'Resuelta'}
-                    </span>
-                  </div>
-                  {o.descripcion && <p className="text-xs text-[#8A7560] mt-0.5 leading-relaxed">{o.descripcion}</p>}
-                  <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
-                  {o.fecha_resolucion && <p className="text-xs text-[#4CAF7D] mt-0.5">Resuelta: {fmt(o.fecha_resolucion)}</p>}
-                  {o.foto_url && (
-                    <img src={o.foto_url} alt={o.titulo} className="w-full h-36 object-cover rounded-xl mt-2" />
-                  )}
+            <div className="space-y-3">
+              {obs.map((o: any) => {
+                const puntos = [
+                  { fecha: o.fecha_inicio, nota: o.descripcion, foto_url: o.foto_url, inicial: true },
+                  ...((o.evoluciones || []).map((e: any) => ({ fecha: e.fecha, nota: e.nota, foto_url: e.foto_url, inicial: false }))),
+                ].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+                const totalActualizaciones = puntos.length
 
-                  {o.evoluciones && o.evoluciones.length > 0 && (
-                    <div className="mt-3 relative">
-                      <p className="text-[10px] font-bold text-[#8A7560] uppercase tracking-wider mb-2">
-                        Evolución ({o.evoluciones.length})
-                      </p>
-                      <div className="absolute left-2 top-6 bottom-0 w-0.5 bg-[#EEE2D4]" />
-                      <div className="space-y-3 pl-7">
-                        {o.evoluciones.map((evo: any) => (
-                          <div key={evo.id} className="relative">
-                            <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-[#8C572F] border-2 border-[#FFFCF8]" />
-                            <p className="text-[10px] font-bold text-[#8C572F] uppercase tracking-wider">{fmt(evo.fecha)}</p>
-                            {evo.nota && <p className="text-xs text-[#3D2B1F] mt-0.5 leading-relaxed">{evo.nota}</p>}
-                            {evo.foto_url && (
-                              <img src={evo.foto_url} alt="evolución" className="w-full h-32 object-cover rounded-xl mt-1.5" />
-                            )}
-                          </div>
-                        ))}
+                return (
+                  <details key={o.id} className="border border-[#EEE2D4] rounded-xl overflow-hidden">
+                    <summary className="flex items-center justify-between px-3 py-2.5 cursor-pointer list-none bg-[#FBEAD9]">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-sm truncate">{o.titulo}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${o.estado === 'activa' ? 'bg-[#F07A30]/20 text-[#F07A30]' : 'bg-[#4CAF7D]/20 text-[#4CAF7D]'}`}>
+                            {o.estado === 'activa' ? 'Activa' : 'Resuelta'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#8A7560] mt-0.5">
+                          {totalActualizaciones > 1 ? `${totalActualizaciones} actualizaciones · ` : ''}
+                          Última: {fmt(puntos[0]?.fecha)}
+                        </p>
+                      </div>
+                      <span className="text-[#8A7560] text-lg flex-shrink-0 ml-2 select-none">⌄</span>
+                    </summary>
+
+                    <div className="p-3 border-t border-[#EEE2D4]">
+                      {o.fecha_resolucion && (
+                        <p className="text-xs text-[#4CAF7D] mb-2">✅ Resuelta el {fmt(o.fecha_resolucion)}</p>
+                      )}
+                      <div className="relative">
+                        <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-[#EEE2D4]" />
+                        <div className="space-y-3 pl-7">
+                          {puntos.map((p, i) => (
+                            <div key={i} className="relative">
+                              <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-[#8C572F] border-2 border-[#FFFCF8]" />
+                              <p className="text-[10px] font-bold text-[#8C572F] uppercase tracking-wider">
+                                {fmt(p.fecha)}{p.inicial ? ' · Inicio' : ''}
+                              </p>
+                              {p.nota && <p className="text-xs text-[#3D2B1F] mt-0.5 leading-relaxed">{p.nota}</p>}
+                              {p.foto_url && (
+                                <img src={p.foto_url} alt={o.titulo} className="w-full h-32 object-cover rounded-xl mt-1.5" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
+                  </details>
+                )
+              })}
             </div>
           </SeccionVet>
         )}
