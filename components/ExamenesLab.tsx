@@ -199,13 +199,23 @@ export default function ExamenesLab({ mascotaId }: Props) {
     setPesoKg(ex.peso_kg !== null && ex.peso_kg !== undefined ? String(ex.peso_kg) : '')
     setNota(ex.nota || '')
     const resultados = (ex.examen_resultados || []).slice().sort((a: any, b: any) => a.orden - b.orden)
-    setFilas(resultados.map((r: any) => ({
-      parametro: r.parametro,
-      valor: r.valor,
-      unidad: r.unidad || '',
-      rangoMin: r.rango_min !== null && r.rango_min !== undefined ? String(r.rango_min) : '',
-      rangoMax: r.rango_max !== null && r.rango_max !== undefined ? String(r.rango_max) : '',
-    })))
+    setFilas(resultados.map((r: any) => {
+      // Si este examen se creó antes de que existieran los rangos por
+      // defecto, puede tener unidad/rango vacíos aunque el parámetro
+      // sea uno conocido -- en ese caso, rellenamos con el valor
+      // típico igual que al crear un examen nuevo.
+      const defecto = RANGOS_DEFECTO[ex.tipo]?.[r.parametro]
+      const tieneUnidad = r.unidad !== null && r.unidad !== undefined && r.unidad !== ''
+      const tieneMin = r.rango_min !== null && r.rango_min !== undefined
+      const tieneMax = r.rango_max !== null && r.rango_max !== undefined
+      return {
+        parametro: r.parametro,
+        valor: r.valor,
+        unidad: tieneUnidad ? r.unidad : (defecto ? defecto.unidad : ''),
+        rangoMin: tieneMin ? String(r.rango_min) : (defecto ? String(defecto.min) : ''),
+        rangoMax: tieneMax ? String(r.rango_max) : (defecto ? String(defecto.max) : ''),
+      }
+    }))
     setError('')
     setAbierto(true)
     // Ya no se colapsa la tarjeta del examen (antes se cerraba de golpe
