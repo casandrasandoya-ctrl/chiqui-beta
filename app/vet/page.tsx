@@ -356,7 +356,7 @@ export default async function VetPage({ searchParams }: Props) {
     <div className="min-h-screen bg-[#F5EDE3] text-[#3D2B1F] pb-12 max-w-lg mx-auto">
 
       {/* Header */}
-      <div className="bg-gradient-to-b from-[#6B4423] from-70% to-[#F5EDE3] text-white px-5 pt-8 pb-6">
+      <div className="bg-[#6B4423] text-white px-5 pt-8 pb-6">
         <div className="flex items-center gap-2 mb-4">
           <img src="/chiqui/chiqui_doctor.png" alt="" className="w-10 h-10 object-contain flex-shrink-0" />
           <div>
