@@ -11,6 +11,7 @@ import TemperaturaTracker from '@/components/TemperaturaTracker'
 import ReproduccionTracker from '@/components/ReproduccionTracker'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
+import ExamenesLab from '@/components/ExamenesLab'
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 function fmt(f: string) { const d = new Date(f + 'T00:00:00'); return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}` }
@@ -451,6 +452,7 @@ export default function PrevencionPage() {
               <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí puedes contarme cuánto pesa tu compañero cada vez que lo controlen.</p>
             </div>
             <PesoTracker mascotaId={mascota.id} pesoActual={mascota.peso_actual} />
+            <ExamenesLab mascotaId={mascota.id} />
           </div>
         )}
       </div>
