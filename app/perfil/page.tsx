@@ -51,6 +51,11 @@ export default function PerfilPage() {
   const [toast, setToast] = useState('')
   const [loading, setLoading] = useState(true)
   const [userEmail, setUserEmail] = useState('')
+  // Nombres del tutor principal (dueño) y del co-tutor activo, si existe.
+  // Se obtienen via RPC porque perfil_usuario tiene RLS por user_id -- no
+  // se puede leer directamente el nombre de otra persona (el co-tutor)
+  // desde el cliente.
+  const [tutores, setTutores] = useState<{ dueno_nombre: string | null; cotutor_nombre: string | null } | null>(null)
 
   useEffect(() => {
     async function init() {
@@ -63,10 +68,17 @@ export default function PerfilPage() {
       const m = determinarMascotaActiva(todasMascotas)!
       setMascota(m)
       setForm(m)
+      await cargarTutores(m.id)
       setLoading(false)
     }
     init()
   }, [])
+
+  async function cargarTutores(mascotaId: string) {
+    const { data } = await supabase.rpc('obtener_tutores_mascota', { p_mascota_id: mascotaId })
+    if (data && !data.error) setTutores(data)
+    else setTutores(null)
+  }
 
   function cambiarMascota(nueva: Mascota) {
     guardarMascotaActivaId(nueva.id)
@@ -75,6 +87,7 @@ export default function PerfilPage() {
     // Cerramos el modo edicion al cambiar, para no terminar editando los
     // datos de una mascota pensando que es otra.
     setEditando(false)
+    cargarTutores(nueva.id)
   }
 
   async function guardar() {
@@ -168,6 +181,24 @@ export default function PerfilPage() {
       {/* Selector de mascota */}
       {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
 
+      {/* Tutor / Co-tutor -- solo lectura, informativo */}
+      {tutores && (tutores.dueno_nombre || tutores.cotutor_nombre) && (
+        <div className="mx-4 mt-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
+          <div className="flex items-center gap-2.5 mb-2">
+            <span className="text-lg">🧑‍🤝‍🧑</span>
+            <p className="text-[10px] text-[#8A7560] uppercase tracking-wider font-semibold">Tutores</p>
+          </div>
+          <div className="space-y-1">
+            {tutores.dueno_nombre && (
+              <p className="text-sm text-[#3D2B1F]"><span className="text-[#8A7560]">Tutor:</span> {tutores.dueno_nombre}</p>
+            )}
+            {tutores.cotutor_nombre && (
+              <p className="text-sm text-[#3D2B1F]"><span className="text-[#8A7560]">Co-tutor:</span> {tutores.cotutor_nombre}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Etapa de vida */}
       {etapa && (
         <div className="mx-4 mt-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
@@ -206,7 +237,7 @@ export default function PerfilPage() {
             <h2 className="font-bold text-sm">Datos del perfil</h2>
           </div>
           <button onClick={() => { setEditando(!editando); setForm(mascota || {}) }} className="text-xs font-bold text-[#FFBD59]">
-            {editando ? 'Cancelar' : '✏️ Editar'}
+            {editando ? 'Cancelar' : ' ✏️ Editar'}
           </button>
         </div>
 
