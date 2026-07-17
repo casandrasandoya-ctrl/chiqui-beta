@@ -5,16 +5,23 @@
 // service worker registrado con un manejador de "fetch". Sin esto, el
 // manifest por si solo no alcanza para que la app sea instalable.
 //
-// Este service worker tiene dos responsabilidades:
+// Este service worker tiene tres responsabilidades:
 // 1) El manejador de fetch (abajo), que satisface el requisito de
 //    instalabilidad. Por ahora simplemente deja pasar todas las
 //    peticiones de red sin modificarlas (no se esta cacheando nada para
 //    uso offline todavia, eso quedaria como una mejora futura si se
 //    decide agregar soporte sin conexion).
-// 2) El manejador de "push" (mas abajo), que es lo que permite mostrar
-//    una notificacion cuando el servidor manda un recordatorio, incluso
-//    con la app cerrada. Esto se activara en la siguiente entrega
-//    cuando se conecte el sistema de notificaciones push.
+// 2) El manejador de "push", que es lo que permite mostrar una
+//    notificacion cuando el servidor manda un recordatorio, incluso con
+//    la app cerrada.
+// 3) El manejador de "pushsubscriptionchange" (NUEVO) -- el navegador
+//    dispara este evento cuando invalida o rota una suscripcion push
+//    por su cuenta (esto puede pasar sin ningun aviso visible, es
+//    comportamiento normal del navegador/servicio de push). Sin este
+//    manejador, la app nunca se enteraba de que la suscripcion cambio,
+//    y la persona tenia que darse cuenta sola (viendo el boton
+//    "Activar" de nuevo) y reactivar manualmente. Ahora la app se
+//    vuelve a suscribir sola en segundo plano y avisa al servidor.
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -32,9 +39,8 @@ self.addEventListener('fetch', () => {
 })
 
 // Manejador de notificaciones push. Cuando el servidor envia una
-// notificacion (ver la funcion programada que se agregara mas adelante),
-// el navegador despierta este service worker y dispara este evento,
-// incluso si la app esta cerrada.
+// notificacion, el navegador despierta este service worker y dispara
+// este evento, incluso si la app esta cerrada.
 self.addEventListener('push', (event) => {
   if (!event.data) return
 
@@ -74,5 +80,54 @@ self.addEventListener('notificationclick', (event) => {
         return self.clients.openWindow(url)
       }
     })
+  )
+})
+
+// NUEVO -- se dispara cuando el navegador invalida o rota la
+// suscripcion push por su cuenta (sin que la persona haga nada). Antes
+// esto pasaba en silencio: la app quedaba "activada" en la base de
+// datos pero sin forma real de recibir avisos, hasta que la persona
+// entraba a Perfil y notaba que decia "Activar" de nuevo.
+//
+// Ahora: apenas ocurre, nos volvemos a suscribir usando la misma clave
+// (applicationServerKey) que tenia la suscripcion vieja, y le avisamos
+// al servidor para que reemplace el registro guardado -- todo esto
+// pasa solo, sin que la persona tenga que abrir la app ni hacer nada.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        const oldSubscription = event.oldSubscription
+        const applicationServerKey = oldSubscription
+          ? oldSubscription.options.applicationServerKey
+          : event.newSubscription
+            ? event.newSubscription.options.applicationServerKey
+            : null
+
+        if (!applicationServerKey) return // no hay forma segura de resuscribir
+
+        const newSubscription = await self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
+        })
+
+        const subJson = newSubscription.toJSON()
+
+        await fetch('/api/push/resubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            oldEndpoint: oldSubscription ? oldSubscription.endpoint : null,
+            newEndpoint: subJson.endpoint,
+            newKeys: subJson.keys,
+          }),
+        })
+      } catch {
+        // Si algo falla aca, no hay mucho mas que hacer desde el
+        // service worker -- la proxima vez que la persona abra Perfil,
+        // va a ver el boton "Activar" y podra reactivar manualmente.
+      }
+    })()
   )
 })
