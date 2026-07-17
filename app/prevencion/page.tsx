@@ -452,11 +452,11 @@ export default function PrevencionPage() {
               <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí puedes contarme cuánto pesa tu compañero cada vez que lo controlen.</p>
             </div>
             <PesoTracker mascotaId={mascota.id} pesoActual={mascota.peso_actual} />
-                      </div>
+          </div>
         )}
       </div>
 
-{mascota && <ExamenesLab mascotaId={mascota.id} />}
+      {mascota && <ExamenesLab mascotaId={mascota.id} />}
 
       {/* FRECUENCIA RESPIRATORIA */}
       {mascota && (mascota.especie === 'Perro' || mascota.especie === 'Gato') && (
@@ -565,6 +565,28 @@ export default function PrevencionPage() {
                 <span className="text-base flex-shrink-0">🐾</span>
                 <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí van los antiparasitarios de tu compañero, internos y externos, con su fecha y la próxima dosis.</p>
               </div>
+
+              {/* Resumen: solo mira la dosis MAS RECIENTE (por fecha_aplicacion),
+                  no todo el historial -- una dosis vieja ya reemplazada por una
+                  mas nueva no deberia seguir mostrando "vencido" en el resumen. */}
+              {antis.length > 0 && (() => {
+                const masReciente = antis.slice().sort((x, y) => (y.fecha_aplicacion || '').localeCompare(x.fecha_aplicacion || ''))[0]
+                const vencido = masReciente?.proxima_fecha && new Date(masReciente.proxima_fecha + 'T00:00:00') < new Date()
+                return (
+                  <div className="rounded-xl px-3.5 py-2.5 flex items-center gap-2" style={{ background: vencido ? '#FDEAEA' : '#EAF6EF' }}>
+                    <span className="text-base">{vencido ? '⚠️' : '✅'}</span>
+                    <div>
+                      <p className="text-xs font-bold" style={{ color: vencido ? '#E05252' : '#4CAF7D' }}>
+                        {vencido ? 'Antiparasitario vencido' : 'Al día'}
+                      </p>
+                      {masReciente?.proxima_fecha && (
+                        <p className="text-[11px] text-[#8A7560]">Próxima dosis: {fmt(masReciente.proxima_fecha)} · {dias(masReciente.proxima_fecha)}</p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
               {antis.length === 0 && (
                 <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
                   <div className="text-4xl mb-3">💊</div>
@@ -1010,7 +1032,6 @@ export default function PrevencionPage() {
           </div>
         </div>
       )}
-
 
       {/* MODAL AGREGAR/EDITAR */}
       {modal && (
