@@ -34,5 +34,30 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'maskable',
       },
     ],
+    // Accesos directos -- aparecen al mantener presionado el ícono de
+    // la app (tanto instalada desde el navegador como desde Google
+    // Play, ya que ambas leen este mismo manifest). No son un widget
+    // real (no muestran información sin abrir la app), pero sí saltan
+    // directo a la pantalla más usada, sin pasar por el dashboard.
+    shortcuts: [
+      {
+        name: 'Registrar hoy',
+        short_name: 'Registrar',
+        description: 'Registra cómo estuvo tu mascota hoy',
+        url: '/registro-diario',
+      },
+      {
+        name: 'Ver calendario',
+        short_name: 'Calendario',
+        description: 'Revisa el historial de registros',
+        url: '/calendario',
+      },
+      {
+        name: 'Prevención',
+        short_name: 'Prevención',
+        description: 'Vacunas, antiparasitarios y medicamentos',
+        url: '/prevencion',
+      },
+    ],
   }
 }

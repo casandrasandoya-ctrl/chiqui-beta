@@ -1,0 +1,32 @@
+const fs = require('fs');
+const path = require('path');
+
+function escribir(rutaRelativa, b64) {
+  const content = Buffer.from(b64, 'base64').toString('utf8');
+  const dir = path.dirname(rutaRelativa);
+  if (dir && dir !== '.') fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(rutaRelativa, content, 'utf8');
+  console.log('OK:', rutaRelativa);
+}
+
+// Agrega "shortcuts" al manifest (app/manifest.ts) -- los accesos
+// directos que aparecen al mantener presionado el icono de CHIQUI:
+//   - Registrar hoy -> /registro-diario
+//   - Ver calendario -> /calendario
+//   - Prevención -> /prevencion
+//
+// No son un widget real (no muestran info sin abrir la app), pero
+// funcionan tanto en la version instalada desde el navegador como
+// desde Google Play, ya que ambas leen este mismo manifest.
+//
+// Todo lo demas del manifest (id, name, icons, theme_color, etc.)
+// queda exactamente igual.
+escribir(path.join('app', 'manifest.ts'), 'aW1wb3J0IHR5cGUgeyBNZXRhZGF0YVJvdXRlIH0gZnJvbSAnbmV4dCcKCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIG1hbmlmZXN0KCk6IE1ldGFkYXRhUm91dGUuTWFuaWZlc3QgewogIHJldHVybiB7CiAgICBpZDogJ2NsLmNoaXF1aS5lbnRyZXNlbmhhbGVzJywKICAgIG5hbWU6ICdDSElRVUkgRW50cmUgU2XDsWFsZXMnLAogICAgc2hvcnRfbmFtZTogJ0NISVFVSScsCiAgICBkZXNjcmlwdGlvbjogJ1R1IGNvbXBhw7Flcm8gZGUgb2JzZXJ2YWNpw7NuIHkgY3VpZGFkbyBwYXJhIGxhIHNhbHVkIGRlIHR1IG1hc2NvdGEuIFJlZ2lzdHJhIHPDrW50b21hcywgdmFjdW5hcywgcGFzZW9zIHkgbcOhcy4nLAogICAgc3RhcnRfdXJsOiAnL2Rhc2hib2FyZCcsCiAgICBzY29wZTogJy8nLAogICAgZGlzcGxheTogJ3N0YW5kYWxvbmUnLAogICAgYmFja2dyb3VuZF9jb2xvcjogJyNGNUVERTMnLAogICAgdGhlbWVfY29sb3I6ICcjOEM1NzJGJywKICAgIG9yaWVudGF0aW9uOiAncG9ydHJhaXQnLAogICAgY2F0ZWdvcmllczogWydoZWFsdGgnLCAnbGlmZXN0eWxlJywgJ3V0aWxpdGllcyddLAogICAgcHJlZmVyX3JlbGF0ZWRfYXBwbGljYXRpb25zOiBmYWxzZSwKICAgIGljb25zOiBbCiAgICAgIHsKICAgICAgICBzcmM6ICcvaWNvbi0xOTJ4MTkyLnBuZycsCiAgICAgICAgc2l6ZXM6ICcxOTJ4MTkyJywKICAgICAgICB0eXBlOiAnaW1hZ2UvcG5nJywKICAgICAgICBwdXJwb3NlOiAnYW55JywKICAgICAgfSwKICAgICAgewogICAgICAgIHNyYzogJy9pY29uLTUxMng1MTIucG5nJywKICAgICAgICBzaXplczogJzUxMng1MTInLAogICAgICAgIHR5cGU6ICdpbWFnZS9wbmcnLAogICAgICAgIHB1cnBvc2U6ICdhbnknLAogICAgICB9LAogICAgICB7CiAgICAgICAgc3JjOiAnL2ljb24tbWFza2FibGUtNTEyeDUxMi5wbmcnLAogICAgICAgIHNpemVzOiAnNTEyeDUxMicsCiAgICAgICAgdHlwZTogJ2ltYWdlL3BuZycsCiAgICAgICAgcHVycG9zZTogJ21hc2thYmxlJywKICAgICAgfSwKICAgIF0sCiAgICAvLyBBY2Nlc29zIGRpcmVjdG9zIC0tIGFwYXJlY2VuIGFsIG1hbnRlbmVyIHByZXNpb25hZG8gZWwgw61jb25vIGRlCiAgICAvLyBsYSBhcHAgKHRhbnRvIGluc3RhbGFkYSBkZXNkZSBlbCBuYXZlZ2Fkb3IgY29tbyBkZXNkZSBHb29nbGUKICAgIC8vIFBsYXksIHlhIHF1ZSBhbWJhcyBsZWVuIGVzdGUgbWlzbW8gbWFuaWZlc3QpLiBObyBzb24gdW4gd2lkZ2V0CiAgICAvLyByZWFsIChubyBtdWVzdHJhbiBpbmZvcm1hY2nDs24gc2luIGFicmlyIGxhIGFwcCksIHBlcm8gc8OtIHNhbHRhbgogICAgLy8gZGlyZWN0byBhIGxhIHBhbnRhbGxhIG3DoXMgdXNhZGEsIHNpbiBwYXNhciBwb3IgZWwgZGFzaGJvYXJkLgogICAgc2hvcnRjdXRzOiBbCiAgICAgIHsKICAgICAgICBuYW1lOiAnUmVnaXN0cmFyIGhveScsCiAgICAgICAgc2hvcnRfbmFtZTogJ1JlZ2lzdHJhcicsCiAgICAgICAgZGVzY3JpcHRpb246ICdSZWdpc3RyYSBjw7NtbyBlc3R1dm8gdHUgbWFzY290YSBob3knLAogICAgICAgIHVybDogJy9yZWdpc3Ryby1kaWFyaW8nLAogICAgICB9LAogICAgICB7CiAgICAgICAgbmFtZTogJ1ZlciBjYWxlbmRhcmlvJywKICAgICAgICBzaG9ydF9uYW1lOiAnQ2FsZW5kYXJpbycsCiAgICAgICAgZGVzY3JpcHRpb246ICdSZXZpc2EgZWwgaGlzdG9yaWFsIGRlIHJlZ2lzdHJvcycsCiAgICAgICAgdXJsOiAnL2NhbGVuZGFyaW8nLAogICAgICB9LAogICAgICB7CiAgICAgICAgbmFtZTogJ1ByZXZlbmNpw7NuJywKICAgICAgICBzaG9ydF9uYW1lOiAnUHJldmVuY2nDs24nLAogICAgICAgIGRlc2NyaXB0aW9uOiAnVmFjdW5hcywgYW50aXBhcmFzaXRhcmlvcyB5IG1lZGljYW1lbnRvcycsCiAgICAgICAgdXJsOiAnL3ByZXZlbmNpb24nLAogICAgICB9LAogICAgXSwKICB9Cn0K');
+
+console.log('');
+console.log('No necesita SQL nuevo.');
+console.log('');
+console.log('Para probarlo: despues del deploy, desinstala y vuelve a');
+console.log('instalar la app (los shortcuts a veces no aparecen hasta');
+console.log('la proxima instalacion/actualizacion), luego mantén');
+console.log('presionado el icono de CHIQUI en la pantalla de inicio.');
