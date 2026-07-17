@@ -566,27 +566,6 @@ export default function PrevencionPage() {
                 <p className="text-xs text-[#7A4A2F] leading-relaxed">Aquí van los antiparasitarios de tu compañero, internos y externos, con su fecha y la próxima dosis.</p>
               </div>
 
-              {/* Resumen: solo mira la dosis MAS RECIENTE (por fecha_aplicacion),
-                  no todo el historial -- una dosis vieja ya reemplazada por una
-                  mas nueva no deberia seguir mostrando "vencido" en el resumen. */}
-              {antis.length > 0 && (() => {
-                const masReciente = antis.slice().sort((x, y) => (y.fecha_aplicacion || '').localeCompare(x.fecha_aplicacion || ''))[0]
-                const vencido = masReciente?.proxima_fecha && new Date(masReciente.proxima_fecha + 'T00:00:00') < new Date()
-                return (
-                  <div className="rounded-xl px-3.5 py-2.5 flex items-center gap-2" style={{ background: vencido ? '#FDEAEA' : '#EAF6EF' }}>
-                    <span className="text-base">{vencido ? '⚠️' : '✅'}</span>
-                    <div>
-                      <p className="text-xs font-bold" style={{ color: vencido ? '#E05252' : '#4CAF7D' }}>
-                        {vencido ? 'Antiparasitario vencido' : 'Al día'}
-                      </p>
-                      {masReciente?.proxima_fecha && (
-                        <p className="text-[11px] text-[#8A7560]">Próxima dosis: {fmt(masReciente.proxima_fecha)} · {dias(masReciente.proxima_fecha)}</p>
-                      )}
-                    </div>
-                  </div>
-                )
-              })()}
-
               {antis.length === 0 && (
                 <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
                   <div className="text-4xl mb-3">💊</div>
@@ -594,32 +573,41 @@ export default function PrevencionPage() {
                   <button onClick={() => { setModal('anti'); setForm({}); setEditandoId(null) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">+ Agregar primero</button>
                 </div>
               )}
-              {antis.map(a => (
-                <div key={a.id} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
-                  <div className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#F5C842]/15 flex items-center justify-center text-xl">💊</div>
-                        <div>
-                          <p className="font-bold text-sm">{a.nombre}</p>
-                          <p className="text-xs text-[#8A7560] mt-0.5">{a.tipo} · {a.forma}</p>
-                          <p className="text-xs text-[#8A7560]">Aplicado: {fmt(a.fecha_aplicacion)}</p>
+              {(() => {
+                // Solo la dosis MAS RECIENTE (por fecha_aplicacion) muestra el
+                // indicador de "Próximo/Vencido" -- una dosis vieja ya
+                // reemplazada por una más nueva no debería seguir alarmando
+                // en rojo, ya que esa fecha dejó de ser información accionable.
+                const idAntiMasReciente = antis.length > 0
+                  ? antis.slice().sort((x, y) => (y.fecha_aplicacion || '').localeCompare(x.fecha_aplicacion || ''))[0].id
+                  : null
+                return antis.map(a => (
+                  <div key={a.id} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+                    <div className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-[#F5C842]/15 flex items-center justify-center text-xl">💊</div>
+                          <div>
+                            <p className="font-bold text-sm">{a.nombre}</p>
+                            <p className="text-xs text-[#8A7560] mt-0.5">{a.tipo} · {a.forma}</p>
+                            <p className="text-xs text-[#8A7560]">Aplicado: {fmt(a.fecha_aplicacion)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-1">
+                          {a.proxima_fecha && a.id === idAntiMasReciente && (
+                            <div className="text-right mr-1">
+                              <p className="text-xs text-[#8A7560]">Próximo</p>
+                              <p className="text-xs font-bold" style={{ color: diasColor(a.proxima_fecha) }}>{dias(a.proxima_fecha)}</p>
+                            </div>
+                          )}
+                          <button onClick={() => setMenuAbierto({ tipo: 'anti', id: a.id })} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
                         </div>
                       </div>
-                      <div className="flex items-start gap-1">
-                        {a.proxima_fecha && (
-                          <div className="text-right mr-1">
-                            <p className="text-xs text-[#8A7560]">Próximo</p>
-                            <p className="text-xs font-bold" style={{ color: diasColor(a.proxima_fecha) }}>{dias(a.proxima_fecha)}</p>
-                          </div>
-                        )}
-                        <button onClick={() => setMenuAbierto({ tipo: 'anti', id: a.id })} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
-                      </div>
+                      {a.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {a.nota}</p>}
                     </div>
-                    {a.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {a.nota}</p>}
                   </div>
-                </div>
-              ))}
+                ))
+              })()}
             </div>
           </div>
         )}
