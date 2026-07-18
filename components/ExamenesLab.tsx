@@ -13,7 +13,7 @@ interface Props {
 // claro" -- no tiene sentido pedirle unidad ni rango a esos). El orden
 // respeta el informe real del laboratorio, sin inventar categorías
 // clínicas.
-interface ParametroPlantilla { nombre: string; tipo: 'numero' | 'texto' }
+interface ParametroPlantilla { nombre: string; tipo: 'numero' | 'texto' | 'lista'; opciones?: string[]; seccion?: string; unidadDefecto?: string; placeholder?: string }
 
 const TIPOS_EXAMEN: { valor: string; label: string; emoji: string; parametros: ParametroPlantilla[] }[] = [
   {
@@ -36,40 +36,15 @@ const TIPOS_EXAMEN: { valor: string; label: string; emoji: string; parametros: P
     ].map(nombre => ({ nombre, tipo: 'numero' as const })),
   },
   {
-    // Solo Densidad urinaria (USG) y pH son realmente numéricos con
-    // rango de referencia. El resto (evaluación física y química con
-    // tira reactiva, y sedimento al microscopio) son descriptivos --
-    // "Negativo", "Trazas", "1+", "Amarillo claro", "Escasos", etc.
-    valor: 'orina', label: 'Examen de orina', emoji: '💛',
-    parametros: [
-      { nombre: 'Color', tipo: 'texto' },
-      { nombre: 'Aspecto', tipo: 'texto' },
-      { nombre: 'Densidad urinaria (USG)', tipo: 'numero' },
-      { nombre: 'pH', tipo: 'numero' },
-      { nombre: 'Proteínas', tipo: 'texto' },
-      { nombre: 'Glucosa', tipo: 'texto' },
-      { nombre: 'Cetonas', tipo: 'texto' },
-      { nombre: 'Bilirrubina', tipo: 'texto' },
-      { nombre: 'Sangre / Hemoglobina', tipo: 'texto' },
-      { nombre: 'Urobilinógeno', tipo: 'texto' },
-      { nombre: 'Nitritos', tipo: 'texto' },
-      { nombre: 'Glóbulos rojos (RBC)', tipo: 'texto' },
-      { nombre: 'Glóbulos blancos (WBC)', tipo: 'texto' },
-      { nombre: 'Células epiteliales', tipo: 'texto' },
-      { nombre: 'Bacterias', tipo: 'texto' },
-      { nombre: 'Cristales', tipo: 'texto' },
-      { nombre: 'Cilindros', tipo: 'texto' },
-      { nombre: 'Moco', tipo: 'texto' },
-    ],
+    // Orina y Tiroides definen sus parámetros en
+    // obtenerParametrosPlantilla() (no aquí), porque dependen de la
+    // especie y se organizan en secciones colapsables.
+    valor: 'orina', label: 'Examen de orina', emoji: '🚽',
+    parametros: [],
   },
   {
-    // Numéricos, pero SIN rango por defecto -- los valores de T4/T3/TSH
-    // varían mucho entre laboratorios y métodos de medición, así que
-    // siempre se copian del informe real (o del examen anterior, una
-    // vez que ya se haya cargado uno).
-    valor: 'tiroides', label: 'Perfil tiroideo', emoji: '🦴',
-    parametros: ['T4 Total', 'T4 Libre', 'T3 Total', 'T3 Libre', 'TSH', 'Anticuerpos anti-tiroglobulina (TgAA)']
-      .map(nombre => ({ nombre, tipo: 'numero' as const })),
+    valor: 'tiroides', label: 'Perfil tiroideo', emoji: '🦋',
+    parametros: [],
   },
   {
     // Test rápido: pruebas cuyo resultado NO es numérico sino
@@ -83,6 +58,74 @@ const TIPOS_EXAMEN: { valor: string; label: string; emoji: string; parametros: P
     parametros: [],
   },
 ]
+
+// --- Examen de orina: 3 secciones (físico, químico, sedimento) ---
+// Los parámetros de tira reactiva usan listas de opciones (Negativo,
+// Traza, 1+...) en vez de texto libre, para que la comparación entre
+// fechas sea consistente. Eritrocitos/Leucocitos del sedimento quedan
+// como texto libre porque los informes los expresan de formas muy
+// variadas ("0-2 por campo", "escasos", etc.).
+const OPCIONES_GRADIENTE = ['Negativo', 'Traza', '1+', '2+', '3+', '4+']
+const PARAMETROS_ORINA: ParametroPlantilla[] = [
+  { nombre: 'Color', tipo: 'lista', seccion: 'Examen físico', opciones: ['Amarillo pálido', 'Amarillo', 'Amarillo oscuro', 'Ámbar', 'Anaranjado', 'Rojo', 'Café', 'Verde', 'Incoloro', 'Otro'] },
+  { nombre: 'Aspecto / Transparencia', tipo: 'lista', seccion: 'Examen físico', opciones: ['Transparente', 'Ligeramente turbio', 'Turbio', 'Muy turbio'] },
+  { nombre: 'Olor', tipo: 'texto', seccion: 'Examen físico', placeholder: 'ej. sui géneris · opcional' },
+  { nombre: 'Volumen', tipo: 'numero', seccion: 'Examen físico', unidadDefecto: 'mL' },
+  { nombre: 'Densidad urinaria (USG)', tipo: 'numero', seccion: 'Examen físico' },
+  { nombre: 'pH', tipo: 'numero', seccion: 'Examen químico' },
+  { nombre: 'Proteínas', tipo: 'lista', seccion: 'Examen químico', opciones: OPCIONES_GRADIENTE },
+  { nombre: 'Glucosa', tipo: 'lista', seccion: 'Examen químico', opciones: OPCIONES_GRADIENTE },
+  { nombre: 'Cetonas', tipo: 'lista', seccion: 'Examen químico', opciones: ['Negativo', 'Traza', 'Positivo'] },
+  { nombre: 'Bilirrubina', tipo: 'lista', seccion: 'Examen químico', opciones: ['Negativo', 'Traza', 'Positivo'] },
+  { nombre: 'Sangre / Hemoglobina', tipo: 'lista', seccion: 'Examen químico', opciones: ['Negativo', 'Traza', 'Positivo'] },
+  { nombre: 'Urobilinógeno', tipo: 'lista', seccion: 'Examen químico', opciones: ['Normal', 'Elevado'] },
+  { nombre: 'Nitritos', tipo: 'lista', seccion: 'Examen químico', opciones: ['Negativo', 'Positivo'] },
+  { nombre: 'Eritrocitos', tipo: 'texto', seccion: 'Sedimento urinario', placeholder: 'cantidad por campo, ej. 0-2' },
+  { nombre: 'Leucocitos', tipo: 'texto', seccion: 'Sedimento urinario', placeholder: 'cantidad por campo, ej. 0-2' },
+  { nombre: 'Células epiteliales', tipo: 'lista', seccion: 'Sedimento urinario', opciones: ['Escasas', 'Moderadas', 'Abundantes'] },
+  { nombre: 'Bacterias', tipo: 'lista', seccion: 'Sedimento urinario', opciones: ['No', 'Escasas', 'Moderadas', 'Abundantes'] },
+  { nombre: 'Levaduras', tipo: 'lista', seccion: 'Sedimento urinario', opciones: ['No', 'Sí'] },
+  { nombre: 'Cristales', tipo: 'lista', seccion: 'Sedimento urinario', opciones: ['Ninguno', 'Estruvita', 'Oxalato de calcio', 'Urato', 'Cistina', 'Fosfato cálcico', 'Otros'] },
+  { nombre: 'Cilindros', tipo: 'lista', seccion: 'Sedimento urinario', opciones: ['Ninguno', 'Hialinos', 'Granulosos', 'Celulares', 'Céreos', 'Otros'] },
+  { nombre: 'Moco', tipo: 'lista', seccion: 'Sedimento urinario', opciones: ['No', 'Escaso', 'Moderado', 'Abundante'] },
+  { nombre: 'Otros hallazgos', tipo: 'texto', seccion: 'Sedimento urinario', placeholder: 'ej. sin hallazgos' },
+]
+
+// --- Perfil tiroideo: 2 secciones (hormonas + autoanticuerpos) ---
+// Las hormonas cambian de nombre según la especie (TSH Canina vs TSH
+// Felina) y los autoanticuerpos solo aplican a PERROS.
+// Unidades por defecto: T4 Total µg/dL, T4 Libre ng/dL, TSH ng/mL,
+// T3 Total ng/dL. Rangos por defecto: T4 Total (por especie) y TSH
+// Canina (0.05-0.42 ng/mL, según método analítico) -- ver
+// obtenerRangoDefecto(). T4 Libre, T3 y TSH Felina quedan sin rango
+// por defecto porque varían mucho entre laboratorios: se copian del
+// informe real y, una vez cargado un examen, se recuerdan para el
+// siguiente.
+function parametrosTiroides(especieMascota?: string): ParametroPlantilla[] {
+  const esGato = especieMascota === 'Gato'
+  const hormonas: ParametroPlantilla[] = [
+    { nombre: 'T4 Total', tipo: 'numero', seccion: 'Hormonas tiroideas', unidadDefecto: 'µg/dL' },
+    { nombre: 'T4 Libre', tipo: 'numero', seccion: 'Hormonas tiroideas', unidadDefecto: 'ng/dL' },
+    { nombre: esGato ? 'TSH Felina' : 'TSH Canina', tipo: 'numero', seccion: 'Hormonas tiroideas', unidadDefecto: 'ng/mL' },
+    { nombre: 'T3 Total', tipo: 'numero', seccion: 'Hormonas tiroideas', unidadDefecto: 'ng/dL' },
+  ]
+  if (especieMascota === 'Perro') {
+    hormonas.push(
+      { nombre: 'TgAA (Anticuerpos antitiroglobulina)', tipo: 'lista', seccion: 'Autoanticuerpos', opciones: ['Negativo', 'Positivo'] },
+      { nombre: 'Autoanticuerpos T3', tipo: 'lista', seccion: 'Autoanticuerpos', opciones: ['Negativo', 'Positivo'] },
+      { nombre: 'Autoanticuerpos T4', tipo: 'lista', seccion: 'Autoanticuerpos', opciones: ['Negativo', 'Positivo'] },
+    )
+  }
+  return hormonas
+}
+
+// Punto único para obtener los parámetros de la plantilla de cualquier
+// tipo de examen, considerando la especie cuando corresponde.
+function obtenerParametrosPlantilla(tipoExamen: string, especieMascota?: string): ParametroPlantilla[] {
+  if (tipoExamen === 'orina') return PARAMETROS_ORINA
+  if (tipoExamen === 'tiroides') return parametrosTiroides(especieMascota)
+  return TIPOS_EXAMEN.find(t => t.valor === tipoExamen)?.parametros || []
+}
 
 // Catálogo de tests rápidos, desacoplado de la interfaz. Para agregar
 // un test nuevo (de cualquier especie) basta con sumar una línea aquí:
@@ -118,7 +161,10 @@ interface Fila {
   unidad: string
   rangoMin: string
   rangoMax: string
-  tipoValor: 'numero' | 'texto'
+  tipoValor: 'numero' | 'texto' | 'lista'
+  opciones?: string[]
+  seccion?: string
+  placeholder?: string
 }
 
 // Forma exacta de una fila a insertar en examen_resultados. Ambas ramas
@@ -186,23 +232,36 @@ const RANGOS_DEFECTO: Record<string, Record<string, { min: number; max: number; 
     'Monocitos Absolutos': { min: 0.15, max: 1.35, unidad: 'K/µL' },
   },
   orina: {
-    // pH es igual para perros y gatos. Densidad urinaria (USG) SÍ
-    // cambia por especie (perro: 1.015-1.045, gato: 1.035-1.060) --
-    // por eso no va aquí fijo, se calcula en obtenerRangoDefecto()
-    // usando la especie de la mascota.
-    'pH': { min: 5, max: 7.5, unidad: '' },
+    // pH y Densidad urinaria (USG) dependen de la especie -- se
+    // calculan en obtenerRangoDefecto(), no aquí.
   },
-  // Tiroides queda sin rangos por defecto a propósito -- ver nota en
-  // TIPOS_EXAMEN.
+  // Tiroides: solo T4 Total tiene rango por defecto (por especie, en
+  // obtenerRangoDefecto). T4 Libre / TSH / T3 quedan sin rango a
+  // propósito -- ver nota en parametrosTiroides().
 }
 
-// Densidad urinaria (USG) depende de la especie -- se calcula aparte
-// en vez de ir fijo en RANGOS_DEFECTO.
+// Densidad urinaria (USG), pH de orina y T4 Total dependen de la
+// especie -- se calculan aparte en vez de ir fijos en RANGOS_DEFECTO.
 function obtenerRangoDefecto(tipoExamen: string, parametro: string, especieMascota?: string): { min: number; max: number; unidad: string } | undefined {
   if (tipoExamen === 'orina' && parametro === 'Densidad urinaria (USG)') {
     if (especieMascota === 'Gato') return { min: 1.035, max: 1.060, unidad: '' }
     if (especieMascota === 'Perro') return { min: 1.015, max: 1.045, unidad: '' }
     return undefined // especie desconocida -- se deja en blanco, mejor que adivinar mal
+  }
+  if (tipoExamen === 'orina' && parametro === 'pH') {
+    if (especieMascota === 'Gato') return { min: 6.0, max: 7.5, unidad: '' }
+    if (especieMascota === 'Perro') return { min: 5.5, max: 7.5, unidad: '' }
+    return undefined
+  }
+  if (tipoExamen === 'tiroides' && parametro === 'T4 Total') {
+    if (especieMascota === 'Gato') return { min: 0.8, max: 4.7, unidad: 'µg/dL' }
+    if (especieMascota === 'Perro') return { min: 1.0, max: 4.0, unidad: 'µg/dL' }
+    return undefined
+  }
+  if (tipoExamen === 'tiroides' && parametro === 'TSH Canina') {
+    // Referencia clínica habitual (según método analítico) -- editable
+    // si el laboratorio usa otro intervalo.
+    return { min: 0.05, max: 0.42, unidad: 'ng/mL' }
   }
   return RANGOS_DEFECTO[tipoExamen]?.[parametro]
 }
@@ -234,7 +293,20 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
   // tipo === 'test_rapido'). Cada uno lleva su resultado y una
   // observación opcional.
   const [testsSel, setTestsSel] = useState<{ nombre: string; resultado: string; observacion: string; manual?: boolean }[]>([])
+  // Secciones colapsables del formulario (Examen físico / químico /
+  // Sedimento en orina; Hormonas / Autoanticuerpos en tiroides).
+  // Colapsadas por defecto.
+  const [seccionesAbiertas, setSeccionesAbiertas] = useState<Set<string>>(new Set())
   const formRef = useRef<HTMLDivElement>(null)
+
+  function toggleSeccion(nombre: string) {
+    setSeccionesAbiertas(prev => {
+      const nuevo = new Set(prev)
+      if (nuevo.has(nombre)) nuevo.delete(nombre)
+      else nuevo.add(nombre)
+      return nuevo
+    })
+  }
 
   const esTestRapido = tipo === 'test_rapido'
   // Tests del catálogo SOLO de la especie de esta mascota: los gatos
@@ -283,18 +355,19 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
   // plantilla, y si ya hubo un examen de ese mismo tipo antes, copia el
   // rango/unidad de la última vez -- así no hay que volver a
   // escribirlos cada examen.
-  // Busca si un parámetro es de tipo 'numero' o 'texto' según la
-  // plantilla de ese tipo de examen. Si no se encuentra (ej. un
-  // parámetro que se escribió a mano con "+ agregar parámetro"),
-  // asume 'numero' por defecto.
-  function buscarTipoValor(tipoExamen: string, parametro: string): 'numero' | 'texto' {
-    const plantilla = TIPOS_EXAMEN.find(t => t.valor === tipoExamen)
-    return plantilla?.parametros.find(p => p.nombre === parametro)?.tipo || 'numero'
+  // Busca la definición de un parámetro (tipo, opciones, sección)
+  // según la plantilla de ese tipo de examen y la especie. Si no se
+  // encuentra (ej. un parámetro escrito a mano con "+ agregar
+  // parámetro"), asume numérico sin sección.
+  function buscarDefParametro(tipoExamen: string, parametro: string): ParametroPlantilla {
+    const def = obtenerParametrosPlantilla(tipoExamen, especie).find(p => p.nombre === parametro)
+    return def || { nombre: parametro, tipo: 'numero' }
   }
 
   async function iniciarFormulario(tipoElegido: string) {
     setTipo(tipoElegido)
     setError('')
+    setSeccionesAbiertas(new Set())
     // Test rápido no usa la tabla de parámetros/rangos: su formulario
     // es el selector múltiple de tests. Limpiamos ambos estados para
     // no arrastrar datos entre tipos.
@@ -304,7 +377,7 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
       return
     }
     setTestsSel([])
-    const plantilla = TIPOS_EXAMEN.find(t => t.valor === tipoElegido)!
+    const parametrosPlantilla = obtenerParametrosPlantilla(tipoElegido, especie)
 
     const ultimoDeEsteTipo = examenes.find(e => e.tipo === tipoElegido)
     const mapaAnterior: Record<string, { unidad: string; rangoMin: string; rangoMax: string }> = {}
@@ -318,14 +391,17 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
       }
     }
 
-    setFilas(plantilla.parametros.map(p => {
+    setFilas(parametrosPlantilla.map(p => {
       const anterior = mapaAnterior[p.nombre]
       const defecto = p.tipo === 'numero' ? obtenerRangoDefecto(tipoElegido, p.nombre, especie) : undefined
       return {
         parametro: p.nombre,
         valor: '',
         tipoValor: p.tipo,
-        unidad: anterior?.unidad || (defecto ? defecto.unidad : ''),
+        opciones: p.opciones,
+        seccion: p.seccion,
+        placeholder: p.placeholder,
+        unidad: anterior?.unidad || (defecto ? defecto.unidad : (p.unidadDefecto || '')),
         rangoMin: anterior?.rangoMin || (defecto ? String(defecto.min) : ''),
         rangoMax: anterior?.rangoMax || (defecto ? String(defecto.max) : ''),
       }
@@ -366,21 +442,25 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
       return
     }
     setTestsSel([])
+    setSeccionesAbiertas(new Set())
     setFilas(resultados.map((r: any) => {
-      const tipoValor = buscarTipoValor(ex.tipo, r.parametro)
+      const def = buscarDefParametro(ex.tipo, r.parametro)
       // Si este examen se creó antes de que existieran los rangos por
       // defecto, puede tener unidad/rango vacíos aunque el parámetro
       // sea uno conocido -- en ese caso, rellenamos con el valor
       // típico igual que al crear un examen nuevo (solo si es numérico).
-      const defecto = tipoValor === 'numero' ? obtenerRangoDefecto(ex.tipo, r.parametro, especie) : undefined
+      const defecto = def.tipo === 'numero' ? obtenerRangoDefecto(ex.tipo, r.parametro, especie) : undefined
       const tieneUnidad = r.unidad !== null && r.unidad !== undefined && r.unidad !== ''
       const tieneMin = r.rango_min !== null && r.rango_min !== undefined
       const tieneMax = r.rango_max !== null && r.rango_max !== undefined
       return {
         parametro: r.parametro,
         valor: r.valor,
-        tipoValor,
-        unidad: tieneUnidad ? r.unidad : (defecto ? defecto.unidad : ''),
+        tipoValor: def.tipo,
+        opciones: def.opciones,
+        seccion: def.seccion,
+        placeholder: def.placeholder,
+        unidad: tieneUnidad ? r.unidad : (defecto ? defecto.unidad : (def.unidadDefecto || '')),
         rangoMin: tieneMin ? String(r.rango_min) : (defecto ? String(defecto.min) : ''),
         rangoMax: tieneMax ? String(r.rango_max) : (defecto ? String(defecto.max) : ''),
       }
@@ -645,66 +725,128 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
             </button>
           )}
 
-          {/* Tabla de parámetros */}
-          {!esTestRapido && filas.length > 0 && (
-            <div className="mb-3">
-              <p className="text-[10px] text-[#8A7560] mb-2">Deja vacío lo que tu examen no incluya. El rango viene precargado con valores típicos de referencia — ajústalo si tu laboratorio usa otros.</p>
-              {filas.map((f, i) => {
-                const esTexto = f.tipoValor === 'texto'
-                const fuera = !esTexto && estaFueraDeRango(f.valor, f.rangoMin, f.rangoMax)
-                return (
-                  <div key={i} className="py-2 border-b border-[#F5EDE3]">
-                    <div className="flex items-center gap-2 mb-1">
-                      <input
-                        className="w-40 text-xs font-medium text-[#3D2B1F] bg-transparent focus:outline-none focus:bg-[#FBEAD9] rounded px-1.5 py-1.5"
-                        value={f.parametro}
-                        onChange={e => actualizarFila(i, 'parametro', e.target.value)}
-                        placeholder="Parámetro"
-                      />
+          {/* Tabla de parámetros -- si la plantilla define secciones
+              (orina, tiroides), se agrupan en bloques colapsables que
+              parten cerrados; si no (bioquímico, hemograma), la lista
+              plana de siempre. Los parámetros de tipo 'lista' usan un
+              selector de opciones en vez de texto libre. */}
+          {!esTestRapido && filas.length > 0 && (() => {
+            const renderFila = (f: Fila, i: number) => {
+              const esTexto = f.tipoValor === 'texto'
+              const esLista = f.tipoValor === 'lista'
+              const fuera = f.tipoValor === 'numero' && estaFueraDeRango(f.valor, f.rangoMin, f.rangoMax)
+              const positivoLista = esLista && f.valor === 'Positivo'
+              return (
+                <div key={i} className="py-2 border-b border-[#F5EDE3]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <input
+                      className="w-40 text-xs font-medium text-[#3D2B1F] bg-transparent focus:outline-none focus:bg-[#FBEAD9] rounded px-1.5 py-1.5"
+                      value={f.parametro}
+                      onChange={e => actualizarFila(i, 'parametro', e.target.value)}
+                      placeholder="Parámetro"
+                    />
+                    {esLista ? (
+                      <select
+                        className="flex-1 text-xs rounded-lg px-2 py-1.5 focus:outline-none appearance-none"
+                        style={positivoLista ? { background: '#FDEAEA', color: '#993C1D', fontWeight: 600 } : { background: '#F5EDE3', color: f.valor ? '#3D2B1F' : '#8A7560' }}
+                        value={f.valor}
+                        onChange={e => actualizarFila(i, 'valor', e.target.value)}
+                      >
+                        <option value="">—</option>
+                        {(f.opciones || []).map(op => (
+                          <option key={op} value={op}>{op}</option>
+                        ))}
+                      </select>
+                    ) : (
                       <input
                         className={esTexto ? 'flex-1 text-xs rounded-lg px-2 py-1.5 focus:outline-none' : 'w-20 text-xs text-center rounded-lg px-2 py-1.5 focus:outline-none'}
                         style={fuera ? { background: '#FDEAEA', color: '#993C1D', fontWeight: 600 } : { background: '#F5EDE3', color: '#3D2B1F' }}
                         value={f.valor}
                         onChange={e => actualizarFila(i, 'valor', e.target.value)}
-                        placeholder={esTexto ? 'ej. Negativo, Amarillo claro...' : '—'}
+                        placeholder={esTexto ? (f.placeholder || 'descripción...') : '—'}
                       />
-                    </div>
-                    {/* Unidad/Mín/Máx solo tienen sentido para parámetros
-                        numéricos -- "Color" o "Proteínas" (tira reactiva)
-                        no traen un rango que comparar. */}
-                    {!esTexto && (
-                      <div className="flex items-center gap-1.5 pl-1.5">
-                        <span className="text-[9px] text-[#8A7560]">Unidad</span>
-                        <input
-                          className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
-                          value={f.unidad}
-                          onChange={e => actualizarFila(i, 'unidad', e.target.value)}
-                          placeholder="ud."
-                        />
-                        <span className="text-[9px] text-[#8A7560] ml-1.5">Mín</span>
-                        <input
-                          className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
-                          value={f.rangoMin}
-                          onChange={e => actualizarFila(i, 'rangoMin', e.target.value)}
-                          placeholder="min"
-                        />
-                        <span className="text-[9px] text-[#8A7560] ml-1.5">Máx</span>
-                        <input
-                          className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
-                          value={f.rangoMax}
-                          onChange={e => actualizarFila(i, 'rangoMax', e.target.value)}
-                          placeholder="max"
-                        />
-                      </div>
                     )}
                   </div>
-                )
-              })}
-              <button onClick={agregarFilaExtra} className="text-xs text-[#CD7421] font-semibold mt-2">
-                + agregar parámetro
-              </button>
-            </div>
-          )}
+                  {/* Unidad/Mín/Máx solo tienen sentido para parámetros
+                      numéricos -- las listas y textos descriptivos no
+                      traen un rango que comparar. */}
+                  {f.tipoValor === 'numero' && (
+                    <div className="flex items-center gap-1.5 pl-1.5">
+                      <span className="text-[9px] text-[#8A7560]">Unidad</span>
+                      <input
+                        className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
+                        value={f.unidad}
+                        onChange={e => actualizarFila(i, 'unidad', e.target.value)}
+                        placeholder="ud."
+                      />
+                      <span className="text-[9px] text-[#8A7560] ml-1.5">Mín</span>
+                      <input
+                        className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
+                        value={f.rangoMin}
+                        onChange={e => actualizarFila(i, 'rangoMin', e.target.value)}
+                        placeholder="min"
+                      />
+                      <span className="text-[9px] text-[#8A7560] ml-1.5">Máx</span>
+                      <input
+                        className="w-14 text-[10px] text-[#8A7560] bg-[#FBEAD9] focus:outline-none rounded px-1.5 py-1"
+                        value={f.rangoMax}
+                        onChange={e => actualizarFila(i, 'rangoMax', e.target.value)}
+                        placeholder="max"
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
+            // Secciones únicas en el orden en que aparecen en las filas.
+            const secciones: string[] = []
+            for (const f of filas) {
+              if (f.seccion && !secciones.includes(f.seccion)) secciones.push(f.seccion)
+            }
+            const filasSinSeccion = filas.map((f, i) => ({ f, i })).filter(x => !x.f.seccion)
+
+            return (
+              <div className="mb-3">
+                <p className="text-[10px] text-[#8A7560] mb-2">Deja vacío lo que tu examen no incluya. El rango viene precargado con valores típicos de referencia — ajústalo si tu laboratorio usa otros.</p>
+                {secciones.length > 0 ? (
+                  <>
+                    {secciones.map(secc => {
+                      const items = filas.map((f, i) => ({ f, i })).filter(x => x.f.seccion === secc)
+                      const abierta = seccionesAbiertas.has(secc)
+                      const completados = items.filter(x => x.f.valor.trim()).length
+                      return (
+                        <div key={secc} className="mb-2 border border-[#EEE2D4] rounded-xl overflow-hidden bg-[#FFFCF8]">
+                          <button
+                            type="button"
+                            onClick={() => toggleSeccion(secc)}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-left bg-[#FBEAD9]"
+                          >
+                            <p className="flex-1 text-xs font-semibold text-[#8C572F]">{secc}</p>
+                            {completados > 0 && (
+                              <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">{completados}</span>
+                            )}
+                            <span className="text-[#8A7560] text-sm">{abierta ? '▾' : '›'}</span>
+                          </button>
+                          {abierta && (
+                            <div className="px-3 pb-1">
+                              {items.map(({ f, i }) => renderFila(f, i))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                    {filasSinSeccion.map(({ f, i }) => renderFila(f, i))}
+                  </>
+                ) : (
+                  filas.map((f, i) => renderFila(f, i))
+                )}
+                <button onClick={agregarFilaExtra} className="text-xs text-[#CD7421] font-semibold mt-2">
+                  + agregar parámetro
+                </button>
+              </div>
+            )
+          })()}
 
           {/* Nota */}
           <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Nota del veterinario · opcional</label>
@@ -750,9 +892,10 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
 
                 // Unión de todos los parámetros que aparecen en cualquiera
                 // de los exámenes de este tipo, respetando el orden de la
-                // plantilla primero, y agregando al final cualquier
-                // parámetro extra que se haya escrito a mano.
-                const parametrosUnion: string[] = t.parametros.map(p => p.nombre)
+                // plantilla primero (según la especie), y agregando al
+                // final cualquier parámetro extra que se haya escrito a
+                // mano o que venga de una plantilla anterior.
+                const parametrosUnion: string[] = obtenerParametrosPlantilla(t.valor, especie).map(p => p.nombre)
                 for (const ex of deEsteTipo) {
                   for (const r of (ex.examen_resultados || [])) {
                     if (!parametrosUnion.includes(r.parametro)) parametrosUnion.push(r.parametro)
@@ -793,9 +936,8 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
                                 <td className="sticky left-0 bg-[#FFFCF8] px-2 py-1.5 text-[#3D2B1F] border-b border-[#F5EDE3] whitespace-nowrap">{p}</td>
                                 {examenesAsc.map(ex => {
                                   const r = (ex.examen_resultados || []).find((rr: any) => rr.parametro === p)
-                                  const esTRComp = t.valor === 'test_rapido'
-                                  const positivo = esTRComp && r?.valor === 'Positivo'
-                                  const fuera = !esTRComp && r && r.rango_min !== null && r.rango_max !== null
+                                  const positivo = r?.valor === 'Positivo'
+                                  const fuera = t.valor !== 'test_rapido' && r && r.rango_min !== null && r.rango_max !== null
                                     ? estaFueraDeRango(r.valor, String(r.rango_min), String(r.rango_max))
                                     : false
                                   return (
@@ -839,26 +981,44 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
                                   <button onClick={() => eliminarExamen(ex.id)} className="text-[11px] font-semibold text-[#E05252]">🗑️ Eliminar</button>
                                 </div>
                                 {ex.peso_kg && <p className="text-[11px] text-[#8A7560] mb-2">Peso: {ex.peso_kg} kg</p>}
-                                {resultados.map((r: any) => {
-                                  const fuera = r.rango_min !== null && r.rango_max !== null
-                                    ? estaFueraDeRango(r.valor, String(r.rango_min), String(r.rango_max))
-                                    : null
-                                  const colorTR = esTR ? colorResultadoTest(r.valor) : null
-                                  return (
-                                    <div key={r.id} className="py-1 border-b border-[#F5EDE3] last:border-0">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
-                                        <span className="text-xs font-semibold" style={{ color: colorTR || (fuera ? '#993C1D' : '#3D2B1F') }}>
-                                          {esTR && r.valor === 'Positivo' ? '⚠️ ' : ''}{r.valor} {r.unidad || ''}
-                                          {r.rango_min !== null && r.rango_max !== null && (
-                                            <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
-                                          )}
-                                        </span>
+                                {(() => {
+                                  // Mapa parametro → sección para mostrar
+                                  // subtítulos (Examen físico, Hormonas...)
+                                  // cuando la plantilla los define.
+                                  const mapaSeccion: Record<string, string> = {}
+                                  for (const p of obtenerParametrosPlantilla(ex.tipo, especie)) {
+                                    if (p.seccion) mapaSeccion[p.nombre] = p.seccion
+                                  }
+                                  let seccionPrevia = ''
+                                  return resultados.map((r: any) => {
+                                    const fuera = r.rango_min !== null && r.rango_max !== null
+                                      ? estaFueraDeRango(r.valor, String(r.rango_min), String(r.rango_max))
+                                      : null
+                                    const colorTR = esTR ? colorResultadoTest(r.valor) : (r.valor === 'Positivo' ? '#E05252' : null)
+                                    const seccionActual = mapaSeccion[r.parametro] || ''
+                                    const mostrarSeccion = seccionActual && seccionActual !== seccionPrevia
+                                    seccionPrevia = seccionActual || seccionPrevia
+                                    return (
+                                      <div key={r.id}>
+                                        {mostrarSeccion && (
+                                          <p className="text-[10px] font-bold text-[#8C572F] uppercase tracking-wider pt-2 pb-1">{seccionActual}</p>
+                                        )}
+                                        <div className="py-1 border-b border-[#F5EDE3] last:border-0">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
+                                            <span className="text-xs font-semibold" style={{ color: colorTR || (fuera ? '#993C1D' : '#3D2B1F') }}>
+                                              {r.valor === 'Positivo' ? '⚠️ ' : ''}{r.valor} {r.unidad || ''}
+                                              {r.rango_min !== null && r.rango_max !== null && (
+                                                <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
+                                              )}
+                                            </span>
+                                          </div>
+                                          {r.observacion && <p className="text-[10px] text-[#8A7560] italic mt-0.5">{r.observacion}</p>}
+                                        </div>
                                       </div>
-                                      {r.observacion && <p className="text-[10px] text-[#8A7560] italic mt-0.5">{r.observacion}</p>}
-                                    </div>
-                                  )
-                                })}
+                                    )
+                                  })
+                                })()}
                                 {ex.nota && <p className="text-[11px] text-[#8A7560] italic mt-2">📝 {ex.nota}</p>}
                               </div>
                             )}
