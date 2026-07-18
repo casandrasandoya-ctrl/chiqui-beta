@@ -7,6 +7,7 @@ import BottomNav from '@/components/BottomNav'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
+import FechaSelector from '@/components/FechaSelector'
 
 interface DetalleSub { titulo: string; opciones: { value: string; emoji: string; label: string }[] }
 interface Opcion { value: string; emoji: string; label: string; detalle?: DetalleSub[] }
@@ -869,11 +870,11 @@ function RegistroContenido() {
               <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">
                 {miniModal === 'vacuna' ? 'Próxima vacunación · opcional' : miniModal === 'anti' ? 'Próxima dosis · opcional' : 'Próximo control · opcional'}
               </label>
-              <input
-                type="date"
-                className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none"
+              {/* FechaSelector siempre reemplaza el input date nativo (regla #7) */}
+              <FechaSelector
                 value={miniForm.proxima_fecha}
-                onChange={e => setMiniForm(p => ({ ...p, proxima_fecha: e.target.value }))}
+                onChange={v => setMiniForm(p => ({ ...p, proxima_fecha: v }))}
+                opcional
               />
             </div>
             {miniError && <p className="text-xs text-[#E05252]">{miniError}</p>}

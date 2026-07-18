@@ -9,6 +9,7 @@ import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascota
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
 import FotoMascota from '@/components/FotoMascota'
 import ConfiguracionNotificaciones from '@/components/ConfiguracionNotificaciones'
+import FechaSelector from '@/components/FechaSelector'
 import { calcularEtapaVida, formatearEdad } from '@/utils/etapaVida'
 import GestionCotutor from '@/components/GestionCotutor'
 import UnirseComoCotutor from '@/components/UnirseComoCotutor'
@@ -294,14 +295,22 @@ export default function PerfilPage() {
             ].map(([label, key, type, placeholder]) => (
               <div key={key}>
                 <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">{label}</label>
-                <input
-                  type={type}
-                  step={type === 'number' ? '0.1' : undefined}
-                  className={IC}
-                  placeholder={placeholder}
-                  value={String((form as Record<string, unknown>)[key] || '')}
-                  onChange={e => u(key, e.target.value)}
-                />
+                {/* FechaSelector siempre reemplaza el input date nativo (regla #7) */}
+                {type === 'date' ? (
+                  <FechaSelector
+                    value={String((form as Record<string, unknown>)[key] || '')}
+                    onChange={v => u(key, v)}
+                  />
+                ) : (
+                  <input
+                    type={type}
+                    step={type === 'number' ? '0.1' : undefined}
+                    className={IC}
+                    placeholder={placeholder}
+                    value={String((form as Record<string, unknown>)[key] || '')}
+                    onChange={e => u(key, e.target.value)}
+                  />
+                )}
               </div>
             ))}
             <div>

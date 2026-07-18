@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { guardarMascotaActivaId } from '@/utils/mascotaActiva'
+import FechaSelector from '@/components/FechaSelector'
 
 // Solo Perro y Gato: toda la experiencia de CHIQUI (registro diario,
 // exámenes, tips, referencias de peso) está construida específicamente
@@ -202,8 +203,8 @@ export default function NuevaMascotaPage() {
         {step === 2 && (
           <>
             <Field label="Fecha de nacimiento">
-              <input type="date" className={inputClass}
-                value={form.fecha_nacimiento} onChange={e => update('fecha_nacimiento', e.target.value)} />
+              {/* FechaSelector siempre reemplaza el input date nativo (regla #7) */}
+              <FechaSelector value={form.fecha_nacimiento} onChange={v => update('fecha_nacimiento', v)} />
             </Field>
 
             <Field label="Color / pelaje">
