@@ -5,7 +5,12 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { guardarMascotaActivaId } from '@/utils/mascotaActiva'
 
-const ESPECIES = ['Perro', 'Gato', 'Conejo', 'Ave', 'Otro']
+// Solo Perro y Gato: toda la experiencia de CHIQUI (registro diario,
+// exámenes, tips, referencias de peso) está construida específicamente
+// para estas dos especies. Ofrecer otras prometería una experiencia
+// que hoy no existe. Las mascotas de otras especies creadas antes de
+// este cambio siguen funcionando normalmente.
+const ESPECIES = ['Perro', 'Gato']
 
 export default function NuevaMascotaPage() {
   const router = useRouter()
@@ -155,11 +160,11 @@ export default function NuevaMascotaPage() {
             </Field>
 
             <Field label="Especie">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {ESPECIES.map(e => (
                   <button key={e} onClick={() => update('especie', e)}
                     className={`py-2.5 rounded-xl text-sm font-semibold border transition-all ${form.especie === e ? 'bg-[#FFBD59]/15 border-[#FFBD59] text-[#FFBD59]' : 'bg-[#FFFCF8] border-[#EEE2D4] text-[#8A7560]'}`}>
-                    {e === 'Perro' ? '🐕' : e === 'Gato' ? '🐈' : e === 'Conejo' ? '🐇' : e === 'Ave' ? '🐦' : '🐾'} {e}
+                    {e === 'Perro' ? '🐕' : '🐈'} {e}
                   </button>
                 ))}
               </div>
