@@ -86,26 +86,33 @@ export default async function Dashboard({ searchParams }: Props) {
   // Definición de los cuidados posibles, organizados por grupo (mismo
   // orden que en el registro diario), cada uno con la columna booleana
   // que hay que consultar en registros_diarios.
+  // Reorganización: "Cuidados básicos" y "Eventos importantes" se
+  // fusionaron en "Veterinario y salud" (primero); "Compra de alimento"
+  // pasó a Alimentación; y se agregó el grupo "Arenero" (sus columnas
+  // solo tienen datos en gatos, así que en perros nunca aparece).
   const definicionCuidados = [
-    { grupo: 'Cuidados básicos', columna: 'fue_al_vet', label: 'Veterinario', emoji: '🩺' },
-    { grupo: 'Cuidados básicos', columna: 'se_bano', label: 'Baño', emoji: '🛁' },
-    { grupo: 'Cuidados básicos', columna: 'corte_unas', label: 'Corte de uñas', emoji: '✂️' },
-    { grupo: 'Cuidados básicos', columna: 'compro_alimento', label: 'Compra de alimento', emoji: '🍖' },
+    { grupo: 'Veterinario y salud', columna: 'fue_al_vet', label: 'Veterinario', emoji: '🩺' },
+    { grupo: 'Veterinario y salud', columna: 'control_peso', label: 'Control de peso', emoji: '⚖️' },
+    { grupo: 'Veterinario y salud', columna: 'procedimiento_cirugia', label: 'Procedimiento/cirugía', emoji: '🏥' },
+    { grupo: 'Veterinario y salud', columna: 'seguimiento_lesion', label: 'Seguimiento de lesión', emoji: '📸' },
     { grupo: 'Prevención', columna: 'medicamento_hoy', label: 'Medicamento', emoji: '💊' },
     { grupo: 'Prevención', columna: 'vacuna_hoy', label: 'Vacuna', emoji: '💉' },
     { grupo: 'Prevención', columna: 'anti_hoy', label: 'Antiparasitario', emoji: '🪱' },
+    { grupo: 'Higiene y bienestar', columna: 'se_bano', label: 'Baño', emoji: '🛁' },
+    { grupo: 'Higiene y bienestar', columna: 'corte_unas', label: 'Corte de uñas', emoji: '✂️' },
     { grupo: 'Higiene y bienestar', columna: 'limpieza_dental', label: 'Limpieza dental', emoji: '🦷' },
     { grupo: 'Higiene y bienestar', columna: 'limpieza_oidos', label: 'Limpieza de oídos', emoji: '👂' },
     { grupo: 'Higiene y bienestar', columna: 'tratamiento_dermatologico', label: 'Tratamiento dermatológico', emoji: '🧴' },
     { grupo: 'Higiene y bienestar', columna: 'peino', label: 'Lo peiné', emoji: '💇' },
     { grupo: 'Higiene y bienestar', columna: 'shampoo_seco', label: 'Shampoo en seco', emoji: '🧼' },
+    { grupo: 'Arenero', columna: 'limpie_arenero', label: 'Limpié el arenero', emoji: '🧹' },
+    { grupo: 'Arenero', columna: 'cambie_arena', label: 'Cambié la arena', emoji: '🔄' },
+    { grupo: 'Arenero', columna: 'compre_arena', label: 'Compré arena', emoji: '🛒' },
     { grupo: 'Alimentación', columna: 'alimente_hoy', label: 'Alimenté a mi mascota', emoji: '🥘' },
+    { grupo: 'Alimentación', columna: 'compro_alimento', label: 'Compra de alimento', emoji: '🍖' },
     { grupo: 'Alimentación', columna: 'cambio_alimento', label: 'Cambio de alimento', emoji: '🥣' },
     { grupo: 'Alimentación', columna: 'probo_alimento_nuevo', label: 'Alimento nuevo', emoji: '🎁' },
     { grupo: 'Alimentación', columna: 'cargo_dispensador', label: 'Cargué el dispensador', emoji: '🤖' },
-    { grupo: 'Eventos importantes', columna: 'control_peso', label: 'Control de peso', emoji: '⚖️' },
-    { grupo: 'Eventos importantes', columna: 'procedimiento_cirugia', label: 'Procedimiento/cirugía', emoji: '🏥' },
-    { grupo: 'Eventos importantes', columna: 'seguimiento_lesion', label: 'Seguimiento de lesión', emoji: '📸' },
   ]
 
   const resultadosCuidados = await Promise.all(

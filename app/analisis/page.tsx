@@ -27,29 +27,36 @@ const SIGNOS_LABELS: Record<string, { emoji: string; label: string }> = {
   otro_signo: { emoji: '❓', label: 'Otro evento grave' },
 }
 
-// Definición de los 19 cuidados que se pueden calcular como "rutina"
-// (cada cuánto ocurren). Mismo set que ya existe en registro-diario y
-// dashboard, con su emoji y label consistentes.
+// Definición de los 22 cuidados que se pueden calcular como "rutina"
+// (cada cuánto ocurren). Mismo set, mismos grupos y mismos emojis que
+// en registro-diario y dashboard.
+// Las rutinas del Arenero (solo gatos) permiten estimar reabastecimiento:
+// "compras arena cada N días" funciona igual que "compras alimento cada
+// N días". En perros esas columnas nunca son true, así que simplemente
+// no aparecen (el filtro de ocurrencias === 0 las descarta solo).
 const CUIDADOS_RUTINA: { columna: string; label: string; emoji: string; grupo: string }[] = [
-  { columna: 'fue_al_vet', label: 'Visitas al veterinario', emoji: '🏥', grupo: 'Cuidados básicos' },
-  { columna: 'se_bano', label: 'Baños', emoji: '🛁', grupo: 'Cuidados básicos' },
-  { columna: 'corte_unas', label: 'Corte de uñas', emoji: '✂️', grupo: 'Cuidados básicos' },
-  { columna: 'compro_alimento', label: 'Compras de alimento', emoji: '🥣', grupo: 'Cuidados básicos' },
+  { columna: 'fue_al_vet', label: 'Visitas al veterinario', emoji: '🩺', grupo: 'Veterinario y salud' },
+  { columna: 'control_peso', label: 'Controles de peso', emoji: '⚖️', grupo: 'Veterinario y salud' },
+  { columna: 'procedimiento_cirugia', label: 'Procedimientos o cirugías', emoji: '🏥', grupo: 'Veterinario y salud' },
+  { columna: 'seguimiento_lesion', label: 'Seguimientos de lesión', emoji: '📸', grupo: 'Veterinario y salud' },
   { columna: 'medicamento_hoy', label: 'Medicamentos', emoji: '💊', grupo: 'Prevención' },
   { columna: 'vacuna_hoy', label: 'Vacunas', emoji: '💉', grupo: 'Prevención' },
   { columna: 'anti_hoy', label: 'Antiparasitarios', emoji: '🪱', grupo: 'Prevención' },
+  { columna: 'se_bano', label: 'Baños', emoji: '🛁', grupo: 'Higiene y bienestar' },
+  { columna: 'corte_unas', label: 'Corte de uñas', emoji: '✂️', grupo: 'Higiene y bienestar' },
   { columna: 'limpieza_dental', label: 'Limpieza dental', emoji: '🦷', grupo: 'Higiene y bienestar' },
   { columna: 'limpieza_oidos', label: 'Limpieza de oídos', emoji: '👂', grupo: 'Higiene y bienestar' },
   { columna: 'tratamiento_dermatologico', label: 'Tratamiento dermatológico', emoji: '🧴', grupo: 'Higiene y bienestar' },
   { columna: 'peino', label: 'Peinados', emoji: '💇', grupo: 'Higiene y bienestar' },
   { columna: 'shampoo_seco', label: 'Shampoo en seco', emoji: '🧼', grupo: 'Higiene y bienestar' },
+  { columna: 'limpie_arenero', label: 'Limpiezas del arenero', emoji: '🧹', grupo: 'Arenero' },
+  { columna: 'cambie_arena', label: 'Cambios de arena', emoji: '🔄', grupo: 'Arenero' },
+  { columna: 'compre_arena', label: 'Compras de arena', emoji: '🛒', grupo: 'Arenero' },
   { columna: 'alimente_hoy', label: 'Alimentación', emoji: '🥘', grupo: 'Alimentación' },
-  { columna: 'cambio_alimento', label: 'Cambios de alimento', emoji: '🎁', grupo: 'Alimentación' },
-  { columna: 'probo_alimento_nuevo', label: 'Alimentos nuevos probados', emoji: '🆕', grupo: 'Alimentación' },
+  { columna: 'compro_alimento', label: 'Compras de alimento', emoji: '🍖', grupo: 'Alimentación' },
+  { columna: 'cambio_alimento', label: 'Cambios de alimento', emoji: '🥣', grupo: 'Alimentación' },
+  { columna: 'probo_alimento_nuevo', label: 'Alimentos nuevos probados', emoji: '🎁', grupo: 'Alimentación' },
   { columna: 'cargo_dispensador', label: 'Dispensador cargado', emoji: '🤖', grupo: 'Alimentación' },
-  { columna: 'control_peso', label: 'Controles de peso', emoji: '⚖️', grupo: 'Eventos importantes' },
-  { columna: 'procedimiento_cirugia', label: 'Procedimientos o cirugías', emoji: '🏥', grupo: 'Eventos importantes' },
-  { columna: 'seguimiento_lesion', label: 'Seguimientos de lesión', emoji: '📸', grupo: 'Eventos importantes' },
 ]
 
 interface RutinaCalculada {
@@ -152,7 +159,7 @@ export default function AnalisisPage() {
   }
 
   // Rutinas de cuidado: trae TODO el historial de la mascota (no solo
-  // 30 días), pero solo las columnas de fecha + los 19 cuidados
+  // 30 días), pero solo las columnas de fecha + los 22 cuidados
   // booleanos -- así el query queda liviano aunque la mascota tenga
   // meses o años de registros.
   // Vacunas, Antiparasitarios y Medicamentos se pueden agregar de 2

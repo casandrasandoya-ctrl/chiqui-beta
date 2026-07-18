@@ -235,6 +235,56 @@ function getCategorias(especie: string): Categoria[] {
   return categorias
 }
 
+// Grupos de "Cuidados de hoy", según especie.
+// Reorganización: "Cuidados básicos" y "Eventos importantes" se
+// fusionaron en "Veterinario y salud" (primero); "Compré alimento"
+// pasó a Alimentación; y para GATOS se agrega el grupo "Arenero" con
+// 3 rutinas de frecuencias distintas (limpiar es ~diario, cambiar la
+// arena es ~semanal, comprar es ~mensual) — separadas para que el
+// cálculo de "cada cuánto" en Análisis sea útil, incluyendo estimar
+// cuándo toca volver a comprar arena o alimento.
+interface GrupoCuidados { titulo: string; img: string; items: { value: string; emoji: string; label: string }[] }
+function getGruposCuidados(especie: string): GrupoCuidados[] {
+  const esGato = especie === 'Gato'
+  const grupos: GrupoCuidados[] = [
+    { titulo: 'Veterinario y salud', img: '/chiqui/chiqui_doctor.png', items: [
+      { value: 'vet', emoji: '🩺', label: 'Fue al veterinario' },
+      { value: 'control_peso', emoji: '⚖️', label: 'Control de peso' },
+      { value: 'procedimiento_cirugia', emoji: '🏥', label: 'Procedimiento o cirugía' },
+      { value: 'seguimiento_lesion', emoji: '📸', label: 'Seguimiento de lesión o recuperación' },
+    ]},
+    { titulo: 'Prevención', img: '/chiqui/chiqui_medicamentos.png', items: [
+      { value: 'medicamento_hoy', emoji: '💊', label: 'Recibió medicamento' },
+      { value: 'vacuna_hoy', emoji: '💉', label: 'Vacuna aplicada' },
+      { value: 'anti_hoy', emoji: '🪱', label: 'Antiparasitario aplicado' },
+    ]},
+    { titulo: 'Higiene y bienestar', img: '/chiqui/chiqui_grooming.png', items: [
+      { value: 'bano', emoji: '🛁', label: 'Se bañó' },
+      { value: 'unas', emoji: '✂️', label: 'Corte de uñas' },
+      { value: 'limpieza_dental', emoji: '🦷', label: 'Limpieza dental' },
+      { value: 'limpieza_oidos', emoji: '👂', label: 'Limpieza de oídos' },
+      { value: 'tratamiento_dermatologico', emoji: '🧴', label: 'Tratamiento dermatológico' },
+      { value: 'peino', emoji: '💇', label: 'Lo peiné' },
+      { value: 'shampoo_seco', emoji: '🧼', label: 'Shampoo en seco' },
+    ]},
+  ]
+  if (esGato) {
+    grupos.push({ titulo: 'Arenero', img: '/chiqui/chiqui_caca.png', items: [
+      { value: 'limpie_arenero', emoji: '🧹', label: 'Limpié el arenero' },
+      { value: 'cambie_arena', emoji: '🔄', label: 'Cambié la arena' },
+      { value: 'compre_arena', emoji: '🛒', label: 'Compré arena' },
+    ]})
+  }
+  grupos.push({ titulo: 'Alimentación', img: '/chiqui/chiqui_chef.png', items: [
+    { value: 'alimente_hoy', emoji: '🥘', label: 'Alimenté a mi mascota' },
+    { value: 'alimento', emoji: '🍖', label: 'Compré alimento' },
+    { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
+    { value: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó un alimento nuevo' },
+    { value: 'cargo_dispensador', emoji: '🤖', label: 'Cargué el dispensador de comida/agua' },
+  ]})
+  return grupos
+}
+
 // Calcula el color del día para el calendario. Si hay al menos un signo
 // de alerta registrado, el día es ROJO automáticamente (evento grave),
 // por encima de cualquier otra señal del día.
@@ -335,6 +385,7 @@ function RegistroContenido() {
       control_peso: 'control_peso', procedimiento_cirugia: 'procedimiento_cirugia',
       seguimiento_lesion: 'seguimiento_lesion',
       peino: 'peino', shampoo_seco: 'shampoo_seco',
+      limpie_arenero: 'limpie_arenero', cambie_arena: 'cambie_arena', compre_arena: 'compre_arena',
     }
     Object.entries(mapaCuidados).forEach(([columna, valor]) => {
       if (r[columna]) cuidadosExistentes.add(valor)
@@ -501,6 +552,7 @@ function RegistroContenido() {
       control_peso: cuidados.has('control_peso'), procedimiento_cirugia: cuidados.has('procedimiento_cirugia'),
       seguimiento_lesion: cuidados.has('seguimiento_lesion'),
       peino: cuidados.has('peino'), shampoo_seco: cuidados.has('shampoo_seco'),
+      limpie_arenero: cuidados.has('limpie_arenero'), cambie_arena: cuidados.has('cambie_arena'), compre_arena: cuidados.has('compre_arena'),
     }, { onConflict: 'mascota_id,fecha' })
     if (error) {
       console.error('Error guardando registro diario:', error)
@@ -714,37 +766,7 @@ function RegistroContenido() {
         <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
           Cuidados de hoy · opcional, puedes marcar varios
         </label>
-        {[
-          { titulo: 'Cuidados básicos', img: '/chiqui/chiqui_doctor.png', items: [
-            { value: 'vet', emoji: '🩺', label: 'Fue al veterinario' },
-            { value: 'alimento', emoji: '🍖', label: 'Compré alimento' },
-          ]},
-          { titulo: 'Prevención', img: '/chiqui/chiqui_medicamentos.png', items: [
-            { value: 'medicamento_hoy', emoji: '💊', label: 'Recibió medicamento' },
-            { value: 'vacuna_hoy', emoji: '💉', label: 'Vacuna aplicada' },
-            { value: 'anti_hoy', emoji: '🪱', label: 'Antiparasitario aplicado' },
-          ]},
-          { titulo: 'Higiene y bienestar', img: '/chiqui/chiqui_grooming.png', items: [
-            { value: 'bano', emoji: '🛁', label: 'Se bañó' },
-            { value: 'unas', emoji: '✂️', label: 'Corte de uñas' },
-            { value: 'limpieza_dental', emoji: '🦷', label: 'Limpieza dental' },
-            { value: 'limpieza_oidos', emoji: '👂', label: 'Limpieza de oídos' },
-            { value: 'tratamiento_dermatologico', emoji: '🧴', label: 'Tratamiento dermatológico' },
-            { value: 'peino', emoji: '💇', label: 'Lo peiné' },
-            { value: 'shampoo_seco', emoji: '🧼', label: 'Shampoo en seco' },
-          ]},
-          { titulo: 'Alimentación', img: '/chiqui/chiqui_chef.png', items: [
-            { value: 'alimente_hoy', emoji: '🥘', label: 'Alimenté a mi mascota' },
-            { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
-            { value: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó un alimento nuevo' },
-            { value: 'cargo_dispensador', emoji: '🤖', label: 'Cargué el dispensador de comida/agua' },
-          ]},
-          { titulo: 'Eventos importantes', img: '/chiqui/chiqui_sorpresa.png', items: [
-            { value: 'control_peso', emoji: '⚖️', label: 'Control de peso' },
-            { value: 'procedimiento_cirugia', emoji: '🏥', label: 'Procedimiento o cirugía' },
-            { value: 'seguimiento_lesion', emoji: '📸', label: 'Seguimiento de lesión o recuperación' },
-          ]},
-        ].map(grupo => {
+        {getGruposCuidados(especie).map(grupo => {
           const abiertoGrupo = gruposAbiertos.has(grupo.titulo)
           const marcadosEnGrupo = grupo.items.filter(c => cuidados.has(c.value)).length
           return (
