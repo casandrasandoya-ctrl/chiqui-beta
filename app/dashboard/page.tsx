@@ -84,12 +84,11 @@ export default async function Dashboard({ searchParams }: Props) {
   }
 
   // Definición de los cuidados posibles, organizados por grupo (mismo
-  // orden que en el registro diario), cada uno con la columna booleana
-  // que hay que consultar en registros_diarios.
-  // Reorganización: "Cuidados básicos" y "Eventos importantes" se
-  // fusionaron en "Veterinario y salud" (primero); "Compra de alimento"
-  // pasó a Alimentación; y se agregó el grupo "Arenero" (sus columnas
-  // solo tienen datos en gatos, así que en perros nunca aparece).
+  // orden que en el registro diario: Veterinario y salud → Prevención →
+  // Alimentación → Higiene y bienestar → Arenero), cada uno con la
+  // columna booleana que hay que consultar en registros_diarios. Las
+  // columnas del Arenero solo tienen datos en gatos, así que en perros
+  // ese grupo nunca aparece.
   const definicionCuidados = [
     { grupo: 'Veterinario y salud', columna: 'fue_al_vet', label: 'Veterinario', emoji: '🩺' },
     { grupo: 'Veterinario y salud', columna: 'control_peso', label: 'Control de peso', emoji: '⚖️' },
@@ -98,6 +97,11 @@ export default async function Dashboard({ searchParams }: Props) {
     { grupo: 'Prevención', columna: 'medicamento_hoy', label: 'Medicamento', emoji: '💊' },
     { grupo: 'Prevención', columna: 'vacuna_hoy', label: 'Vacuna', emoji: '💉' },
     { grupo: 'Prevención', columna: 'anti_hoy', label: 'Antiparasitario', emoji: '🪱' },
+    { grupo: 'Alimentación', columna: 'alimente_hoy', label: 'Alimenté a mi mascota', emoji: '🥘' },
+    { grupo: 'Alimentación', columna: 'compro_alimento', label: 'Compra de alimento', emoji: '🍖' },
+    { grupo: 'Alimentación', columna: 'cambio_alimento', label: 'Cambio de alimento', emoji: '🥣' },
+    { grupo: 'Alimentación', columna: 'probo_alimento_nuevo', label: 'Alimento nuevo', emoji: '🎁' },
+    { grupo: 'Alimentación', columna: 'cargo_dispensador', label: 'Cargué el dispensador', emoji: '🤖' },
     { grupo: 'Higiene y bienestar', columna: 'se_bano', label: 'Baño', emoji: '🛁' },
     { grupo: 'Higiene y bienestar', columna: 'corte_unas', label: 'Corte de uñas', emoji: '✂️' },
     { grupo: 'Higiene y bienestar', columna: 'limpieza_dental', label: 'Limpieza dental', emoji: '🦷' },
@@ -108,11 +112,6 @@ export default async function Dashboard({ searchParams }: Props) {
     { grupo: 'Arenero', columna: 'limpie_arenero', label: 'Limpié el arenero', emoji: '🧹' },
     { grupo: 'Arenero', columna: 'cambie_arena', label: 'Cambié la arena', emoji: '🔄' },
     { grupo: 'Arenero', columna: 'compre_arena', label: 'Compré arena', emoji: '🛒' },
-    { grupo: 'Alimentación', columna: 'alimente_hoy', label: 'Alimenté a mi mascota', emoji: '🥘' },
-    { grupo: 'Alimentación', columna: 'compro_alimento', label: 'Compra de alimento', emoji: '🍖' },
-    { grupo: 'Alimentación', columna: 'cambio_alimento', label: 'Cambio de alimento', emoji: '🥣' },
-    { grupo: 'Alimentación', columna: 'probo_alimento_nuevo', label: 'Alimento nuevo', emoji: '🎁' },
-    { grupo: 'Alimentación', columna: 'cargo_dispensador', label: 'Cargué el dispensador', emoji: '🤖' },
   ]
 
   const resultadosCuidados = await Promise.all(

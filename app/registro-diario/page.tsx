@@ -235,14 +235,15 @@ function getCategorias(especie: string): Categoria[] {
   return categorias
 }
 
-// Grupos de "Cuidados de hoy", según especie.
-// Reorganización: "Cuidados básicos" y "Eventos importantes" se
-// fusionaron en "Veterinario y salud" (primero); "Compré alimento"
-// pasó a Alimentación; y para GATOS se agrega el grupo "Arenero" con
-// 3 rutinas de frecuencias distintas (limpiar es ~diario, cambiar la
-// arena es ~semanal, comprar es ~mensual) — separadas para que el
-// cálculo de "cada cuánto" en Análisis sea útil, incluyendo estimar
-// cuándo toca volver a comprar arena o alimento.
+// Grupos de "Cuidados de hoy", según especie. Orden: Veterinario y
+// salud → Prevención → Alimentación → Higiene y bienestar → Arenero
+// (este último solo en gatos).
+// "Cuidados básicos" y "Eventos importantes" se fusionaron en
+// "Veterinario y salud"; "Compré alimento" vive en Alimentación; el
+// grupo "Arenero" tiene 3 rutinas de frecuencias distintas (limpiar es
+// ~diario, cambiar la arena es ~semanal, comprar es ~mensual) —
+// separadas para que el cálculo de "cada cuánto" en Análisis sea útil,
+// incluyendo estimar cuándo toca volver a comprar arena o alimento.
 interface GrupoCuidados { titulo: string; img: string; items: { value: string; emoji: string; label: string }[] }
 function getGruposCuidados(especie: string): GrupoCuidados[] {
   const esGato = especie === 'Gato'
@@ -257,6 +258,13 @@ function getGruposCuidados(especie: string): GrupoCuidados[] {
       { value: 'medicamento_hoy', emoji: '💊', label: 'Recibió medicamento' },
       { value: 'vacuna_hoy', emoji: '💉', label: 'Vacuna aplicada' },
       { value: 'anti_hoy', emoji: '🪱', label: 'Antiparasitario aplicado' },
+    ]},
+    { titulo: 'Alimentación', img: '/chiqui/chiqui_chef.png', items: [
+      { value: 'alimente_hoy', emoji: '🥘', label: 'Alimenté a mi mascota' },
+      { value: 'alimento', emoji: '🍖', label: 'Compré alimento' },
+      { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
+      { value: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó un alimento nuevo' },
+      { value: 'cargo_dispensador', emoji: '🤖', label: 'Cargué el dispensador de comida/agua' },
     ]},
     { titulo: 'Higiene y bienestar', img: '/chiqui/chiqui_grooming.png', items: [
       { value: 'bano', emoji: '🛁', label: 'Se bañó' },
@@ -275,13 +283,6 @@ function getGruposCuidados(especie: string): GrupoCuidados[] {
       { value: 'compre_arena', emoji: '🛒', label: 'Compré arena' },
     ]})
   }
-  grupos.push({ titulo: 'Alimentación', img: '/chiqui/chiqui_chef.png', items: [
-    { value: 'alimente_hoy', emoji: '🥘', label: 'Alimenté a mi mascota' },
-    { value: 'alimento', emoji: '🍖', label: 'Compré alimento' },
-    { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
-    { value: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó un alimento nuevo' },
-    { value: 'cargo_dispensador', emoji: '🤖', label: 'Cargué el dispensador de comida/agua' },
-  ]})
   return grupos
 }
 

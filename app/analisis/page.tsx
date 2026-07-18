@@ -28,42 +28,57 @@ const SIGNOS_LABELS: Record<string, { emoji: string; label: string }> = {
 }
 
 // Definición de los 22 cuidados que se pueden calcular como "rutina"
-// (cada cuánto ocurren). Mismo set, mismos grupos y mismos emojis que
-// en registro-diario y dashboard.
+// (cada cuánto ocurren). Mismo set, mismos grupos, mismo orden y mismos
+// emojis que en registro-diario y dashboard.
+// Cada rutina tiene una "frase" conversacional para que Chiqui le hable
+// al tutor en vez de mostrar solo números. Placeholders: {cada} se
+// reemplaza por "todos los días" / "día por medio" / "cada N días", y
+// {nombre} por el nombre de la mascota. Para eventos médicos poco
+// frecuentes (cirugías, lesiones) la frase es neutra a propósito —
+// "sueles" sonaría mal ahí.
 // Las rutinas del Arenero (solo gatos) permiten estimar reabastecimiento:
 // "compras arena cada N días" funciona igual que "compras alimento cada
 // N días". En perros esas columnas nunca son true, así que simplemente
 // no aparecen (el filtro de ocurrencias === 0 las descarta solo).
-const CUIDADOS_RUTINA: { columna: string; label: string; emoji: string; grupo: string }[] = [
-  { columna: 'fue_al_vet', label: 'Visitas al veterinario', emoji: '🩺', grupo: 'Veterinario y salud' },
-  { columna: 'control_peso', label: 'Controles de peso', emoji: '⚖️', grupo: 'Veterinario y salud' },
-  { columna: 'procedimiento_cirugia', label: 'Procedimientos o cirugías', emoji: '🏥', grupo: 'Veterinario y salud' },
-  { columna: 'seguimiento_lesion', label: 'Seguimientos de lesión', emoji: '📸', grupo: 'Veterinario y salud' },
-  { columna: 'medicamento_hoy', label: 'Medicamentos', emoji: '💊', grupo: 'Prevención' },
-  { columna: 'vacuna_hoy', label: 'Vacunas', emoji: '💉', grupo: 'Prevención' },
-  { columna: 'anti_hoy', label: 'Antiparasitarios', emoji: '🪱', grupo: 'Prevención' },
-  { columna: 'se_bano', label: 'Baños', emoji: '🛁', grupo: 'Higiene y bienestar' },
-  { columna: 'corte_unas', label: 'Corte de uñas', emoji: '✂️', grupo: 'Higiene y bienestar' },
-  { columna: 'limpieza_dental', label: 'Limpieza dental', emoji: '🦷', grupo: 'Higiene y bienestar' },
-  { columna: 'limpieza_oidos', label: 'Limpieza de oídos', emoji: '👂', grupo: 'Higiene y bienestar' },
-  { columna: 'tratamiento_dermatologico', label: 'Tratamiento dermatológico', emoji: '🧴', grupo: 'Higiene y bienestar' },
-  { columna: 'peino', label: 'Peinados', emoji: '💇', grupo: 'Higiene y bienestar' },
-  { columna: 'shampoo_seco', label: 'Shampoo en seco', emoji: '🧼', grupo: 'Higiene y bienestar' },
-  { columna: 'limpie_arenero', label: 'Limpiezas del arenero', emoji: '🧹', grupo: 'Arenero' },
-  { columna: 'cambie_arena', label: 'Cambios de arena', emoji: '🔄', grupo: 'Arenero' },
-  { columna: 'compre_arena', label: 'Compras de arena', emoji: '🛒', grupo: 'Arenero' },
-  { columna: 'alimente_hoy', label: 'Alimentación', emoji: '🥘', grupo: 'Alimentación' },
-  { columna: 'compro_alimento', label: 'Compras de alimento', emoji: '🍖', grupo: 'Alimentación' },
-  { columna: 'cambio_alimento', label: 'Cambios de alimento', emoji: '🥣', grupo: 'Alimentación' },
-  { columna: 'probo_alimento_nuevo', label: 'Alimentos nuevos probados', emoji: '🎁', grupo: 'Alimentación' },
-  { columna: 'cargo_dispensador', label: 'Dispensador cargado', emoji: '🤖', grupo: 'Alimentación' },
+const CUIDADOS_RUTINA: { columna: string; label: string; emoji: string; grupo: string; frase: string }[] = [
+  { columna: 'fue_al_vet', label: 'Visitas al veterinario', emoji: '🩺', grupo: 'Veterinario y salud', frase: 'Sueles llevar a {nombre} al veterinario {cada}' },
+  { columna: 'control_peso', label: 'Controles de peso', emoji: '⚖️', grupo: 'Veterinario y salud', frase: 'Controlas su peso {cada}' },
+  { columna: 'procedimiento_cirugia', label: 'Procedimientos o cirugías', emoji: '🏥', grupo: 'Veterinario y salud', frase: 'Se ha registrado un procedimiento o cirugía {cada} aprox.' },
+  { columna: 'seguimiento_lesion', label: 'Seguimientos de lesión', emoji: '📸', grupo: 'Veterinario y salud', frase: 'Registras seguimientos de lesión {cada} aprox.' },
+  { columna: 'medicamento_hoy', label: 'Medicamentos', emoji: '💊', grupo: 'Prevención', frase: 'Registras medicamentos {cada} aprox.' },
+  { columna: 'vacuna_hoy', label: 'Vacunas', emoji: '💉', grupo: 'Prevención', frase: 'Las vacunas se han aplicado {cada} aprox.' },
+  { columna: 'anti_hoy', label: 'Antiparasitarios', emoji: '🪱', grupo: 'Prevención', frase: 'Aplicas antiparasitario {cada} aprox.' },
+  { columna: 'alimente_hoy', label: 'Alimentación', emoji: '🥘', grupo: 'Alimentación', frase: 'Registras su alimentación {cada}' },
+  { columna: 'compro_alimento', label: 'Compras de alimento', emoji: '🍖', grupo: 'Alimentación', frase: 'Habitualmente compras alimento {cada}' },
+  { columna: 'cambio_alimento', label: 'Cambios de alimento', emoji: '🥣', grupo: 'Alimentación', frase: 'Cambias su alimento {cada} aprox.' },
+  { columna: 'probo_alimento_nuevo', label: 'Alimentos nuevos probados', emoji: '🎁', grupo: 'Alimentación', frase: 'Le das a probar algo nuevo {cada} aprox.' },
+  { columna: 'cargo_dispensador', label: 'Dispensador cargado', emoji: '🤖', grupo: 'Alimentación', frase: 'Normalmente cargas el dispensador {cada}' },
+  { columna: 'se_bano', label: 'Baños', emoji: '🛁', grupo: 'Higiene y bienestar', frase: 'Habitualmente bañas a {nombre} {cada}' },
+  { columna: 'corte_unas', label: 'Corte de uñas', emoji: '✂️', grupo: 'Higiene y bienestar', frase: 'Sueles cortarle las uñas {cada}' },
+  { columna: 'limpieza_dental', label: 'Limpieza dental', emoji: '🦷', grupo: 'Higiene y bienestar', frase: 'Haces limpieza dental {cada}' },
+  { columna: 'limpieza_oidos', label: 'Limpieza de oídos', emoji: '👂', grupo: 'Higiene y bienestar', frase: 'Limpias sus oídos {cada}' },
+  { columna: 'tratamiento_dermatologico', label: 'Tratamiento dermatológico', emoji: '🧴', grupo: 'Higiene y bienestar', frase: 'Aplicas su tratamiento dermatológico {cada}' },
+  { columna: 'peino', label: 'Peinados', emoji: '💇', grupo: 'Higiene y bienestar', frase: 'Sueles peinar a {nombre} {cada}' },
+  { columna: 'shampoo_seco', label: 'Shampoo en seco', emoji: '🧼', grupo: 'Higiene y bienestar', frase: 'Usas shampoo en seco {cada}' },
+  { columna: 'limpie_arenero', label: 'Limpiezas del arenero', emoji: '🧹', grupo: 'Arenero', frase: 'Sueles limpiar el arenero {cada}' },
+  { columna: 'cambie_arena', label: 'Cambios de arena', emoji: '🔄', grupo: 'Arenero', frase: 'Cambias la arena completa {cada}' },
+  { columna: 'compre_arena', label: 'Compras de arena', emoji: '🛒', grupo: 'Arenero', frase: 'Habitualmente compras arena {cada}' },
 ]
+
+// Convierte un promedio de días en texto natural: "todos los días",
+// "día por medio" o "cada N días".
+function textoCada(dias: number): string {
+  if (dias <= 1) return 'todos los días'
+  if (dias === 2) return 'día por medio'
+  return `cada ${dias} días`
+}
 
 interface RutinaCalculada {
   columna: string
   label: string
   emoji: string
   grupo: string
+  frase: string
   ocurrencias: number
   promedioDias: number | null
   ultimaFecha: string
@@ -205,6 +220,7 @@ export default function AnalisisPage() {
           label: c.label,
           emoji: c.emoji,
           grupo: c.grupo,
+          frase: c.frase,
           ocurrencias,
           promedioDias,
           ultimaFecha,
@@ -458,10 +474,10 @@ export default function AnalisisPage() {
   // Texto amigable para "próxima estimada" / "días desde"
   function textoProxima(dias: number | null): string {
     if (dias === null) return ''
-    if (dias < 0) return `Ya pasaron ${Math.abs(dias)} días de lo esperado`
-    if (dias === 0) return 'Estimado para hoy'
-    if (dias === 1) return 'Estimado para mañana'
-    return `Estimado en ${dias} días`
+    if (dias < 0) return `Ya pasaron ${Math.abs(dias)} días de lo habitual`
+    if (dias === 0) return 'Te tocaría hoy'
+    if (dias === 1) return 'Te tocaría mañana'
+    return `Te tocaría de nuevo en ${dias} días`
   }
 
   const MESES_CORTOS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
@@ -590,11 +606,11 @@ export default function AnalisisPage() {
                   </div>
                   {r.promedioDias !== null ? (
                     <>
-                      <p className="text-xs text-[#8A7560] leading-relaxed">
-                        Cada <span className="font-semibold text-[#3D2B1F]">{r.promedioDias} días</span> en promedio · {r.ocurrencias} registros
+                      <p className="text-xs text-[#3D2B1F] leading-relaxed">
+                        {r.frase.replace('{cada}', textoCada(r.promedioDias)).replace('{nombre}', mascota?.nombre || 'tu mascota')}
                       </p>
                       <p className="text-[11px] text-[#8A7560] mt-0.5">
-                        Última vez: hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'}
+                        Última vez: hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'} · {r.ocurrencias} registros
                       </p>
                       <p className="text-[11px] font-semibold mt-0.5" style={{ color: (r.proximaEstimadaDias ?? 0) < 0 ? '#F07A30' : '#4CAF7D' }}>
                         {textoProxima(r.proximaEstimadaDias)}
