@@ -1,4 +1,5 @@
 'use client'
+
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
@@ -13,6 +14,25 @@ interface Categoria {
   id: string; nombre: string; icon: string; color: string
   opciones: Opcion[]
 }
+
+// SIGNOS DE ALERTA: eventos graves o de urgencia ocurridos durante el
+// día. Es una sección OPCIONAL y de selección múltiple — si no ocurrió
+// nada, el tutor simplemente no marca nada (igual que Cuidados).
+// Si se marca al menos uno, el día queda automáticamente en ROJO en el
+// calendario (ver calcEstado), y la información se reutiliza en
+// Análisis y en la vista del veterinario (Posible motivo de consulta y
+// Resumen clínico), sin interpretar clínicamente los eventos.
+const SIGNOS_ALERTA: { value: string; emoji: string; label: string }[] = [
+  { value: 'convulsiones', emoji: '🌀', label: 'Convulsiones' },
+  { value: 'dificultad_respiratoria', emoji: '🫁', label: 'Dificultad respiratoria severa' },
+  { value: 'perdida_conciencia', emoji: '😵', label: 'Pérdida de conciencia' },
+  { value: 'sangrado_abundante', emoji: '🩸', label: 'Sangrado abundante' },
+  { value: 'golpe_calor', emoji: '🥵', label: 'Golpe de calor' },
+  { value: 'intoxicacion', emoji: '☠️', label: 'Intoxicación' },
+  { value: 'trauma', emoji: '🚑', label: 'Trauma / accidente importante' },
+  { value: 'paralisis', emoji: '🦽', label: 'Parálisis o no puede caminar' },
+  { value: 'otro_signo', emoji: '❓', label: 'Otro' },
+]
 
 // Construye las categorías de registro diario según la especie de la mascota.
 // 'Perro' es el set base; cuando especie === 'Gato' se ajustan ciertas
@@ -41,11 +61,11 @@ function getCategorias(especie: string): Categoria[] {
       {value:'irritable',emoji:'😤',label:'Irritable'},
     ]}
 
-  const apetito: Categoria = { id:'apetito', nombre:'Apetito', icon:'🍽️', color:'#3DD6B5',
+  const apetito: Categoria = { id:'apetito', nombre:'Apetito', icon:'🍽', color:'#3DD6B5',
     opciones:[
       {value:'mas',emoji:'😋',label:'Comió más'},
       {value:'normal',emoji:'✅',label:'Normal'},
-      {value:'menos',emoji:'🍽️',label:'Comió menos'},
+      {value:'menos',emoji:'🍽',label:'Comió menos'},
       {value:'nada',emoji:'❌',label:'No comió',detalle:[
         {titulo:'¿Cuántas comidas saltó?',opciones:[{value:'una',emoji:'1️⃣',label:'Una'},{value:'dos',emoji:'2️⃣',label:'Dos'},{value:'todo',emoji:'🚫',label:'Todo el día'}]}
       ]},
@@ -54,12 +74,12 @@ function getCategorias(especie: string): Categoria[] {
   const agua: Categoria = { id:'agua', nombre:'Agua', icon:'💧', color:'#4AABDB',
     opciones:[
       {value:'mas',emoji:'💧💧',label:'Más de lo normal',detalle:[
-        {titulo:'¿Cuándo notaste el cambio?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓️',label:'Hace semanas'}]}
+        {titulo:'¿Cuándo notaste el cambio?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓',label:'Hace semanas'}]}
       ]},
       {value:'normal',emoji:'💧',label:'Normal'},
-      {value:'menos',emoji:'🏜️',label:'Menos'},
+      {value:'menos',emoji:'🏜',label:'Menos'},
       {value:'nada',emoji:'⚠️',label:'No tomó',detalle:[
-        {titulo:'¿Cuándo notaste el cambio?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓️',label:'Hace semanas'}]}
+        {titulo:'¿Cuándo notaste el cambio?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓',label:'Hace semanas'}]}
       ]},
     ]}
 
@@ -98,35 +118,35 @@ function getCategorias(especie: string): Categoria[] {
   // marcar ambas a la vez).
   const heces: Categoria = { id:'heces', nombre:'Heces', icon:'💩', color:'#8C572F',
     opciones:[
-      {value:'normal',     emoji:'✅', label:'Normal'},
-      {value:'blandas',    emoji:'🟡', label:'Blandas',      detalle:[
+      {value:'normal', emoji:'✅', label:'Normal'},
+      {value:'blandas', emoji:'🟡', label:'Blandas', detalle:[
         {titulo:'¿Desde cuándo?', opciones:[
-          {value:'hoy_solo',   emoji:'📅', label:'Solo hoy'},
+          {value:'hoy_solo', emoji:'📅', label:'Solo hoy'},
           {value:'varios_dias',emoji:'📆', label:'Varios días'},
         ]},
       ]},
-      {value:'diarrea',    emoji:'💩', label:'Diarrea',      detalle:[
+      {value:'diarrea', emoji:'💩', label:'Diarrea', detalle:[
         {titulo:'¿Cómo son?', opciones:[
-          {value:'liquidas',   emoji:'💧', label:'Líquidas'},
+          {value:'liquidas', emoji:'💧', label:'Líquidas'},
           {value:'muy_seguido',emoji:'⏱️', label:'Muy seguido'},
         ]},
       ]},
       {value:'con_sangre', emoji:'🔴', label:'Con sangre'},
       {value:'estrenimiento',emoji:'😬',label:'Estreñimiento',detalle:[
         {titulo:'¿Cuántos días sin defecar?', opciones:[
-          {value:'1_dia',  emoji:'1️⃣', label:'1 día'},
+          {value:'1_dia', emoji:'1️⃣', label:'1 día'},
           {value:'2_dias', emoji:'2️⃣', label:'2 días'},
-          {value:'3_mas',  emoji:'⚠️', label:'+3 días'},
+          {value:'3_mas', emoji:'⚠️', label:'+3 días'},
         ]},
       ]},
-      {value:'mucosidad',  emoji:'🫧', label:'Con mucosidad'},
+      {value:'mucosidad', emoji:'🫧', label:'Con mucosidad'},
       {value:'color_raro', emoji:'🎨', label:'Color diferente', detalle:[
         {titulo:'¿De qué color?', opciones:[
-          {value:'muy_oscura', emoji:'⚫', label:'Muy oscura / negra',  },
-          {value:'amarilla',   emoji:'🟡', label:'Amarilla / naranja'  },
-          {value:'muy_clara',  emoji:'⬜', label:'Muy clara / blanca'  },
-          {value:'verdosa',    emoji:'🟢', label:'Verdosa'             },
-          {value:'rojiza',     emoji:'🔴', label:'Con manchas rojas'   },
+          {value:'muy_oscura', emoji:'⚫', label:'Muy oscura / negra'},
+          {value:'amarilla', emoji:'🟡', label:'Amarilla / naranja'},
+          {value:'muy_clara', emoji:'⬜', label:'Muy clara / blanca'},
+          {value:'verdosa', emoji:'🟢', label:'Verdosa'},
+          {value:'rojiza', emoji:'🔴', label:'Con manchas rojas'},
         ]},
       ]},
     ]}
@@ -139,7 +159,7 @@ function getCategorias(especie: string): Categoria[] {
     opciones:[
       {value:'normal',emoji:'✅',label:'Normal'},
       {value:'mas_orina',emoji:'💦',label:'Orinó más',detalle:[
-        {titulo:'¿Desde cuándo?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓️',label:'Hace semanas'}]}
+        {titulo:'¿Desde cuándo?',opciones:[{value:'hoy',emoji:'📅',label:'Hoy solo'},{value:'varios',emoji:'📆',label:'Varios días'},{value:'semanas',emoji:'🗓',label:'Hace semanas'}]}
       ]},
       {value:'menos_costo',emoji:'😣',label: esGato ? 'Le costó / poca cantidad' : 'Le costó orinar',detalle:[
         {titulo:'¿Notaste sangre?',opciones:[{value:'si_sangre',emoji:'🔴',label:'Sí'},{value:'no_sangre',emoji:'⬜',label:'No'}]}
@@ -181,7 +201,7 @@ function getCategorias(especie: string): Categoria[] {
   ]
   if (esGato) {
     conductaOpciones.push({value:'esconde',emoji:'🙈',label:'Se esconde / se aísla',detalle:[
-      {titulo:'¿Dónde se esconde?',opciones:[{value:'bajo_cama',emoji:'🛏️',label:'Bajo la cama'},{value:'closet',emoji:'🚪',label:'Closet / mueble'},{value:'lugar_alto',emoji:'🔼',label:'Lugar alto'},{value:'otro_lugar',emoji:'❓',label:'Otro lugar'}]}
+      {titulo:'¿Dónde se esconde?',opciones:[{value:'bajo_cama',emoji:'🛏',label:'Bajo la cama'},{value:'closet',emoji:'🚪',label:'Closet / mueble'},{value:'lugar_alto',emoji:'🔼',label:'Lugar alto'},{value:'otro_lugar',emoji:'❓',label:'Otro lugar'}]}
     ]})
   }
   const conducta: Categoria = { id:'conducta', nombre:'Conducta', icon:'🧠', color:'#E05252', opciones: conductaOpciones }
@@ -201,13 +221,13 @@ function getCategorias(especie: string): Categoria[] {
 
   // Paseo: exclusivo de perros (los gatos y otras especies no suelen
   // salir de paseo con correa).
-  const paseo: Categoria = { id:'paseo', nombre:'Paseo', icon:'🐕‍🦺', color:'#3DD6B5',
+  const paseo: Categoria = { id:'paseo', nombre:'Paseo', icon:'🦮', color:'#3DD6B5',
     opciones:[
       {value:'no_paseo',emoji:'🚫',label:'No paseó'},
       {value:'10_30min',emoji:'🚶',label:'10 a 30 min'},
-      {value:'30min_1h',emoji:'🚶‍♂️',label:'30 min a 1 hora'},
-      {value:'1_2h',emoji:'🏃‍♂️',label:'1 a 2 horas'},
-      {value:'2_4h',emoji:'🏞️',label:'2 a 4 horas'},
+      {value:'30min_1h',emoji:'🐕',label:'30 min a 1 hora'},
+      {value:'1_2h',emoji:'🏃',label:'1 a 2 horas'},
+      {value:'2_4h',emoji:'🏞',label:'2 a 4 horas'},
     ]}
 
   const categorias = [energia, animo, apetito, agua, digestion, heces, arenero, pelaje, conducta, movilidad]
@@ -215,7 +235,11 @@ function getCategorias(especie: string): Categoria[] {
   return categorias
 }
 
-function calcEstado(sel: Record<string,string>): string {
+// Calcula el color del día para el calendario. Si hay al menos un signo
+// de alerta registrado, el día es ROJO automáticamente (evento grave),
+// por encima de cualquier otra señal del día.
+function calcEstado(sel: Record<string,string>, signos: Set<string>): string {
+  if (signos.size > 0) return 'rojo'
   const vals = Object.values(sel)
   const alertas = ['vomito','diarrea','nada','muy_baja','decaido','cojera_marcada','con_sangre','no_orino','sangre_heces','rojiza','muy_oscura']
   const observar = ['menos','gases','nauseas','baja','ansioso','temeroso','cojera_leve','blandas','mucosidad','amarilla','muy_clara','verdosa','color_raro','caida_excesiva','rasca','triste','irritable','rigidez','opaco','mas_orina','menos_costo','fuera_arenero','fuera_lugar','esconde','lame_exceso']
@@ -238,6 +262,9 @@ function RegistroContenido() {
   const [fechaRegistro, setFechaRegistro] = useState('')
   const [nota, setNota] = useState('')
   const [cuidados, setCuidados] = useState<Set<string>>(new Set())
+  const [signos, setSignos] = useState<Set<string>>(new Set())
+  const [signoOtroTexto, setSignoOtroTexto] = useState('')
+  const [signosAbierto, setSignosAbierto] = useState(false)
   const [miniModal, setMiniModal] = useState<'vacuna' | 'anti' | 'medicamento' | null>(null)
   const [miniForm, setMiniForm] = useState<{ nombre: string; proxima_fecha: string; tipo: string }>({ nombre: '', proxima_fecha: '', tipo: 'interno' })
   const [miniError, setMiniError] = useState('')
@@ -272,10 +299,10 @@ function RegistroContenido() {
     init()
   }, [fechaUrl])
 
-  // Reconstruye el estado del formulario (sel, det, nota, cuidados) a
-  // partir de un registro ya guardado, para poder EDITARLO en vez de
-  // solo bloquear la pantalla. El mapeo es el inverso exacto de como se
-  // guarda en guardar().
+  // Reconstruye el estado del formulario (sel, det, nota, cuidados,
+  // signos de alerta) a partir de un registro ya guardado, para poder
+  // EDITARLO en vez de solo bloquear la pantalla. El mapeo es el
+  // inverso exacto de como se guarda en guardar().
   function cargarRegistroExistente(r: any) {
     const nuevoSel: Record<string, string> = {}
     const nuevoDet: Record<string, string[]> = {}
@@ -288,7 +315,15 @@ function RegistroContenido() {
     setSel(nuevoSel)
     setDet(nuevoDet)
     setNota(r.nota || '')
-
+    // Signos de alerta guardados como texto "a, b, c" en signos_alerta
+    if (r.signos_alerta) {
+      const listaSignos = String(r.signos_alerta).split(', ').filter(Boolean)
+      setSignos(new Set(listaSignos))
+      setSignosAbierto(listaSignos.length > 0)
+    } else {
+      setSignos(new Set())
+    }
+    setSignoOtroTexto(r.signos_alerta_otro || '')
     const cuidadosExistentes = new Set<string>()
     const mapaCuidados: Record<string, string> = {
       fue_al_vet: 'vet', se_bano: 'bano', corte_unas: 'unas', compro_alimento: 'alimento',
@@ -319,6 +354,9 @@ function RegistroContenido() {
     setDet({})
     setNota('')
     setCuidados(new Set())
+    setSignos(new Set())
+    setSignoOtroTexto('')
+    setSignosAbierto(false)
     setMiniModal(null)
     setAbierto('energia')
     setGruposAbiertos(new Set())
@@ -359,6 +397,15 @@ function RegistroContenido() {
     })
   }
 
+  function toggleSigno(valor: string) {
+    setSignos(prev => {
+      const nuevo = new Set(prev)
+      if (nuevo.has(valor)) nuevo.delete(valor)
+      else nuevo.add(valor)
+      return nuevo
+    })
+  }
+
   function toggleCuidado(valor: string) {
     // Vacuna, antiparasitario y medicamento necesitan datos adicionales
     // (nombre, tipo) antes de poder marcarse, asi que en vez de marcar
@@ -388,7 +435,6 @@ function RegistroContenido() {
     setMiniGuardando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setMiniGuardando(false); return }
-
     const tabla = miniModal === 'vacuna' ? 'vacunas' : miniModal === 'anti' ? 'antiparasitarios' : 'medicamentos'
     const datos: any = {
       mascota_id: mascotaId,
@@ -403,15 +449,12 @@ function RegistroContenido() {
       datos.proxima_fecha = miniForm.proxima_fecha || null
     }
     if (miniModal === 'anti') datos.tipo = miniForm.tipo
-
     const { error } = await supabase.from(tabla).insert(datos)
     setMiniGuardando(false)
-
     if (error) {
       setMiniError('No se pudo guardar. Intenta de nuevo.')
       return
     }
-
     const columnaCuidado = miniModal === 'vacuna' ? 'vacuna_hoy' : miniModal === 'anti' ? 'anti_hoy' : 'medicamento_hoy'
     setCuidados(prev => new Set(prev).add(columnaCuidado))
     setMiniModal(null)
@@ -424,14 +467,17 @@ function RegistroContenido() {
   }
 
   async function guardar() {
-    if (!Object.keys(sel).length) return
+    // Se puede guardar si hay al menos una categoría marcada O al menos
+    // un signo de alerta (un tutor en una urgencia puede querer registrar
+    // solo el evento grave, sin completar el resto del día).
+    if (!Object.keys(sel).length && signos.size === 0) return
     setLoading(true)
     setErrorGuardado('')
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
     const { error } = await supabase.from('registros_diarios').upsert({
       mascota_id: mascotaId, user_id: user.id, fecha: fechaRegistro,
-      estado_dia: calcEstado(sel), nota: nota || null,
+      estado_dia: calcEstado(sel, signos), nota: nota || null,
       energia: sel.energia || null, animo: sel.animo || null,
       apetito: sel.apetito || null, apetito_detalle: det.apetito?.join(', ') || null,
       agua: sel.agua || null, agua_detalle: det.agua?.join(', ') || null,
@@ -442,6 +488,8 @@ function RegistroContenido() {
       conducta: sel.conducta || null, conducta_detalle: det.conducta?.join(', ') || null,
       movilidad: sel.movilidad || null, movilidad_detalle: det.movilidad?.join(', ') || null,
       paseo: sel.paseo || null,
+      signos_alerta: signos.size > 0 ? Array.from(signos).join(', ') : null,
+      signos_alerta_otro: signos.has('otro_signo') && signoOtroTexto.trim() ? signoOtroTexto.trim() : null,
       fue_al_vet: cuidados.has('vet'), se_bano: cuidados.has('bano'),
       corte_unas: cuidados.has('unas'), compro_alimento: cuidados.has('alimento'),
       vacuna_hoy: cuidados.has('vacuna_hoy'), anti_hoy: cuidados.has('anti_hoy'),
@@ -467,6 +515,7 @@ function RegistroContenido() {
   if (cargando) return <div className="min-h-screen flex items-center justify-center text-[#8A7560]">Cargando...</div>
 
   const completadas = Object.keys(sel).length
+  const puedeGuardar = completadas > 0 || signos.size > 0
 
   return (
     <div className="min-h-screen pb-24 fade-in">
@@ -480,7 +529,7 @@ function RegistroContenido() {
             </p>
             <h1 className="font-heading text-base font-extrabold">¿Cómo estuvo {mascotaNombre}?</h1>
           </div>
-          <button onClick={guardar} disabled={loading || !completadas}
+          <button onClick={guardar} disabled={loading || !puedeGuardar}
             className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-4 py-2 rounded-xl disabled:opacity-40 flex-shrink-0">
             {loading ? '...' : yaRegistro ? 'Guardar cambios' : 'Guardar'}
           </button>
@@ -492,7 +541,6 @@ function RegistroContenido() {
           <span className="text-[11px] text-[#8A7560] whitespace-nowrap">{completadas}/{CATS.length}</span>
         </div>
       </div>
-
       {/* Selector de mascota */}
       {mascotas.length > 0 && (
         <SelectorMascota
@@ -501,14 +549,12 @@ function RegistroContenido() {
           onCambiar={cambiarMascota}
         />
       )}
-
       <div className="mx-4 mt-3 mb-1 bg-[#FBEAD9] border border-[#3DD6B5]/15 rounded-xl p-3 flex gap-2.5">
         <span className="text-lg flex-shrink-0">{iconoPorEspecie(especie)}</span>
         <p className="text-xs text-[#3D2B1F] leading-relaxed">
           Toca las categorías que apliquen hoy. Si algo fue distinto, aparecerán más opciones. No necesitas registrar todo.
         </p>
       </div>
-
       {/* Atajo: marcar todas las categorias de sintomas como normal de
           una vez (no incluye Paseo ni Cuidados). Despues de tocarlo, se
           puede seguir ajustando categorias individuales si algo cambio. */}
@@ -526,7 +572,6 @@ function RegistroContenido() {
           <span className="text-[#1A1200] text-sm">✓</span>
         </div>
       </button>
-
       <div className="space-y-0 mt-2">
         {CATS.map(cat => {
           const selVal = sel[cat.id]
@@ -548,7 +593,6 @@ function RegistroContenido() {
                 </div>
                 <span className="text-[#8A7560] text-sm">{open ? '▾' : '›'}</span>
               </button>
-
               {open && (
                 <div className="pb-3">
                   <div className="grid grid-cols-3 gap-2 mb-2">
@@ -602,13 +646,74 @@ function RegistroContenido() {
           )
         })}
       </div>
-
+      {/* SIGNOS DE ALERTA — eventos graves del día. Opcional, colapsado
+          por defecto, selección múltiple. Si se marca al menos uno, el
+          día queda en rojo en el calendario. */}
+      <div className="mx-4 mt-4">
+        <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
+          ¿Ocurrió algo grave hoy? · opcional
+        </label>
+        <div className="rounded-xl border overflow-hidden bg-[#FFFCF8]" style={{ borderColor: signos.size > 0 ? '#E05252' : '#EEE2D4', borderWidth: '1.5px' }}>
+          <button
+            type="button"
+            onClick={() => setSignosAbierto(v => !v)}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
+          >
+            <span className="text-lg flex-shrink-0">🚨</span>
+            <div className="flex-1">
+              <p className="text-[11px] font-semibold text-[#E05252]">Signos de alerta</p>
+              <p className="text-[10px] text-[#8A7560]">Convulsiones, intoxicación, accidentes y otras urgencias</p>
+            </div>
+            {signos.size > 0 && (
+              <span className="text-[10px] font-bold text-white bg-[#E05252] rounded-full px-2 py-0.5">
+                {signos.size}
+              </span>
+            )}
+            <span className="text-[#8A7560] text-sm">{signosAbierto ? '▾' : '›'}</span>
+          </button>
+          {signosAbierto && (
+            <div className="px-3 pb-3 pt-1">
+              <div className="grid grid-cols-2 gap-2">
+                {SIGNOS_ALERTA.map(s => {
+                  const activo = signos.has(s.value)
+                  return (
+                    <button
+                      key={s.value}
+                      onClick={() => toggleSigno(s.value)}
+                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
+                      style={activo
+                        ? { background: '#E0525215', borderColor: '#E05252', borderWidth: '1.5px' }
+                        : { background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
+                    >
+                      <span className="text-base flex-shrink-0">{s.emoji}</span>
+                      <span className="text-xs font-medium text-[#3D2B1F]">{s.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {signos.has('otro_signo') && (
+                <input
+                  className="w-full mt-2 bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none"
+                  placeholder="Describe brevemente qué pasó"
+                  value={signoOtroTexto}
+                  onChange={e => setSignoOtroTexto(e.target.value)}
+                  maxLength={120}
+                />
+              )}
+              {signos.size > 0 && (
+                <p className="text-[10px] text-[#E05252] mt-2 leading-relaxed">
+                  Este día quedará marcado en rojo en el calendario y tu veterinario lo verá destacado.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
       {/* CUIDADOS — organizados en 5 grupos, cada uno desplegable */}
       <div className="mx-4 mt-4">
         <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
           Cuidados de hoy · opcional, puedes marcar varios
         </label>
-
         {[
           { titulo: 'Cuidados básicos', img: '/chiqui/chiqui_doctor.png', items: [
             { value: 'vet', emoji: '🩺', label: 'Fue al veterinario' },
@@ -658,7 +763,6 @@ function RegistroContenido() {
                 )}
                 <span className="text-[#8A7560] text-sm">{abiertoGrupo ? '▾' : '›'}</span>
               </button>
-
               {abiertoGrupo && (
                 <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-2">
                   {grupo.items.map(c => {
@@ -683,7 +787,6 @@ function RegistroContenido() {
           )
         })}
       </div>
-
       <div className="mx-4 mt-4">
         <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
           Nota del día · opcional
@@ -692,18 +795,16 @@ function RegistroContenido() {
           placeholder="¿Algo que quieras recordar de hoy?" rows={3}
           className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none resize-none"/>
       </div>
-
       <div className="mx-4 mt-4">
         {errorGuardado && (
           <p className="text-center text-xs text-[#E05252] mb-2 bg-[#E05252]/10 rounded-xl py-2 px-3">{errorGuardado}</p>
         )}
-        <button onClick={guardar} disabled={loading || !completadas}
+        <button onClick={guardar} disabled={loading || !puedeGuardar}
           className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-40">
           {loading ? 'Guardando...' : yaRegistro ? 'Guardar cambios ✓' : 'Guardar registro de hoy ✓'}
         </button>
-        {!completadas && <p className="text-center text-xs text-[#8A7560] mt-2">Selecciona al menos una categoría para guardar</p>}
+        {!puedeGuardar && <p className="text-center text-xs text-[#8A7560] mt-2">Selecciona al menos una categoría para guardar</p>}
       </div>
-
       {/* Mini-modal para vacuna/antiparasitario aplicado hoy */}
       {miniModal && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={cancelarMiniModal}>
@@ -715,7 +816,6 @@ function RegistroContenido() {
               <button onClick={cancelarMiniModal} className="text-[#8A7560] text-xl">✕</button>
             </div>
             <p className="text-xs text-[#8A7560] -mt-2">Esto se guarda automáticamente en Prevención.</p>
-
             <div>
               <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">
                 {miniModal === 'vacuna' ? 'Nombre de la vacuna *' : miniModal === 'anti' ? 'Nombre del producto *' : 'Nombre del medicamento *'}
@@ -728,7 +828,6 @@ function RegistroContenido() {
                 autoFocus
               />
             </div>
-
             {miniModal === 'anti' && (
               <div>
                 <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Tipo</label>
@@ -743,7 +842,6 @@ function RegistroContenido() {
                 </select>
               </div>
             )}
-
             <div>
               <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">
                 {miniModal === 'vacuna' ? 'Próxima vacunación · opcional' : miniModal === 'anti' ? 'Próxima dosis · opcional' : 'Próximo control · opcional'}
@@ -755,9 +853,7 @@ function RegistroContenido() {
                 onChange={e => setMiniForm(p => ({ ...p, proxima_fecha: e.target.value }))}
               />
             </div>
-
             {miniError && <p className="text-xs text-[#E05252]">{miniError}</p>}
-
             <button
               onClick={confirmarMiniModal}
               disabled={miniGuardando}
@@ -768,7 +864,6 @@ function RegistroContenido() {
           </div>
         </div>
       )}
-
       <BottomNav />
     </div>
   )

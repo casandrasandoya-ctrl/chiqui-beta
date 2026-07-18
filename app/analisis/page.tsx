@@ -12,6 +12,21 @@ const ESTADO_COLOR: Record<string, string> = {
   verde: '#4CAF7D', amarillo: '#F5C842', naranjo: '#F07A30', rojo: '#E05252'
 }
 
+// Labels de los signos de alerta (misma lista que en registro-diario).
+// Se usan para mostrar el resumen por tipo y la línea de tiempo de
+// eventos graves, sin interpretar clínicamente los hechos.
+const SIGNOS_LABELS: Record<string, { emoji: string; label: string }> = {
+  convulsiones: { emoji: '🌀', label: 'Convulsiones' },
+  dificultad_respiratoria: { emoji: '🫁', label: 'Dificultad respiratoria severa' },
+  perdida_conciencia: { emoji: '😵', label: 'Pérdida de conciencia' },
+  sangrado_abundante: { emoji: '🩸', label: 'Sangrado abundante' },
+  golpe_calor: { emoji: '🥵', label: 'Golpe de calor' },
+  intoxicacion: { emoji: '☠️', label: 'Intoxicación' },
+  trauma: { emoji: '🚑', label: 'Trauma / accidente importante' },
+  paralisis: { emoji: '🦽', label: 'Parálisis o no puede caminar' },
+  otro_signo: { emoji: '❓', label: 'Otro evento grave' },
+}
+
 // Definición de los 19 cuidados que se pueden calcular como "rutina"
 // (cada cuánto ocurren). Mismo set que ya existe en registro-diario y
 // dashboard, con su emoji y label consistentes.
@@ -49,6 +64,12 @@ interface RutinaCalculada {
   proximaEstimadaDias: number | null
 }
 
+interface SignoEvento {
+  fecha: string
+  signos: string[]
+  otro: string | null
+}
+
 // A partir de una lista de fechas (YYYY-MM-DD) donde ocurrió un cuidado,
 // calcula: cuántas veces ocurrió, el promedio de días entre ocurrencias
 // consecutivas, la fecha de la última vez, cuántos días pasaron desde
@@ -59,11 +80,9 @@ function calcularRutina(fechas: string[]): { ocurrencias: number; promedioDias: 
   if (fechas.length === 0) return { ocurrencias: 0, promedioDias: null, ultimaFecha: null, proximaEstimadaDias: null }
   const ordenadas = [...fechas].sort()
   const ultimaFecha = ordenadas[ordenadas.length - 1]
-
   if (ordenadas.length === 1) {
     return { ocurrencias: 1, promedioDias: null, ultimaFecha, proximaEstimadaDias: null }
   }
-
   const intervalos: number[] = []
   for (let i = 1; i < ordenadas.length; i++) {
     const a = new Date(ordenadas[i - 1] + 'T00:00:00')
@@ -71,12 +90,10 @@ function calcularRutina(fechas: string[]): { ocurrencias: number; promedioDias: 
     intervalos.push(Math.round((b.getTime() - a.getTime()) / 86400000))
   }
   const promedioDias = Math.round(intervalos.reduce((s, v) => s + v, 0) / intervalos.length)
-
   const hoy = new Date()
   const ultima = new Date(ultimaFecha + 'T00:00:00')
   const diasDesdeUltima = Math.round((hoy.getTime() - ultima.getTime()) / 86400000)
   const proximaEstimadaDias = promedioDias - diasDesdeUltima
-
   return { ocurrencias: ordenadas.length, promedioDias, ultimaFecha, proximaEstimadaDias }
 }
 
@@ -95,6 +112,8 @@ export default function AnalisisPage() {
   const [celoInfo, setCeloInfo] = useState<any>(null)
   const [rutinas, setRutinas] = useState<RutinaCalculada[]>([])
   const [abiertaRutinas, setAbiertaRutinas] = useState(false)
+  const [signosHistorial, setSignosHistorial] = useState<SignoEvento[]>([])
+  const [abiertaSignos, setAbiertaSignos] = useState(false)
 
   // Misma función que en el dashboard: devuelve la fecha en zona horaria
   // de Chile en vez de UTC, para que el cálculo de racha sea correcto.
@@ -111,6 +130,25 @@ export default function AnalisisPage() {
       .gte('fecha', fechaChile(desde))
       .order('fecha', { ascending: false })
     setRegistros(r || [])
+  }
+
+  // Signos de alerta: trae TODO el historial de la mascota (no solo 30
+  // días), pero solo las 3 columnas necesarias — así el query queda
+  // liviano. Los eventos graves son poco frecuentes pero muy relevantes
+  // para detectar recurrencias en el tiempo (ej. convulsiones que se
+  // repiten cada cierto período).
+  async function cargarSignos(mascotaId: string) {
+    const { data } = await supabase
+      .from('registros_diarios')
+      .select('fecha, signos_alerta, signos_alerta_otro')
+      .eq('mascota_id', mascotaId)
+      .not('signos_alerta', 'is', null)
+      .order('fecha', { ascending: false })
+    setSignosHistorial((data || []).map((r: any) => ({
+      fecha: r.fecha,
+      signos: String(r.signos_alerta).split(', ').filter(Boolean),
+      otro: r.signos_alerta_otro || null,
+    })))
   }
 
   // Rutinas de cuidado: trae TODO el historial de la mascota (no solo
@@ -138,14 +176,12 @@ export default function AnalisisPage() {
       supabase.from('antiparasitarios').select('fecha_aplicacion').eq('mascota_id', mascotaId),
       supabase.from('medicamentos').select('fecha_inicio').eq('mascota_id', mascotaId),
     ])
-
     const historial = (data || []) as any[]
     const fechasExtra: Record<string, string[]> = {
       vacuna_hoy: (vacunasData || []).map((v: any) => v.fecha_aplicacion).filter(Boolean),
       anti_hoy: (antisData || []).map((a: any) => a.fecha_aplicacion).filter(Boolean),
       medicamento_hoy: (medsData || []).map((m: any) => m.fecha_inicio).filter(Boolean),
     }
-
     const calculadas: RutinaCalculada[] = CUIDADOS_RUTINA
       .map(c => {
         const fechasRegistro = historial.filter(r => r[c.columna]).map(r => r.fecha as string)
@@ -170,7 +206,6 @@ export default function AnalisisPage() {
         }
       })
       .filter(Boolean) as RutinaCalculada[]
-
     // Ordenar por las que tienen promedio calculado primero (más útiles),
     // y dentro de esas, las que tienen la próxima estimada más próxima
     // primero (lo más "urgente" arriba).
@@ -180,7 +215,6 @@ export default function AnalisisPage() {
       if (b.promedioDias === null) return -1
       return (a.proximaEstimadaDias ?? 999) - (b.proximaEstimadaDias ?? 999)
     })
-
     setRutinas(calculadas)
   }
 
@@ -195,7 +229,7 @@ export default function AnalisisPage() {
       setMascota(m)
       await cargarRegistros(m.id)
       await cargarRutinas(m.id)
-
+      await cargarSignos(m.id)
       // Respiración reciente
       const { data: resp } = await supabase
         .from('frecuencia_respiratoria')
@@ -205,7 +239,6 @@ export default function AnalisisPage() {
         .limit(1)
         .maybeSingle()
       setRespReciente(resp)
-
       // Temperatura reciente
       const { data: temp } = await supabase
         .from('temperatura_corporal')
@@ -215,7 +248,6 @@ export default function AnalisisPage() {
         .limit(1)
         .maybeSingle()
       setTempReciente(temp)
-
       // Celo activo
       const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30)
       const { data: ciclosRecientes } = await supabase
@@ -234,7 +266,6 @@ export default function AnalisisPage() {
         const dia = Math.ceil((hoy.getTime() - new Date(celoActivo.fecha_inicio + 'T00:00:00').getTime()) / 86400000) + 1
         setCeloInfo({ dia })
       }
-
       setLoading(false)
     }
     init()
@@ -246,7 +277,7 @@ export default function AnalisisPage() {
     setMascota(nueva)
     await cargarRegistros(nueva.id)
     await cargarRutinas(nueva.id)
-
+    await cargarSignos(nueva.id)
     // Respiración reciente
     const { data: resp } = await supabase
       .from('frecuencia_respiratoria')
@@ -256,7 +287,6 @@ export default function AnalisisPage() {
       .limit(1)
       .maybeSingle()
     setRespReciente(resp)
-
     // Temperatura reciente
     const { data: temp2 } = await supabase
       .from('temperatura_corporal')
@@ -266,7 +296,6 @@ export default function AnalisisPage() {
       .limit(1)
       .maybeSingle()
     setTempReciente(temp2)
-
     // Celo activo
     const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30)
     const { data: ciclosRecientes } = await supabase
@@ -287,7 +316,6 @@ export default function AnalisisPage() {
     } else {
       setCeloInfo(null)
     }
-
     setLoading(false)
   }
 
@@ -311,12 +339,32 @@ export default function AnalisisPage() {
     return sorted[0] ? { val: sorted[0][0], count: sorted[0][1] } : null
   }
 
+  // --- Signos de alerta: cálculos sobre TODO el historial ---
+  // Conteo de episodios por tipo + última ocurrencia + promedio entre
+  // episodios (solo hechos objetivos, sin interpretación clínica).
+  const conteoSignos = Object.keys(SIGNOS_LABELS)
+    .map(tipo => {
+      const fechas = signosHistorial.filter(e => e.signos.includes(tipo)).map(e => e.fecha)
+      if (fechas.length === 0) return null
+      const { ocurrencias, promedioDias, ultimaFecha } = calcularRutina(fechas)
+      const diasDesdeUltima = ultimaFecha ? Math.round((new Date().getTime() - new Date(ultimaFecha + 'T00:00:00').getTime()) / 86400000) : 0
+      return { tipo, emoji: SIGNOS_LABELS[tipo].emoji, label: SIGNOS_LABELS[tipo].label, ocurrencias, promedioDias, ultimaFecha, diasDesdeUltima }
+    })
+    .filter(Boolean) as { tipo: string; emoji: string; label: string; ocurrencias: number; promedioDias: number | null; ultimaFecha: string | null; diasDesdeUltima: number }[]
+  conteoSignos.sort((a, b) => b.ocurrencias - a.ocurrencias)
+  const signosUltimos30 = signosHistorial.filter(e => {
+    const d = new Date(e.fecha + 'T00:00:00')
+    const hace30dias = new Date(); hace30dias.setDate(hace30dias.getDate() - 30)
+    return d >= hace30dias
+  }).length
+
   const insights = []
   if (total === 0) {
     insights.push({ icon: '🐶', text: `Aún no hay registros. Empieza a registrar las señales de ${mascota?.nombre} para ver tendencias aquí.`, tipo: 'info' })
   } else {
+    if (signosUltimos30 > 0) insights.push({ icon: '🚨', text: `${signosUltimos30} día${signosUltimos30 === 1 ? '' : 's'} con signos de alerta en los últimos 30 días. Revisa el detalle más abajo y coméntalo con tu veterinario.`, tipo: 'warn' })
     if (pctBien >= 80) insights.push({ icon: '✅', text: `Energía y ánimo normales o positivos en el ${pctBien}% de los días registrados.`, tipo: 'good' })
-    if (naranjos > 0 || rojos > 0) insights.push({ icon: '👁️', text: `Se detectaron ${naranjos + rojos} días con síntomas notables en los últimos ${periodo} días. Vale la pena observar.`, tipo: 'warn' })
+    if (naranjos > 0 || rojos > 0) insights.push({ icon: '👁', text: `Se detectaron ${naranjos + rojos} días con síntomas notables en los últimos ${periodo} días. Vale la pena observar.`, tipo: 'warn' })
     const modaEnerg = modaCampo('energia')
     if (modaEnerg) insights.push({ icon: '⚡', text: `La señal de energía más frecuente fue "${modaEnerg.val.replace(/_/g,' ')}" (${modaEnerg.count} de ${total} días).`, tipo: 'info' })
     const vomitos = contarValor('digestion', 'vomito')
@@ -335,9 +383,7 @@ export default function AnalisisPage() {
     '1_2h': 90,
     '2_4h': 180,
   }
-
   const esPerro = mascota?.especie === 'Perro'
-
   const minutosPaseoMes = registros.reduce((acc, r) => acc + (MINUTOS_POR_PASEO[r.paseo] || 0), 0)
   const horasPaseoMes = Math.floor(minutosPaseoMes / 60)
   const minRestantesPaseoMes = minutosPaseoMes % 60
@@ -376,7 +422,7 @@ export default function AnalisisPage() {
   const CATEGORIAS_NORMALIDAD = [
     { campo: 'energia', label: 'Energía', icon: '⚡', valoresPositivos: ['muy_alta', 'alta', 'normal'] },
     { campo: 'animo', label: 'Ánimo', icon: '😄', valoresPositivos: ['muy_feliz', 'feliz', 'normal'] },
-    { campo: 'apetito', label: 'Apetito', icon: '🍽️', valoresPositivos: ['normal'] },
+    { campo: 'apetito', label: 'Apetito', icon: '🍽', valoresPositivos: ['normal'] },
     { campo: 'agua', label: 'Agua', icon: '💧', valoresPositivos: ['normal'] },
     { campo: 'digestion', label: 'Digestión', icon: '🫃', valoresPositivos: ['normal'] },
     { campo: 'heces', label: 'Heces', icon: '💩', valoresPositivos: ['normal'] },
@@ -385,7 +431,6 @@ export default function AnalisisPage() {
     { campo: 'conducta', label: 'Conducta', icon: '🧠', valoresPositivos: ['sociable', 'normal'] },
     { campo: 'movilidad', label: 'Movilidad', icon: '🦴', valoresPositivos: ['normal'] },
   ]
-
   const normalidadPorCategoria = CATEGORIAS_NORMALIDAD
     .map(cat => {
       const conValor = registros.filter(r => r[cat.campo])
@@ -395,7 +440,6 @@ export default function AnalisisPage() {
       return { ...cat, pct, dias: conValor.length }
     })
     .filter(Boolean) as { campo: string; label: string; icon: string; pct: number; dias: number }[]
-
   normalidadPorCategoria.sort((a, b) => a.pct - b.pct)
 
   function colorNormalidad(pct: number): string {
@@ -413,9 +457,14 @@ export default function AnalisisPage() {
     return `Estimado en ${dias} días`
   }
 
+  const MESES_CORTOS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+  function fmtFechaCorta(f: string): string {
+    const d = new Date(f + 'T00:00:00')
+    return `${d.getDate()} ${MESES_CORTOS[d.getMonth()]} ${d.getFullYear()}`
+  }
+
   return (
     <div className="min-h-screen pb-24 fade-in">
-
       <div className="px-5 pt-6 pb-3 flex items-center gap-2.5">
         <img src="/chiqui/chiqui_analisis.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
         <div>
@@ -423,10 +472,8 @@ export default function AnalisisPage() {
           <p className="text-xs text-[#8A7560]">{mascota?.nombre} · últimos 30 días</p>
         </div>
       </div>
-
       {/* Selector de mascota */}
       {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
-
       {/* Insights Chiqui */}
       <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#EEE2D4]">
@@ -449,7 +496,70 @@ export default function AnalisisPage() {
           ))
         )}
       </div>
-
+      {/* Signos de alerta — episodios por tipo + línea de tiempo, sobre
+          todo el historial. Solo registra hechos objetivos informados
+          por el tutor; no interpreta clínicamente. */}
+      {signosHistorial.length > 0 && (
+        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#E05252]/40 overflow-hidden">
+          <button onClick={() => setAbiertaSignos(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+            <div className="flex items-center gap-2.5">
+              <span className="text-lg">🚨</span>
+              <div>
+                <p className="font-bold text-sm text-[#3D2B1F]">Signos de alerta</p>
+                <p className="text-[10px] text-[#8A7560]">{signosHistorial.length} día{signosHistorial.length === 1 ? '' : 's'} con eventos graves en todo el historial</p>
+              </div>
+            </div>
+            <span className="text-[#8A7560] text-lg">{abiertaSignos ? '⌃' : '⌄'}</span>
+          </button>
+          {abiertaSignos && (
+            <div className="border-t border-[#EEE2D4]">
+              {/* Episodios por tipo */}
+              <div className="p-4 space-y-3">
+                {conteoSignos.map(s => (
+                  <div key={s.tipo}>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-base flex-shrink-0">{s.emoji}</span>
+                      <p className="text-xs font-semibold text-[#3D2B1F] flex-1">{s.label}</p>
+                      <span className="text-[10px] font-bold text-[#E05252] bg-[#E05252]/10 rounded-full px-2 py-0.5 flex-shrink-0">
+                        {s.ocurrencias} episodio{s.ocurrencias === 1 ? '' : 's'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#8A7560]">
+                      Última vez: hace {s.diasDesdeUltima} {s.diasDesdeUltima === 1 ? 'día' : 'días'}
+                      {s.promedioDias !== null ? ` · se repite cada ${s.promedioDias} días aprox.` : ''}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {/* Línea de tiempo de eventos */}
+              <div className="border-t border-[#EEE2D4] p-4">
+                <p className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2">Línea de tiempo</p>
+                <div className="relative">
+                  <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-[#EEE2D4]" />
+                  <div className="space-y-3 pl-7">
+                    {signosHistorial.slice(0, 15).map((e, i) => (
+                      <div key={i} className="relative">
+                        <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-[#E05252] border-2 border-[#FFFCF8]" />
+                        <Link href={`/registro-diario?fecha=${e.fecha}`} className="block">
+                          <p className="text-[10px] font-bold text-[#E05252] uppercase tracking-wider">{fmtFechaCorta(e.fecha)}</p>
+                          <p className="text-xs text-[#3D2B1F] mt-0.5 leading-relaxed">
+                            {e.signos.map(s => `${SIGNOS_LABELS[s]?.emoji || '🚨'} ${SIGNOS_LABELS[s]?.label || s}`).join(' · ')}
+                            {e.otro ? ` (${e.otro})` : ''}
+                          </p>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {signosHistorial.length > 15 && (
+                  <p className="text-[10px] text-[#8A7560] mt-2 italic">Mostrando los 15 eventos más recientes de {signosHistorial.length}.</p>
+                )}
+                <p className="text-[10px] text-[#8A7560] mt-3 italic">Hechos informados por el tutor. Esta sección no interpreta ni diagnostica — coméntala con tu veterinario.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {/* Rutinas de cuidado — cada cuánto, sobre todo el historial */}
       {rutinas.length > 0 && (
         <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
@@ -495,7 +605,6 @@ export default function AnalisisPage() {
           )}
         </div>
       )}
-
       {/* Resumen estadístico */}
       {total > 0 && <>
         <div className="px-5 mb-2">
@@ -517,7 +626,6 @@ export default function AnalisisPage() {
             </div>
           ))}
         </div>
-
         {/* Paseo (solo perros) */}
         {esPerro && (
           <>
@@ -546,7 +654,6 @@ export default function AnalisisPage() {
                 <div className="font-bold text-lg text-[#3D2B1F]">{horasPaseoMes}h {minRestantesPaseoMes}m</div>
               </div>
             </div>
-
             <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
               <p className="text-xs font-semibold text-[#8A7560] mb-3">Paseo por día (últimos 7 días)</p>
               <div className="flex items-end justify-between gap-1.5 h-16">
@@ -568,7 +675,6 @@ export default function AnalisisPage() {
             </div>
           </>
         )}
-
         {/* Últimos 7 días visual */}
         <div className="px-5 mb-2">
           <div className="flex items-center gap-2">
@@ -599,7 +705,6 @@ export default function AnalisisPage() {
             ))}
           </div>
         </div>
-
         {/* Normalidad por categoría — desplegable */}
         {(normalidadPorCategoria.length > 0 || respReciente || tempReciente || celoInfo) && (
           <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
@@ -619,7 +724,6 @@ export default function AnalisisPage() {
                     <span className="text-[11px] text-[#8A7560] w-9 text-right flex-shrink-0">{cat.pct}%</span>
                   </div>
                 ))}
-
                 {/* Respiración — último registro del mes */}
                 {respReciente && (() => {
                   const rpm = respReciente.rpm
@@ -634,7 +738,6 @@ export default function AnalisisPage() {
                     </div>
                   )
                 })()}
-
                 {/* Temperatura — último registro del mes */}
                 {tempReciente && (() => {
                   const t = tempReciente.temperatura
@@ -642,14 +745,13 @@ export default function AnalisisPage() {
                   const label = t < 37.5 ? 'Hipotermia' : t < 39.3 ? 'Normal' : t < 39.5 ? 'Atención' : t < 41 ? 'Fiebre' : 'Emergencia'
                   return (
                     <div className={`flex items-center gap-2.5 ${celoInfo ? 'mb-2.5' : ''}`}>
-                      <span className="text-sm flex-shrink-0 w-5">🌡️</span>
+                      <span className="text-sm flex-shrink-0 w-5">🌡</span>
                       <span className="text-xs text-[#3D2B1F] flex-1">Temperatura corporal</span>
                       <span className="text-xs font-bold" style={{ color }}>{t}°C</span>
                       <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: `${color}20`, color }}>{label}</span>
                     </div>
                   )
                 })()}
-
                 {/* Celo activo */}
                 {celoInfo && (
                   <div className="flex items-center gap-2.5">
@@ -659,13 +761,11 @@ export default function AnalisisPage() {
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 bg-[#FDEAEA] text-[#E05252]">En celo</span>
                   </div>
                 )}
-
                 <p className="text-[10px] text-[#8A7560] mt-3 italic">% de días registrados como "Normal" en cada categoría. Signos vitales: último registro.</p>
               </div>
             )}
           </div>
         )}
-
         {/* Registros recientes — desplegable */}
         <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           <button onClick={() => setAbiertoRecientes(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
@@ -695,7 +795,6 @@ export default function AnalisisPage() {
           )}
         </div>
       </>}
-
       {total === 0 && (
         <div className="mx-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
           <div className="text-5xl mb-3">📊</div>
@@ -705,7 +804,6 @@ export default function AnalisisPage() {
           </a>
         </div>
       )}
-
       <BottomNav />
     </div>
   )
