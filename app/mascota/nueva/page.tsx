@@ -134,14 +134,14 @@ export default function NuevaMascotaPage() {
             <button onClick={() => setStep(s => s - 1)} className="text-[#8A7560] text-xl">←</button>
           )}
           <div>
-            <p className="text-xs text-[#8A7560]">Paso {step} de 3</p>
+            <p className="text-xs text-[#8A7560]">Paso {step} de 2</p>
             <h1 className="text-xl font-bold">
-              {step === 1 ? '¿Quién es tu compañero?' : step === 2 ? 'Cuéntame más' : 'Últimos detalles'}
+              {step === 1 ? '¿Quién es tu compañero?' : 'Cuéntame más'}
             </h1>
           </div>
         </div>
         <div className="h-1 bg-[#EEE2D4] rounded-full mt-3">
-          <div className="h-1 bg-[#FFBD59] rounded-full transition-all" style={{ width: `${(step/3)*100}%` }} />
+          <div className="h-1 bg-[#FFBD59] rounded-full transition-all" style={{ width: `${(step/2)*100}%` }} />
         </div>
       </div>
 
@@ -202,6 +202,21 @@ export default function NuevaMascotaPage() {
 
         {step === 2 && (
           <>
+            <Field label="Foto de tu mascota" optional>
+              <div className="flex items-center gap-3">
+                <label className="w-16 h-16 rounded-full bg-[#FFFCF8] border-2 border-[#EEE2D4] flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer">
+                  {fotoPreview ? (
+                    <img src={fotoPreview} alt="Vista previa" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl">📷</span>
+                  )}
+                  <input type="file" accept="image/*" onChange={elegirFoto} className="hidden" />
+                </label>
+                <p className="text-xs text-[#8A7560]">Toca el círculo para elegir una foto desde tu cámara o galería.</p>
+              </div>
+              {errorFoto && <p className="text-[11px] text-[#E05252] mt-1.5">{errorFoto}</p>}
+            </Field>
+
             <Field label="Fecha de nacimiento">
               {/* FechaSelector siempre reemplaza el input date nativo (regla #7) */}
               <FechaSelector value={form.fecha_nacimiento} onChange={v => update('fecha_nacimiento', v)} />
@@ -245,61 +260,27 @@ export default function NuevaMascotaPage() {
               </Field>
             )}
 
-            <button onClick={() => setStep(3)}
-              className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base mt-2">
-              Siguiente →
-            </button>
-          </>
-        )}
-
-        {step === 3 && (
-          <>
-            <div className="bg-[#FBEAD9] border border-[#3DD6B5]/15 rounded-xl p-3 flex gap-2.5">
-              <span className="text-lg flex-shrink-0">🐶</span>
-              <p className="text-xs text-[#3D2B1F] leading-relaxed">
-                Cuanto más sé de tu compañero, mejor puedo ayudarte a interpretar sus señales. Pero estos datos son opcionales y los puedes completar después.
-              </p>
-            </div>
-
-            <Field label="Foto de tu mascota" optional>
-              <div className="flex items-center gap-3">
-                <label className="w-16 h-16 rounded-full bg-[#FFFCF8] border-2 border-[#EEE2D4] flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer">
-                  {fotoPreview ? (
-                    <img src={fotoPreview} alt="Vista previa" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-2xl">📷</span>
-                  )}
-                  <input type="file" accept="image/*" onChange={elegirFoto} className="hidden" />
-                </label>
-                <p className="text-xs text-[#8A7560]">Toca el círculo para elegir una foto desde tu cámara o galería.</p>
-              </div>
-              {errorFoto && <p className="text-[11px] text-[#E05252] mt-1.5">{errorFoto}</p>}
-            </Field>
-
             <Field label="Alergias conocidas" optional>
               <input className={inputClass} placeholder="ej. Pollo, trigo, ninguna..."
                 value={form.alergias} onChange={e => update('alergias', e.target.value)} />
             </Field>
 
-            <Field label="N° de microchip" optional>
-              <input className={inputClass} placeholder="ej. 992001000355054"
-                value={form.microchip} onChange={e => update('microchip', e.target.value)} />
-            </Field>
-
-            <Field label="Veterinaria habitual" optional>
-              <input className={inputClass} placeholder="Nombre de la clínica"
-                value={form.veterinaria} onChange={e => update('veterinaria', e.target.value)} />
-            </Field>
+            {/* El registro inicial debe ser rápido y básico: microchip,
+                veterinaria, vacunas y antiparasitarios NO se piden aquí --
+                se completan después desde el Perfil o Salud Preventiva
+                (los campos siguen existiendo allá, intactos). */}
+            <div className="bg-[#FBEAD9] border border-[#3DD6B5]/15 rounded-xl p-3 flex gap-2.5">
+              <span className="text-lg flex-shrink-0">🐶</span>
+              <p className="text-xs text-[#3D2B1F] leading-relaxed">
+                ¡Con esto ya podemos empezar! Lo demás — microchip, veterinaria, vacunas y antiparasitarios — lo puedes agregar cuando quieras desde el Perfil o la sección Salud Preventiva.
+              </p>
+            </div>
 
             <button
               onClick={handleSubmit}
               disabled={loading}
               className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-4 rounded-xl text-base disabled:opacity-50 mt-2">
               {loading ? 'Guardando...' : `Crear perfil de ${form.nombre || 'mi mascota'} 🐾`}
-            </button>
-
-            <button onClick={() => setStep(2)} className="w-full text-[#8A7560] text-sm py-2">
-              ← Volver
             </button>
           </>
         )}
