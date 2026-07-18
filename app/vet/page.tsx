@@ -232,6 +232,26 @@ function construirResumenClinico(params: {
     const dias = diasDesde(ultimo.fecha)
     resumen.push(`🩸 Último hemograma hace ${dias} día${dias === 1 ? '' : 's'}.`)
   }
+  // Test rápidos: para cada test, el resultado MÁS RECIENTE determina
+  // su estado (un positivo antiguo que después salió negativo no debe
+  // seguir apareciendo como positivo). Los positivos vigentes se
+  // destacan como antecedente relevante, sin interpretar clínicamente.
+  const testsRapidos = examenesLab.filter((e: any) => e.tipo === 'test_rapido').sort((a: any, b: any) => b.fecha.localeCompare(a.fecha))
+  if (testsRapidos.length > 0) {
+    const porTest = new Map<string, { valor: string; fecha: string }>()
+    for (const ex of testsRapidos) {
+      for (const r of (ex.resultados || [])) {
+        if (!porTest.has(r.parametro)) porTest.set(r.parametro, { valor: r.valor, fecha: ex.fecha })
+      }
+    }
+    const positivosVigentes = Array.from(porTest.entries()).filter(([, v]) => v.valor === 'Positivo')
+    for (const [nombreTest, v] of positivosVigentes) {
+      const d = diasDesde(v.fecha)
+      resumen.push(`⚠️ Test rápido ${nombreTest}: Positivo (hace ${d} día${d === 1 ? '' : 's'}).`)
+    }
+    const diasTR = diasDesde(testsRapidos[0].fecha)
+    resumen.push(`🧪 Último test rápido hace ${diasTR} día${diasTR === 1 ? '' : 's'}.${positivosVigentes.length === 0 ? ' Sin resultados positivos.' : ''}`)
+  }
   return resumen
 }
 
