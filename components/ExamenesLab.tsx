@@ -121,6 +121,22 @@ interface Fila {
   tipoValor: 'numero' | 'texto'
 }
 
+// Forma exacta de una fila a insertar en examen_resultados. Ambas ramas
+// de guardarExamen (test rápido y exámenes con parámetros/rangos) deben
+// producir ESTE mismo tipo -- si cada rama infiere su propio tipo
+// literal (ej. unidad: null vs unidad: string | null), la unión
+// resultante rompe el tipado del cliente de Supabase en el build.
+interface ResultadoInsert {
+  examen_id: string | null
+  parametro: string
+  valor: string
+  unidad: string | null
+  rango_min: number | null
+  rango_max: number | null
+  observacion: string | null
+  orden: number
+}
+
 // Rangos de referencia por defecto, tomados directo de los informes
 // reales del laboratorio (GammaVet) que ya usa Casandra. Sirven como
 // punto de partida editable -- distintos laboratorios pueden usar
@@ -459,7 +475,7 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
     // (parametro = nombre del test, valor = Negativo/Positivo/
     // Indeterminado, observacion opcional). Mismo esquema de tablas que
     // los demás exámenes, sin rangos ni unidades.
-    const filasParaGuardar = esTestRapido
+    const filasParaGuardar: ResultadoInsert[] = esTestRapido
       ? testsConResultado.map((t, i) => ({
           examen_id: examenId,
           parametro: t.nombre.trim(),
