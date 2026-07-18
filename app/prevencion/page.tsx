@@ -456,7 +456,7 @@ export default function PrevencionPage() {
         )}
       </div>
 
-      {mascota && <ExamenesLab mascotaId={mascota.id} />}
+      {mascota && <ExamenesLab mascotaId={mascota.id} especie={mascota.especie || ''} />}
 
       {/* FRECUENCIA RESPIRATORIA */}
       {mascota && (mascota.especie === 'Perro' || mascota.especie === 'Gato') && (

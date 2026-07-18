@@ -237,12 +237,12 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
   const formRef = useRef<HTMLDivElement>(null)
 
   const esTestRapido = tipo === 'test_rapido'
-  // Tests del catálogo para la especie de esta mascota. Si la especie
-  // no está en el catálogo (u otra especie a futuro), se muestran
-  // todos agrupados -- siempre queda además la opción de escribir un
-  // test a mano.
-  const catalogoEspecie = CATALOGO_TESTS_RAPIDOS.filter(c => c.especie === especie)
-  const testsCatalogo = catalogoEspecie.length > 0 ? catalogoEspecie : CATALOGO_TESTS_RAPIDOS
+  // Tests del catálogo SOLO de la especie de esta mascota: los gatos
+  // ven únicamente tests felinos y los perros únicamente tests caninos.
+  // Si la especie no tiene tests en el catálogo (u otra especie a
+  // futuro), no se muestra ningún test predefinido -- queda disponible
+  // "+ agregar otro test" para escribirlo a mano.
+  const testsCatalogo = CATALOGO_TESTS_RAPIDOS.filter(c => c.especie === especie)
 
   function toggleTestRapido(nombre: string) {
     setTestsSel(prev => {
@@ -563,24 +563,30 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
               seleccionado con resultado y observación opcional. */}
           {esTestRapido && (
             <div className="mb-3">
-              <p className="text-[10px] text-[#8A7560] mb-2">Toca los tests que se realizaron. Puedes marcar uno, varios o todos en un mismo examen.</p>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {testsCatalogo.map(c => {
-                  const activo = testsSel.some(t => t.nombre === c.nombre && !t.manual)
-                  return (
-                    <button
-                      key={c.nombre}
-                      onClick={() => toggleTestRapido(c.nombre)}
-                      className="text-xs font-semibold px-3 py-2 rounded-full border"
-                      style={activo
-                        ? { background: '#FFBD5920', borderColor: '#FFBD59', color: '#8C572F', borderWidth: '1.5px' }
-                        : { background: '#FFFCF8', borderColor: '#EEE2D4', color: '#3D2B1F', borderWidth: '1.5px' }}
-                    >
-                      {activo ? '✓ ' : ''}{c.nombre}
-                    </button>
-                  )
-                })}
-              </div>
+              {testsCatalogo.length > 0 ? (
+                <>
+                  <p className="text-[10px] text-[#8A7560] mb-2">Toca los tests que se realizaron. Puedes marcar uno, varios o todos en un mismo examen.</p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {testsCatalogo.map(c => {
+                      const activo = testsSel.some(t => t.nombre === c.nombre && !t.manual)
+                      return (
+                        <button
+                          key={c.nombre}
+                          onClick={() => toggleTestRapido(c.nombre)}
+                          className="text-xs font-semibold px-3 py-2 rounded-full border"
+                          style={activo
+                            ? { background: '#FFBD5920', borderColor: '#FFBD59', color: '#8C572F', borderWidth: '1.5px' }
+                            : { background: '#FFFCF8', borderColor: '#EEE2D4', color: '#3D2B1F', borderWidth: '1.5px' }}
+                        >
+                          {activo ? '✓ ' : ''}{c.nombre}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              ) : (
+                <p className="text-[10px] text-[#8A7560] mb-2">Agrega el test realizado con el botón de abajo.</p>
+              )}
               {testsSel.map((t, i) => (
                 <div key={i} className="border border-[#EEE2D4] rounded-xl p-3 mb-2 bg-[#FFFCF8]">
                   <div className="flex items-center justify-between mb-2">
