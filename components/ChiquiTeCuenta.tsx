@@ -47,6 +47,13 @@ const TARJETAS_PERRO = [
   { emoji: '🛋️', cat: 'mov', titulo: '¿Ya no quiere saltar?', pregunta: '¿Evito subir al sillón, al auto o a la cama?', texto: 'Si antes lo hacía con facilidad y ahora dudo o necesito ayuda, podría estar sintiendo dolor o incomodidad al moverme.' },
   { emoji: '🚶', cat: 'mov', titulo: '¿Se cansa más rápido?', pregunta: '¿Mis paseos duran menos que antes?', texto: 'Si camino más lento, me detengo con frecuencia o pierdo energía antes de lo habitual, podría haber molestias en mis articulaciones.' },
   { emoji: '😔', cat: 'mov', titulo: '¿Está más irritable?', pregunta: '¿Ya no quiero jugar como antes?', texto: 'El dolor también puede cambiar mi ánimo. Si evito juegos, me aíslo o me molesto cuando me tocan, vale la pena que lo observes.' },
+
+  // GRUPO 6: Peso saludable
+  { emoji: '⚖️', cat: 'salud', titulo: '¿Todos los perros pesamos lo mismo?', pregunta: '¿Todos los perros deben pesar lo mismo?', texto: 'No todos pesamos lo mismo: mi peso saludable depende de mi tamaño, raza, edad y condición corporal. Como referencia general: muy pequeño menos de 5 kg, pequeño 5 a 10 kg, mediano 10 a 25 kg, grande 25 a 45 kg y gigante más de 45 kg. Son rangos orientativos y no reemplazan la evaluación de mi veterinario.' },
+  { emoji: '🦴', cat: 'salud', titulo: 'Señales de bajo peso', pregunta: '¿Cómo saber si mi perro tiene bajo peso?', texto: 'Si mis costillas, columna o pelvis se ven demasiado, tengo muy poca grasa corporal, perdí masa muscular o mi abdomen se ve muy retraído, podría estar bajo mi peso. Si observas estos signos, agenda una evaluación con mi veterinario.' },
+  { emoji: '💪', cat: 'bien', titulo: 'Mi peso saludable', pregunta: '¿Cómo reconocer un peso saludable?', texto: 'Generalmente estoy en un peso saludable cuando mi cintura se aprecia al mirarme desde arriba, mis costillas se palpan fácilmente sin verse demasiado marcadas, tengo buena masa muscular y me mantengo activo. Cada perro es diferente: mi peso ideal siempre se interpreta según mi tamaño y raza.' },
+  { emoji: '🍔', cat: 'salud', titulo: 'Señales de sobrepeso', pregunta: '¿Cómo saber si mi perro tiene sobrepeso?', texto: 'Si mis costillas comienzan a ser difíciles de palpar, mi cintura ya no se aprecia, se acumula grasa en mi abdomen o tórax, o me canso más fácil en paseos y juegos, podría tener sobrepeso. Mantener un peso saludable previene enfermedades y mejora mi calidad de vida.' },
+  { emoji: '❤️', cat: 'salud', titulo: 'Un cambio de peso es una señal', pregunta: '¿Cuándo el peso puede afectar la salud de mi perro?', texto: 'El exceso de peso puede aumentar mi riesgo de problemas articulares, diabetes, enfermedades cardíacas y dificultad para respirar. Un cambio importante de peso no siempre significa una enfermedad, pero sí es una señal de que algo podría estar ocurriendo. Llevar un registro periódico y consultar con mi veterinario permitirá actuar a tiempo y cuidar mejor mi salud.' },
 ]
 
 const TARJETAS_GATO = [
@@ -91,6 +98,13 @@ const TARJETAS_GATO = [
   { emoji: '🐾', cat: 'mov', titulo: '¿Camina diferente?', pregunta: '¿Cojeo o apoyo menos una pata?', texto: 'Aunque sea muy sutil o aparezca solo a veces, una alteración en mi marcha merece ser observada.' },
   { emoji: '🧶', cat: 'mov', titulo: '¿Juega menos?', pregunta: '¿Ya no persigo juguetes como antes?', texto: 'Si duermo más de lo habitual, evito correr o pierdo interés por el juego, podría haber alguna molestia física.' },
   { emoji: '🙈', cat: 'mov', titulo: '¿Está más serio o evita el contacto?', pregunta: '¿Me escondo más o no quiero que me acaricien?', texto: 'Los gatos muchas veces expresamos el dolor cambiando nuestro comportamiento. Si notas un cambio importante, regístralo y coméntalo con mi veterinario.' },
+
+  // GRUPO 6: Peso saludable
+  { emoji: '⚖️', cat: 'salud', titulo: '¿Todos los gatos pesamos lo mismo?', pregunta: '¿Todos los gatos deben pesar lo mismo?', texto: 'Como referencia general: bajo peso es menos de 3,5 kg, el peso orientativo va de 3,5 a 5 kg, sobrepeso de 5 a 6 kg y obesidad sobre los 6 kg. Estos valores pueden variar según mi raza, edad y mis características individuales.' },
+  { emoji: '🦴', cat: 'salud', titulo: 'Señales de bajo peso', pregunta: '¿Cómo saber si mi gato tiene bajo peso?', texto: 'Si mis costillas y columna se ven demasiado, tengo escasa masa muscular, muy poca grasa corporal o me veo más delgado de lo habitual, podría estar bajo mi peso. Si observas estos cambios, consulta con mi veterinario.' },
+  { emoji: '💪', cat: 'bien', titulo: 'Mi peso saludable', pregunta: '¿Cómo reconocer un peso saludable?', texto: 'Generalmente estoy en un peso saludable cuando mis costillas se palpan sin exceso de grasa, se aprecia una ligera cintura, tengo buena masa muscular y me mantengo activo y con buen estado general.' },
+  { emoji: '🍔', cat: 'salud', titulo: 'Señales de sobrepeso', pregunta: '¿Cómo saber si mi gato tiene sobrepeso?', texto: 'Si mis costillas son difíciles de palpar, mi abdomen se ve más redondeado, acumulo grasa o pierdo agilidad para saltar y jugar, podría tener sobrepeso. Mantener un peso saludable previene enfermedades y mejora mi bienestar.' },
+  { emoji: '❤️', cat: 'salud', titulo: 'Un cambio de peso es una señal', pregunta: '¿Cuándo el peso puede afectar la salud de mi gato?', texto: 'El sobrepeso puede aumentar mi riesgo de diabetes, problemas articulares, enfermedades hepáticas y menor movilidad. Un cambio importante de peso no siempre significa una enfermedad, pero sí es una señal de que algo podría estar ocurriendo. Llevar un registro periódico y consultar con mi veterinario permitirá actuar a tiempo y cuidar mejor mi salud.' },
 ]
 
 // Tarjetas generales (para otras especies)
@@ -117,9 +131,9 @@ interface Props {
 export default function ChiquiTeCuenta({ especie }: Props) {
   // Seleccionar 5 tarjetas del dia — rotan segun dia del año
   // Cada grupo de 5 tarjetas en el array trata UN solo tema.
-  // grupoIndex elige cuál de los 6 grupos mostrar — rota al azar
+  // grupoIndex elige cuál de los 7 grupos mostrar — rota al azar
   // cada vez que se monta el componente (al entrar a la app).
-  const [grupoIndex] = useState(() => Math.floor(Math.random() * 6))
+  const [grupoIndex] = useState(() => Math.floor(Math.random() * 7))
 
   const tarjetasHoy = useMemo(() => {
     const lista = especie === 'Perro' ? TARJETAS_PERRO
@@ -134,7 +148,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
 
   const [expandido, setExpandido] = useState<number | null>(null)
 
-  // Sexta tarjeta — una por cada uno de los 6 grupos temáticos.
+  // Sexta tarjeta — una por cada uno de los 7 grupos temáticos.
   // Definida por especie porque el grupo 1, 2, 4 difieren entre perro y gato.
   const GRUPOS_PERRO = [
     { img: '/chiqui/chiqui_chef.png', titulo: '¿Sabes qué puede comer tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué sí y qué no puede comer.' },
@@ -143,6 +157,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
     { img: '/chiqui/chiqui_caca.png', titulo: '¿Sabes leer las heces de tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué te dice cada color y forma.' },
     { img: '/chiqui/chiqui_paseo.png', titulo: '¿Conoces sus señales de bienestar?', texto: 'Lee los tips de Chiqui sobre comportamiento, ejercicio y cuidado diario.' },
     { img: '/chiqui/chiqui_tranquilo.png', titulo: '¿Conoces las señales de molestias articulares?', texto: 'Lee los tips de Chiqui y aprende a detectar cambios en su movimiento.' },
+    { img: '/chiqui/chiqui_ejercicio.png', titulo: '¿Tu compañero tiene un peso saludable?', texto: 'Lee los tips de Chiqui y aprende a reconocer las señales de bajo peso, peso saludable y sobrepeso.' },
   ]
   const GRUPOS_GATO = [
     { img: '/chiqui/chiqui_chef.png', titulo: '¿Sabes qué puede comer tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué sí y qué no puede comer.' },
@@ -151,6 +166,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
     { img: '/chiqui/chiqui_juguetes.png', titulo: '¿Sabes cómo enriquecer su día a día?', texto: 'Lee los tips de Chiqui sobre juego y enriquecimiento ambiental.' },
     { img: '/chiqui/chiqui_caca.png', titulo: '¿Sabes leer las heces de tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué te dice cada color y forma.' },
     { img: '/chiqui/chiqui_tranquilo.png', titulo: '¿Sabes reconocer molestias articulares en tu gato?', texto: 'Lee los tips de Chiqui y aprende a detectar cambios sutiles en su movimiento.' },
+    { img: '/chiqui/chiqui_ejercicio.png', titulo: '¿Tu compañero tiene un peso saludable?', texto: 'Lee los tips de Chiqui y aprende a reconocer las señales de bajo peso, peso saludable y sobrepeso.' },
   ]
   const sextaTarjeta = useMemo(() => {
     const grupos = especie === 'Gato' ? GRUPOS_GATO : GRUPOS_PERRO
