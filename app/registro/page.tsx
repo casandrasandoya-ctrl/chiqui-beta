@@ -28,7 +28,7 @@ export default function RegistroPage() {
       return
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { nombre } },
@@ -44,6 +44,20 @@ export default function RegistroPage() {
       return
     }
 
+    // Si Supabase devolvió una sesión activa (la confirmación de email
+    // está desactivada en el proyecto), el usuario YA está autenticado:
+    // entra directo al flujo normal por la misma puerta que el login
+    // (/dashboard, que redirige a /bienvenida al no tener mascotas para
+    // elegir entre crear una o unirse con código de cotutor). Nunca
+    // más pedirle que escriba sus credenciales recién creadas.
+    if (data.session) {
+      router.push('/dashboard')
+      router.refresh()
+      return
+    }
+
+    // Sin sesión = el proyecto exige confirmar el email primero.
+    // Se muestra la pantalla de éxito con esa instrucción.
     setSuccess(true)
     setLoading(false)
   }
@@ -72,7 +86,7 @@ export default function RegistroPage() {
         <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-20 h-20 mb-2" />
         <h1 className="text-2xl font-bold mb-3">¡Cuenta creada!</h1>
         <p className="text-[#8A7560] text-sm leading-relaxed mb-8 max-w-xs">
-          Tu cuenta fue creada con éxito.
+          Te enviamos un correo para confirmar tu cuenta. Revísalo (también la carpeta de spam) y luego inicia sesión.
         </p>
         <Link href="/login" className="bg-[#FFBD59] text-[#1A1200] font-bold px-8 py-4 rounded-xl text-sm">
           Ir al login →
