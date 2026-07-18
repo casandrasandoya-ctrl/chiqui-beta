@@ -71,7 +71,46 @@ const TIPOS_EXAMEN: { valor: string; label: string; emoji: string; parametros: P
     parametros: ['T4 Total', 'T4 Libre', 'T3 Total', 'T3 Libre', 'TSH', 'Anticuerpos anti-tiroglobulina (TgAA)']
       .map(nombre => ({ nombre, tipo: 'numero' as const })),
   },
+  {
+    // Test rápido: pruebas cuyo resultado NO es numérico sino
+    // Positivo / Negativo / Indeterminado (snap tests, kits ELISA
+    // rápidos). Un solo tipo de examen para todas las enfermedades --
+    // los tests disponibles viven en CATALOGO_TESTS_RAPIDOS, no aquí,
+    // para poder agregar tests nuevos sin tocar la interfaz. El
+    // formulario de este tipo es distinto (selector múltiple + tarjetas
+    // por test) y no usa la tabla de parámetros/rangos.
+    valor: 'test_rapido', label: 'Test rápido', emoji: '🧪',
+    parametros: [],
+  },
 ]
+
+// Catálogo de tests rápidos, desacoplado de la interfaz. Para agregar
+// un test nuevo (de cualquier especie) basta con sumar una línea aquí:
+// no hay que crear un tipo de examen ni una pantalla nueva. Los tests
+// escritos a mano con "+ agregar otro test" también se guardan igual,
+// aunque no estén en el catálogo.
+interface TestRapidoCatalogo { especie: string; nombre: string; descripcion?: string }
+const CATALOGO_TESTS_RAPIDOS: TestRapidoCatalogo[] = [
+  { especie: 'Gato', nombre: 'FelV (Leucemia Felina)' },
+  { especie: 'Gato', nombre: 'FIV (Inmunodeficiencia Felina)' },
+  { especie: 'Gato', nombre: 'Coronavirus Felino (FCoV)' },
+  { especie: 'Perro', nombre: 'Ehrlichia' },
+  { especie: 'Perro', nombre: 'Anaplasma' },
+  { especie: 'Perro', nombre: 'Dirofilaria (Heartworm)' },
+  { especie: 'Perro', nombre: 'Leishmania' },
+  { especie: 'Perro', nombre: 'Lyme' },
+  { especie: 'Perro', nombre: '4DX IDEXX', descripcion: 'Panel combinado' },
+]
+
+const RESULTADOS_TEST = ['Negativo', 'Positivo', 'Indeterminado'] as const
+
+// Color del resultado de un test rápido: rojo si Positivo, naranjo si
+// Indeterminado, verde si Negativo (semáforo de salud de la app).
+function colorResultadoTest(resultado: string): string {
+  if (resultado === 'Positivo') return '#E05252'
+  if (resultado === 'Indeterminado') return '#F07A30'
+  return '#4CAF7D'
+}
 
 interface Fila {
   parametro: string
@@ -175,7 +214,39 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
   const [cargandoLista, setCargandoLista] = useState(true)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [comparando, setComparando] = useState<string | null>(null)
+  // Tests rápidos seleccionados en el formulario (solo aplica cuando
+  // tipo === 'test_rapido'). Cada uno lleva su resultado y una
+  // observación opcional.
+  const [testsSel, setTestsSel] = useState<{ nombre: string; resultado: string; observacion: string; manual?: boolean }[]>([])
   const formRef = useRef<HTMLDivElement>(null)
+
+  const esTestRapido = tipo === 'test_rapido'
+  // Tests del catálogo para la especie de esta mascota. Si la especie
+  // no está en el catálogo (u otra especie a futuro), se muestran
+  // todos agrupados -- siempre queda además la opción de escribir un
+  // test a mano.
+  const catalogoEspecie = CATALOGO_TESTS_RAPIDOS.filter(c => c.especie === especie)
+  const testsCatalogo = catalogoEspecie.length > 0 ? catalogoEspecie : CATALOGO_TESTS_RAPIDOS
+
+  function toggleTestRapido(nombre: string) {
+    setTestsSel(prev => {
+      const existe = prev.find(t => t.nombre === nombre && !t.manual)
+      if (existe) return prev.filter(t => !(t.nombre === nombre && !t.manual))
+      return [...prev, { nombre, resultado: '', observacion: '' }]
+    })
+  }
+
+  function actualizarTest(idx: number, campo: 'nombre' | 'resultado' | 'observacion', valor: string) {
+    setTestsSel(prev => prev.map((t, i) => i === idx ? { ...t, [campo]: valor } : t))
+  }
+
+  function agregarTestManual() {
+    setTestsSel(prev => [...prev, { nombre: '', resultado: '', observacion: '', manual: true }])
+  }
+
+  function quitarTest(idx: number) {
+    setTestsSel(prev => prev.filter((_, i) => i !== idx))
+  }
 
   useEffect(() => {
     cargarExamenes()
@@ -208,6 +279,15 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
   async function iniciarFormulario(tipoElegido: string) {
     setTipo(tipoElegido)
     setError('')
+    // Test rápido no usa la tabla de parámetros/rangos: su formulario
+    // es el selector múltiple de tests. Limpiamos ambos estados para
+    // no arrastrar datos entre tipos.
+    if (tipoElegido === 'test_rapido') {
+      setFilas([])
+      setTestsSel([])
+      return
+    }
+    setTestsSel([])
     const plantilla = TIPOS_EXAMEN.find(t => t.valor === tipoElegido)!
 
     const ultimoDeEsteTipo = examenes.find(e => e.tipo === tipoElegido)
@@ -254,6 +334,22 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
     setPesoKg(ex.peso_kg !== null && ex.peso_kg !== undefined ? String(ex.peso_kg) : '')
     setNota(ex.nota || '')
     const resultados = (ex.examen_resultados || []).slice().sort((a: any, b: any) => a.orden - b.orden)
+    if (ex.tipo === 'test_rapido') {
+      // Test rápido: cada resultado guardado vuelve como una tarjeta de
+      // test (nombre = parametro, resultado = valor, observación).
+      setFilas([])
+      setTestsSel(resultados.map((r: any) => ({
+        nombre: r.parametro,
+        resultado: r.valor,
+        observacion: r.observacion || '',
+        manual: !CATALOGO_TESTS_RAPIDOS.some(c => c.nombre === r.parametro),
+      })))
+      setError('')
+      setAbierto(true)
+      setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+      return
+    }
+    setTestsSel([])
     setFilas(resultados.map((r: any) => {
       const tipoValor = buscarTipoValor(ex.tipo, r.parametro)
       // Si este examen se creó antes de que existieran los rangos por
@@ -288,6 +384,7 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
     setPesoKg('')
     setNota('')
     setFilas([])
+    setTestsSel([])
     setError('')
   }
 
@@ -301,7 +398,12 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
   async function guardarExamen() {
     if (!fecha) { setError('Selecciona la fecha del examen.'); return }
     const conValor = filas.filter(f => f.parametro.trim() && f.valor.trim())
-    if (conValor.length === 0) { setError('Ingresa al menos un valor.'); return }
+    const testsConResultado = testsSel.filter(t => t.nombre.trim() && t.resultado)
+    if (esTestRapido) {
+      if (testsConResultado.length === 0) { setError('Selecciona al menos un test y marca su resultado.'); return }
+    } else {
+      if (conValor.length === 0) { setError('Ingresa al menos un valor.'); return }
+    }
 
     setGuardando(true)
     setError('')
@@ -353,15 +455,31 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
       examenId = examen.id
     }
 
-    const filasParaGuardar = conValor.map((f, i) => ({
-      examen_id: examenId,
-      parametro: f.parametro.trim(),
-      valor: f.valor.trim(),
-      unidad: f.unidad.trim() || null,
-      rango_min: f.rangoMin.trim() ? parseFloat(f.rangoMin.replace(',', '.')) : null,
-      rango_max: f.rangoMax.trim() ? parseFloat(f.rangoMax.replace(',', '.')) : null,
-      orden: i,
-    }))
+    // Test rápido: cada test seleccionado se guarda como un resultado
+    // (parametro = nombre del test, valor = Negativo/Positivo/
+    // Indeterminado, observacion opcional). Mismo esquema de tablas que
+    // los demás exámenes, sin rangos ni unidades.
+    const filasParaGuardar = esTestRapido
+      ? testsConResultado.map((t, i) => ({
+          examen_id: examenId,
+          parametro: t.nombre.trim(),
+          valor: t.resultado,
+          unidad: null,
+          rango_min: null,
+          rango_max: null,
+          observacion: t.observacion.trim() || null,
+          orden: i,
+        }))
+      : conValor.map((f, i) => ({
+          examen_id: examenId,
+          parametro: f.parametro.trim(),
+          valor: f.valor.trim(),
+          unidad: f.unidad.trim() || null,
+          rango_min: f.rangoMin.trim() ? parseFloat(f.rangoMin.replace(',', '.')) : null,
+          rango_max: f.rangoMax.trim() ? parseFloat(f.rangoMax.replace(',', '.')) : null,
+          observacion: null,
+          orden: i,
+        }))
 
     const { error: errResultados } = await supabase.from('examen_resultados').insert(filasParaGuardar)
 
@@ -376,6 +494,7 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
     setPesoKg('')
     setNota('')
     setFilas([])
+    setTestsSel([])
     setGuardando(false)
     setAbierto(false)
     await cargarExamenes()
@@ -423,8 +542,79 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
             </div>
           </div>
 
+          {/* Formulario de TEST RÁPIDO: selector múltiple de tests del
+              catálogo (filtrado por especie) + una tarjeta por test
+              seleccionado con resultado y observación opcional. */}
+          {esTestRapido && (
+            <div className="mb-3">
+              <p className="text-[10px] text-[#8A7560] mb-2">Toca los tests que se realizaron. Puedes marcar uno, varios o todos en un mismo examen.</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {testsCatalogo.map(c => {
+                  const activo = testsSel.some(t => t.nombre === c.nombre && !t.manual)
+                  return (
+                    <button
+                      key={c.nombre}
+                      onClick={() => toggleTestRapido(c.nombre)}
+                      className="text-xs font-semibold px-3 py-2 rounded-full border"
+                      style={activo
+                        ? { background: '#FFBD5920', borderColor: '#FFBD59', color: '#8C572F', borderWidth: '1.5px' }
+                        : { background: '#FFFCF8', borderColor: '#EEE2D4', color: '#3D2B1F', borderWidth: '1.5px' }}
+                    >
+                      {activo ? '✓ ' : ''}{c.nombre}
+                    </button>
+                  )
+                })}
+              </div>
+              {testsSel.map((t, i) => (
+                <div key={i} className="border border-[#EEE2D4] rounded-xl p-3 mb-2 bg-[#FFFCF8]">
+                  <div className="flex items-center justify-between mb-2">
+                    {t.manual ? (
+                      <input
+                        className="flex-1 text-xs font-semibold text-[#3D2B1F] bg-[#FBEAD9] rounded px-2 py-1.5 focus:outline-none mr-2"
+                        value={t.nombre}
+                        onChange={e => actualizarTest(i, 'nombre', e.target.value)}
+                        placeholder="Nombre del test"
+                        autoFocus
+                      />
+                    ) : (
+                      <p className="text-xs font-semibold text-[#3D2B1F]">🧪 {t.nombre}</p>
+                    )}
+                    <button onClick={() => quitarTest(i)} className="text-[#8A7560] text-sm flex-shrink-0">✕</button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 mb-2">
+                    {RESULTADOS_TEST.map(r => {
+                      const sel = t.resultado === r
+                      const color = colorResultadoTest(r)
+                      return (
+                        <button
+                          key={r}
+                          onClick={() => actualizarTest(i, 'resultado', r)}
+                          className="text-xs font-semibold py-2 rounded-lg border"
+                          style={sel
+                            ? { background: `${color}15`, borderColor: color, color, borderWidth: '1.5px' }
+                            : { background: '#F5EDE3', borderColor: '#EEE2D4', color: '#8A7560', borderWidth: '1.5px' }}
+                        >
+                          {r}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <input
+                    className="w-full text-xs bg-[#FBEAD9] rounded-lg px-2.5 py-2 text-[#3D2B1F] placeholder-[#8A7560] focus:outline-none"
+                    value={t.observacion}
+                    onChange={e => actualizarTest(i, 'observacion', e.target.value)}
+                    placeholder="Observaciones · opcional"
+                  />
+                </div>
+              ))}
+              <button onClick={agregarTestManual} className="text-xs text-[#CD7421] font-semibold mt-1">
+                + agregar otro test
+              </button>
+            </div>
+          )}
+
           {/* Si aun no se cargaron filas para este tipo (primera vez que se abre) */}
-          {filas.length === 0 && (
+          {!esTestRapido && filas.length === 0 && (
             <button
               onClick={() => iniciarFormulario(tipo)}
               className="w-full bg-[#FBEAD9] text-[#8C572F] font-semibold py-2.5 rounded-xl text-sm mb-3"
@@ -434,7 +624,7 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
           )}
 
           {/* Tabla de parámetros */}
-          {filas.length > 0 && (
+          {!esTestRapido && filas.length > 0 && (
             <div className="mb-3">
               <p className="text-[10px] text-[#8A7560] mb-2">Deja vacío lo que tu examen no incluya. El rango viene precargado con valores típicos de referencia — ajústalo si tu laboratorio usa otros.</p>
               {filas.map((f, i) => {
@@ -581,12 +771,14 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
                                 <td className="sticky left-0 bg-[#FFFCF8] px-2 py-1.5 text-[#3D2B1F] border-b border-[#F5EDE3] whitespace-nowrap">{p}</td>
                                 {examenesAsc.map(ex => {
                                   const r = (ex.examen_resultados || []).find((rr: any) => rr.parametro === p)
-                                  const fuera = r && r.rango_min !== null && r.rango_max !== null
+                                  const esTRComp = t.valor === 'test_rapido'
+                                  const positivo = esTRComp && r?.valor === 'Positivo'
+                                  const fuera = !esTRComp && r && r.rango_min !== null && r.rango_max !== null
                                     ? estaFueraDeRango(r.valor, String(r.rango_min), String(r.rango_max))
                                     : false
                                   return (
-                                    <td key={ex.id} className="px-2 py-1.5 border-b border-l border-[#F5EDE3] text-center" style={fuera ? { color: '#993C1D', fontWeight: 600, background: '#FDEAEA' } : { color: '#3D2B1F' }}>
-                                      {r ? r.valor : '—'}
+                                    <td key={ex.id} className="px-2 py-1.5 border-b border-l border-[#F5EDE3] text-center" style={(fuera || positivo) ? { color: '#993C1D', fontWeight: 600, background: '#FDEAEA' } : { color: '#3D2B1F' }}>
+                                      {r ? `${r.valor}${positivo ? ' ⚠️' : ''}` : '—'}
                                     </td>
                                   )
                                 })}
@@ -599,6 +791,8 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
                       deEsteTipo.map(ex => {
                         const resultados = (ex.examen_resultados || []).slice().sort((a: any, b: any) => a.orden - b.orden)
                         const abiertoEx = expandido === ex.id
+                        const esTR = ex.tipo === 'test_rapido'
+                        const positivosEx = esTR ? resultados.filter((r: any) => r.valor === 'Positivo') : []
                         return (
                           <div key={ex.id} className="mb-2 border border-[#EEE2D4] rounded-xl overflow-hidden">
                             <button
@@ -607,6 +801,12 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
                             >
                               <span className="text-xs font-semibold text-[#3D2B1F]">
                                 {new Date(ex.fecha + 'T00:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                {esTR && positivosEx.length > 0 && (
+                                  <span className="ml-2 text-[#E05252]">⚠️ {positivosEx.length} positivo{positivosEx.length === 1 ? '' : 's'}</span>
+                                )}
+                                {esTR && positivosEx.length === 0 && (
+                                  <span className="ml-2 text-[#4CAF7D]">✓ sin positivos</span>
+                                )}
                               </span>
                               <span className="text-[#8A7560] text-xs">{abiertoEx ? '⌃' : '⌄'}</span>
                             </button>
@@ -621,15 +821,19 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
                                   const fuera = r.rango_min !== null && r.rango_max !== null
                                     ? estaFueraDeRango(r.valor, String(r.rango_min), String(r.rango_max))
                                     : null
+                                  const colorTR = esTR ? colorResultadoTest(r.valor) : null
                                   return (
-                                    <div key={r.id} className="flex items-center justify-between py-1 border-b border-[#F5EDE3] last:border-0">
-                                      <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
-                                      <span className="text-xs font-semibold" style={{ color: fuera ? '#993C1D' : '#3D2B1F' }}>
-                                        {r.valor} {r.unidad || ''}
-                                        {r.rango_min !== null && r.rango_max !== null && (
-                                          <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
-                                        )}
-                                      </span>
+                                    <div key={r.id} className="py-1 border-b border-[#F5EDE3] last:border-0">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
+                                        <span className="text-xs font-semibold" style={{ color: colorTR || (fuera ? '#993C1D' : '#3D2B1F') }}>
+                                          {esTR && r.valor === 'Positivo' ? '⚠️ ' : ''}{r.valor} {r.unidad || ''}
+                                          {r.rango_min !== null && r.rango_max !== null && (
+                                            <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
+                                          )}
+                                        </span>
+                                      </div>
+                                      {r.observacion && <p className="text-[10px] text-[#8A7560] italic mt-0.5">{r.observacion}</p>}
                                     </div>
                                   )
                                 })}

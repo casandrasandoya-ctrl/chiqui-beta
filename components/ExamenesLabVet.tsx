@@ -10,6 +10,17 @@ const TIPOS_EXAMEN_LAB: Record<string,{icon:string,label:string}> = {
   hemograma: { icon:'🩸', label:'Hemograma' },
   orina: { icon:'💛', label:'Examen de orina' },
   tiroides: { icon:'🦴', label:'Perfil tiroideo' },
+  test_rapido: { icon:'🧪', label:'Test rápido' },
+}
+
+// Color del resultado de un test rápido: rojo si Positivo, naranjo si
+// Indeterminado, verde si Negativo. Los tests rápidos no usan rangos
+// numéricos -- su "fuera de rango" es simplemente un resultado
+// Positivo.
+function colorResultadoTest(resultado: string): string {
+  if (resultado === 'Positivo') return '#E05252'
+  if (resultado === 'Indeterminado') return '#F07A30'
+  return '#4CAF7D'
 }
 
 function fmt(f: string): string {
@@ -38,21 +49,25 @@ function flechaDireccion(valor: string, rangoMin: number | null, rangoMax: numbe
   return ''
 }
 
-function TablaResultados({ resultados }: { resultados: any[] }) {
+function TablaResultados({ resultados, testRapido = false }: { resultados: any[]; testRapido?: boolean }) {
   const ordenados = resultados.slice().sort((a, b) => a.orden - b.orden)
   return (
     <div className="bg-[#FBEAD9] rounded-xl p-2.5">
       {ordenados.map((r: any) => {
-        const fuera = fueraDeRango(r.valor, r.rango_min, r.rango_max)
+        const fuera = !testRapido && fueraDeRango(r.valor, r.rango_min, r.rango_max)
+        const colorTR = testRapido ? colorResultadoTest(r.valor) : null
         return (
-          <div key={r.id} className="flex items-center justify-between py-1 border-b border-[#F5EDE3] last:border-0">
-            <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
-            <span className="text-xs font-semibold" style={{ color: fuera ? '#993C1D' : '#3D2B1F' }}>
-              {r.valor} {r.unidad || ''}
-              {r.rango_min !== null && r.rango_max !== null && (
-                <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
-              )}
-            </span>
+          <div key={r.id} className="py-1 border-b border-[#F5EDE3] last:border-0">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
+              <span className="text-xs font-semibold" style={{ color: colorTR || (fuera ? '#993C1D' : '#3D2B1F') }}>
+                {testRapido && r.valor === 'Positivo' ? '⚠️ ' : ''}{r.valor} {r.unidad || ''}
+                {r.rango_min !== null && r.rango_max !== null && (
+                  <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
+                )}
+              </span>
+            </div>
+            {r.observacion && <p className="text-[10px] text-[#8A7560] italic mt-0.5">{r.observacion}</p>}
           </div>
         )
       })}
@@ -62,6 +77,7 @@ function TablaResultados({ resultados }: { resultados: any[] }) {
 
 function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
   const info = TIPOS_EXAMEN_LAB[tipo] || { icon: '🧫', label: tipo }
+  const esTR = tipo === 'test_rapido'
   // Más reciente primero (ya viene ordenado así desde el RPC, pero por
   // seguridad se reordena aquí también).
   const ordenados = examenes.slice().sort((a, b) => b.fecha.localeCompare(a.fecha))
@@ -74,7 +90,11 @@ function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
   const [verCompleto, setVerCompleto] = useState(false)
 
   const resultadosUltimo = (ultimo.resultados || [])
-  const fueraDeRangoUltimo = resultadosUltimo.filter((r: any) => fueraDeRango(r.valor, r.rango_min, r.rango_max))
+  const fueraDeRangoUltimo = esTR ? [] : resultadosUltimo.filter((r: any) => fueraDeRango(r.valor, r.rango_min, r.rango_max))
+  // Test rápido: el equivalente a "fuera de rango" es un resultado
+  // Positivo. Por defecto se muestra SOLO el examen más reciente, con
+  // todos sus tests listados (son pocos) y los positivos destacados.
+  const positivosUltimo = esTR ? resultadosUltimo.filter((r: any) => r.valor === 'Positivo') : []
 
   // Para la comparación: unión de parámetros de todos los exámenes de
   // este tipo, en orden ascendente por fecha (igual que en la vista del
@@ -120,10 +140,11 @@ function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
                   <td className="sticky left-0 bg-[#FFFCF8] px-2 py-1.5 text-[#3D2B1F] border-b border-[#F5EDE3] whitespace-nowrap">{p}</td>
                   {examenesAsc.map(ex => {
                     const r = (ex.resultados || []).find((rr: any) => rr.parametro === p)
-                    const fuera = r ? fueraDeRango(r.valor, r.rango_min, r.rango_max) : false
+                    const positivo = esTR && r?.valor === 'Positivo'
+                    const fuera = !esTR && r ? fueraDeRango(r.valor, r.rango_min, r.rango_max) : false
                     return (
-                      <td key={ex.id} className="px-2 py-1.5 border-b border-l border-[#F5EDE3] text-center" style={fuera ? { color: '#993C1D', fontWeight: 600, background: '#FDEAEA' } : { color: '#3D2B1F' }}>
-                        {r ? r.valor : '—'}
+                      <td key={ex.id} className="px-2 py-1.5 border-b border-l border-[#F5EDE3] text-center" style={(fuera || positivo) ? { color: '#993C1D', fontWeight: 600, background: '#FDEAEA' } : { color: '#3D2B1F' }}>
+                        {r ? `${r.valor}${positivo ? ' ⚠️' : ''}` : '—'}
                       </td>
                     )
                   })}
@@ -143,32 +164,59 @@ function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
             {ultimo.peso_kg && <span className="text-xs text-[#8A7560]">Peso: {ultimo.peso_kg} kg</span>}
           </div>
 
-          {fueraDeRangoUltimo.length > 0 ? (
-            <div className="bg-[#FDEAEA] rounded-xl p-2.5 mb-2">
-              <p className="text-xs font-bold text-[#993C1D] mb-1.5">
-                ⚠️ {fueraDeRangoUltimo.length} parámetro{fueraDeRangoUltimo.length === 1 ? '' : 's'} fuera de rango
-              </p>
-              <div className="space-y-0.5">
-                {fueraDeRangoUltimo.map((r: any) => (
-                  <p key={r.id} className="text-xs text-[#993C1D]">
-                    {r.parametro} {flechaDireccion(r.valor, r.rango_min, r.rango_max)}
+          {esTR ? (
+            <>
+              <div className={`rounded-xl p-2.5 mb-2 ${positivosUltimo.length > 0 ? 'bg-[#FDEAEA]' : 'bg-[#FBEAD9]'}`}>
+                {positivosUltimo.length > 0 ? (
+                  <p className="text-xs font-bold text-[#993C1D] mb-1.5">
+                    ⚠️ {positivosUltimo.length} test positivo{positivosUltimo.length === 1 ? '' : 's'}
                   </p>
-                ))}
+                ) : (
+                  <p className="text-xs font-semibold text-[#4CAF7D] mb-1.5">✅ Sin resultados positivos</p>
+                )}
+                <div className="space-y-0.5">
+                  {resultadosUltimo.slice().sort((a: any, b: any) => a.orden - b.orden).map((r: any) => (
+                    <div key={r.id}>
+                      <p className="text-xs" style={{ color: colorResultadoTest(r.valor) }}>
+                        {r.valor === 'Positivo' ? '⚠️ ' : ''}<span className="font-semibold">{r.parametro}:</span> {r.valor}
+                      </p>
+                      {r.observacion && <p className="text-[10px] text-[#8A7560] italic">{r.observacion}</p>}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+              {ultimo.nota && <p className="text-xs text-[#8A7560] italic mb-1">📝 {ultimo.nota}</p>}
+            </>
           ) : (
-            <p className="text-xs font-semibold text-[#4CAF7D] mb-2">✅ Todos los parámetros dentro de rango</p>
-          )}
+            <>
+              {fueraDeRangoUltimo.length > 0 ? (
+                <div className="bg-[#FDEAEA] rounded-xl p-2.5 mb-2">
+                  <p className="text-xs font-bold text-[#993C1D] mb-1.5">
+                    ⚠️ {fueraDeRangoUltimo.length} parámetro{fueraDeRangoUltimo.length === 1 ? '' : 's'} fuera de rango
+                  </p>
+                  <div className="space-y-0.5">
+                    {fueraDeRangoUltimo.map((r: any) => (
+                      <p key={r.id} className="text-xs text-[#993C1D]">
+                        {r.parametro} {flechaDireccion(r.valor, r.rango_min, r.rango_max)}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs font-semibold text-[#4CAF7D] mb-2">✅ Todos los parámetros dentro de rango</p>
+              )}
 
-          <button onClick={() => setVerCompleto(v => !v)} className="text-[11px] font-semibold text-[#8C572F]">
-            {verCompleto ? '⌃ Ocultar examen completo' : '▼ Ver examen completo'}
-          </button>
+              <button onClick={() => setVerCompleto(v => !v)} className="text-[11px] font-semibold text-[#8C572F]">
+                {verCompleto ? '⌃ Ocultar examen completo' : '▼ Ver examen completo'}
+              </button>
 
-          {verCompleto && (
-            <div className="mt-2">
-              <TablaResultados resultados={resultadosUltimo} />
-              {ultimo.nota && <p className="text-xs text-[#8A7560] mt-2 italic">📝 {ultimo.nota}</p>}
-            </div>
+              {verCompleto && (
+                <div className="mt-2">
+                  <TablaResultados resultados={resultadosUltimo} />
+                  {ultimo.nota && <p className="text-xs text-[#8A7560] mt-2 italic">📝 {ultimo.nota}</p>}
+                </div>
+              )}
+            </>
           )}
 
           {/* Exámenes anteriores del mismo tipo -- colapsados por defecto */}
@@ -182,7 +230,9 @@ function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
                   {anteriores.map(ex => {
                     const abierto = expandidoAnterior === ex.id
                     const resultados = ex.resultados || []
-                    const cantidadFuera = resultados.filter((r: any) => fueraDeRango(r.valor, r.rango_min, r.rango_max)).length
+                    const cantidadFuera = esTR
+                      ? resultados.filter((r: any) => r.valor === 'Positivo').length
+                      : resultados.filter((r: any) => fueraDeRango(r.valor, r.rango_min, r.rango_max)).length
                     return (
                       <div key={ex.id} className="border border-[#EEE2D4] rounded-xl overflow-hidden">
                         <button
@@ -196,7 +246,7 @@ function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
                         </button>
                         {abierto && (
                           <div className="p-2.5">
-                            <TablaResultados resultados={resultados} />
+                            <TablaResultados resultados={resultados} testRapido={esTR} />
                             {ex.nota && <p className="text-xs text-[#8A7560] mt-2 italic">📝 {ex.nota}</p>}
                           </div>
                         )}
@@ -216,7 +266,7 @@ function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
 export default function ExamenesLabVet({ examenesLab }: Props) {
   if (!examenesLab || examenesLab.length === 0) return null
 
-  const tipos = ['bioquimico', 'hemograma', 'orina', 'tiroides']
+  const tipos = ['bioquimico', 'hemograma', 'orina', 'tiroides', 'test_rapido']
   const grupos = tipos
     .map(t => ({ tipo: t, examenes: examenesLab.filter(e => e.tipo === t) }))
     .filter(g => g.examenes.length > 0)
