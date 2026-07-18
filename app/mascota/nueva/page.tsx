@@ -79,6 +79,21 @@ export default function NuevaMascotaPage() {
       return
     }
 
+    // El peso inicial también se registra como el PRIMER punto del
+    // historial de peso (con la fecha de hoy), para que la curva de
+    // cambios de peso parta desde el día uno y no quede vacía hasta
+    // el primer control.
+    const pesoInicial = form.peso_actual ? parseFloat(form.peso_actual) : null
+    if (pesoInicial !== null && pesoInicial > 0) {
+      const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+      await supabase.from('historial_peso').insert({
+        mascota_id: nuevaMascota.id,
+        user_id: user.id,
+        peso: pesoInicial,
+        fecha: hoy,
+      })
+    }
+
     // Si se eligio una foto antes de guardar, la subimos ahora que ya
     // existe el id de la mascota (la foto no se podia subir antes porque
     // el componente necesita ese id para construir la ruta del archivo).

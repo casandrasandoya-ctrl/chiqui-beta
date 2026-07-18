@@ -585,6 +585,42 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
       return
     }
 
+    // Sincroniza el peso del examen con el historial de peso: si el
+    // laboratorio pesó a la mascota ese día, ese dato pertenece a la
+    // curva de peso. Misma lógica que PesoTracker: si ya hay un
+    // registro de peso para esa fecha se actualiza (no se duplica), y
+    // si no, se inserta. peso_actual de la mascota solo se actualiza
+    // cuando NO existe un registro de peso más reciente que la fecha
+    // del examen (un examen antiguo no debe pisar el peso vigente).
+    const pesoNum = pesoKg.trim() ? parseFloat(pesoKg.replace(',', '.')) : NaN
+    if (!isNaN(pesoNum) && pesoNum > 0 && user) {
+      const { data: existentePeso } = await supabase
+        .from('historial_peso')
+        .select('id')
+        .eq('mascota_id', mascotaId)
+        .eq('fecha', fecha)
+        .maybeSingle()
+      if (existentePeso) {
+        await supabase.from('historial_peso').update({ peso: pesoNum }).eq('id', existentePeso.id)
+      } else {
+        await supabase.from('historial_peso').insert({
+          mascota_id: mascotaId,
+          user_id: user.id,
+          peso: pesoNum,
+          fecha: fecha,
+        })
+      }
+      const { data: masNuevos } = await supabase
+        .from('historial_peso')
+        .select('id')
+        .eq('mascota_id', mascotaId)
+        .gt('fecha', fecha)
+        .limit(1)
+      if (!masNuevos || masNuevos.length === 0) {
+        await supabase.from('mascotas').update({ peso_actual: pesoNum }).eq('id', mascotaId)
+      }
+    }
+
     setEditandoId(null)
     setFecha('')
     setPesoKg('')

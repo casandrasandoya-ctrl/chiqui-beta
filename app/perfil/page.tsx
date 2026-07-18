@@ -89,13 +89,14 @@ export default function PerfilPage() {
   async function guardar() {
     if (!mascota) return
     setSaving(true)
+    const pesoNuevo = form.peso_actual ? parseFloat(String(form.peso_actual)) : null
     const { error } = await supabase.from('mascotas').update({
       nombre: form.nombre,
       raza: form.raza,
       fecha_nacimiento: form.fecha_nacimiento,
       color: form.color,
       castrado: form.castrado,
-      peso_actual: form.peso_actual ? parseFloat(String(form.peso_actual)) : null,
+      peso_actual: pesoNuevo,
       alimentacion_tipo: form.alimentacion_tipo,
       alimentacion_marca: form.alimentacion_marca,
       alergias: form.alergias,
@@ -103,6 +104,34 @@ export default function PerfilPage() {
       veterinaria: form.veterinaria,
     }).eq('id', mascota.id)
     if (!error) {
+      // Si el peso CAMBIÓ, ese nuevo valor también alimenta el
+      // historial de peso (con la fecha de hoy), para que la curva de
+      // cambios de peso lo refleje. Si ya existe un registro de hoy se
+      // actualiza en vez de duplicar (misma lógica que PesoTracker).
+      // Solo cuando cambia: guardar el perfil sin tocar el peso no
+      // debe crear puntos repetidos en la curva.
+      if (pesoNuevo !== null && pesoNuevo > 0 && pesoNuevo !== mascota.peso_actual) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+          const { data: existentePeso } = await supabase
+            .from('historial_peso')
+            .select('id')
+            .eq('mascota_id', mascota.id)
+            .eq('fecha', hoy)
+            .maybeSingle()
+          if (existentePeso) {
+            await supabase.from('historial_peso').update({ peso: pesoNuevo }).eq('id', existentePeso.id)
+          } else {
+            await supabase.from('historial_peso').insert({
+              mascota_id: mascota.id,
+              user_id: user.id,
+              peso: pesoNuevo,
+              fecha: hoy,
+            })
+          }
+        }
+      }
       setMascota({ ...mascota, ...form } as Mascota)
       setEditando(false)
       showToast('Perfil actualizado')
