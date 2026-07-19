@@ -125,6 +125,24 @@ export default async function Dashboard({ searchParams }: Props) {
     peso: ultimoPesoReg && ultimoPesoReg[0]?.fecha ? diasDesde(ultimoPesoReg[0].fecha) : null,
   }
 
+  // --- Medicamentos activos: si hay al menos uno y HOY aún no se
+  // marcó "medicamento_hoy" en el registro, la novedad correspondiente
+  // pregunta al tutor si se lo dio. Estado activo es DERIVADO: no
+  // basta con estado='activo' en la base — si fecha_fin ya pasó, el
+  // tratamiento terminó aunque el campo no se haya actualizado.
+  const { data: medsActivosRaw } = await supabase
+    .from('medicamentos')
+    .select('nombre,frecuencia,fecha_fin')
+    .eq('mascota_id', m.id)
+    .eq('estado', 'activo')
+  const medsActivos = (medsActivosRaw || []).filter((med: any) =>
+    !med.fecha_fin || med.fecha_fin >= hoy
+  )
+  const yaMarcoMedHoy = !!(regHoy && (regHoy as any).medicamento_hoy)
+  const medicamentosPendientesHoy = medsActivos.length > 0 && !yaMarcoMedHoy
+    ? medsActivos.map((m: any) => ({ nombre: m.nombre as string, frecuencia: (m.frecuencia || null) as string | null }))
+    : []
+
   // Definición de los cuidados posibles, organizados por grupo (mismo
   // orden que en el registro diario: Veterinario y salud → Prevención →
   // Alimentación → Higiene y bienestar → Arenero), cada uno con la
@@ -385,6 +403,7 @@ export default async function Dashboard({ searchParams }: Props) {
       tieneRegistroHoy={!!regHoy}
       seguimientosPendientes={seguimientosPendientes}
       diasSinCampo={diasSinCampo}
+      medicamentosPendientesHoy={medicamentosPendientesHoy}
       cuidadosRecientes={cuidadosRecientes}
       rachaPaseo={rachaPaseo}
         rachaRegistros={rachaRegistros}

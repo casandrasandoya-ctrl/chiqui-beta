@@ -43,6 +43,7 @@ interface Props {
   rachaRegistros: number
   seguimientos: { id: string; titulo: string; diasSinActualizar: number }[]
   diasSinCampo: { apetito: number | null; agua: number | null; heces: number | null; peso: number | null }
+  medicamentosPendientesHoy: { nombre: string; frecuencia: string | null }[]
 }
 
 interface Novedad {
@@ -117,8 +118,9 @@ const MENSAJES_POSITIVOS = [
 
 // Cola de novedades del día, EN ORDEN DE PRIORIDAD:
 // 1 cumpleaños · 2 aniversario · 3 fechas especiales · 4 estado del
-// registro diario · 5 seguimientos pendientes · 6 racha ·
-// 7 recordatorio inteligente · 8 mensaje positivo · 9 notificaciones.
+// registro diario · 5 medicamento activo · 6 seguimientos pendientes ·
+// 7 racha · 8 recordatorio inteligente · 9 mensaje positivo ·
+// 10 notificaciones.
 function calcularNovedades(
   m: MascotaNovedades,
   especies: Set<string>,
@@ -129,6 +131,7 @@ function calcularNovedades(
   hoyStr: string,
   seguimientos: Props['seguimientos'],
   diasSinCampo: Props['diasSinCampo'],
+  medicamentosPendientesHoy: Props['medicamentosPendientesHoy'],
 ): Novedad[] {
   const lista: Novedad[] = []
   const anio = hoyStr.slice(0, 4)
@@ -242,7 +245,29 @@ function calcularNovedades(
     })
   }
 
-  // ---- 5. SEGUIMIENTOS PENDIENTES (15+ días sin actualizar) ----
+  // ---- 5. MEDICAMENTO ACTIVO: ¿se lo diste hoy? ----
+  // Si hay medicamentos activos y en el registro de hoy aún no se marcó
+  // "Recibió medicamento", preguntamos con cariño. Efímera: al cerrar
+  // desaparece de la vista actual pero reaparece si vuelve al dashboard
+  // sin marcarlo — es una acción concreta que importa.
+  if (medicamentosPendientesHoy.length > 0) {
+    // Un solo mensaje aunque haya varios medicamentos; los listamos
+    // por nombre para que el tutor sepa cuáles.
+    const nombres = medicamentosPendientesHoy.map(x => x.nombre).join(' y ')
+    // Frecuencia solo si TODOS comparten la misma (para no confundir).
+    const freqs = new Set(medicamentosPendientesHoy.map(x => x.frecuencia).filter(Boolean))
+    const freqTexto = freqs.size === 1 ? ` (${[...freqs][0]})` : ''
+    lista.push({
+      key: `med_hoy_${m.id}_${hoyStr}`,
+      img: '/chiqui/chiqui_medicamentos.png',
+      href: '/registro-diario',
+      accion: '💊 Marcar en el registro',
+      efimera: true,
+      mensaje: `💊 ¿Ya le diste el medicamento a ${m.nombre}${medicamentosPendientesHoy.length === 1 ? '' : 's'}? (${nombres}${freqTexto})`,
+    })
+  }
+
+  // ---- 6. SEGUIMIENTOS PENDIENTES (15+ días sin actualizar) ----
   // El dashboard ya no recuerda permanentemente el problema: pide
   // acción solo cuando toca. Al registrar una evolución, el contador
   // se reinicia y la novedad desaparece. Si el caso sigue abierto,
@@ -260,7 +285,7 @@ function calcularNovedades(
     })
   }
 
-  // ---- 6. RACHA (solo tras registrar; se genera al registrar el día) ----
+  // ---- 7. RACHA (solo tras registrar; se genera al registrar el día) ----
   if (tieneRegistroHoy && rachaRegistros > 0) {
     const hito = hitoRacha(rachaRegistros)
     lista.push({
@@ -270,7 +295,7 @@ function calcularNovedades(
     })
   }
 
-  // ---- 7. RECORDATORIO INTELIGENTE (solo el más atrasado) ----
+  // ---- 8. RECORDATORIO INTELIGENTE (solo el más atrasado) ----
   // Aparece únicamente cuando aporta valor real: el campo se registró
   // alguna vez y lleva demasiados días sin dato nuevo. Se muestra UNO
   // por día (el más atrasado en proporción a su umbral) para no
@@ -295,7 +320,7 @@ function calcularNovedades(
     })
   }
 
-  // ---- 8. MENSAJE POSITIVO (cuando ya no hay nada más importante) ----
+  // ---- 9. MENSAJE POSITIVO (cuando ya no hay nada más importante) ----
   if (tieneRegistroHoy) {
     const [aH, mH, dH] = hoyStr.split('-').map(Number)
     // Cada 4 días, en vez del mensaje positivo, invitamos a leer los
@@ -319,7 +344,7 @@ function calcularNovedades(
     }
   }
 
-  // ---- 9. RECORDATORIO DE NOTIFICACIONES ----
+  // ---- 10. RECORDATORIO DE NOTIFICACIONES ----
   if (sinPermisoNotif) {
     lista.push({
       key: `recordatorio_notif_${hoyStr}`,
@@ -335,7 +360,7 @@ function calcularNovedades(
 
 const PREFIJO_STORAGE = 'chiqui_novedad_'
 
-export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, rachaRegistros, seguimientos, diasSinCampo }: Props) {
+export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, rachaRegistros, seguimientos, diasSinCampo, medicamentosPendientesHoy }: Props) {
   const [cerradas, setCerradas] = useState<Set<string>>(new Set())
   const [sinPermisoNotif, setSinPermisoNotif] = useState(false)
   // Se espera al montaje para leer localStorage y Notification (evita
@@ -371,7 +396,7 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
   const especies = new Set(mascotas.map(ms => ms.especie))
   const pendientes = calcularNovedades(
     mascota, especies, tieneRegistroHoy, color, rachaRegistros, sinPermisoNotif, fechaHoyChile(),
-    seguimientos, diasSinCampo,
+    seguimientos, diasSinCampo, medicamentosPendientesHoy,
   ).filter(n => !cerradas.has(n.key))
 
   if (pendientes.length === 0) return null
