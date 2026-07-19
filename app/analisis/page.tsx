@@ -544,7 +544,7 @@ export default function AnalisisPage() {
       {resumenInteligente && (
         <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#EEE2D4]" style={{ background: 'linear-gradient(135deg, #FFBD5918, #FFFCF8)' }}>
-            <span className="text-lg">🤖</span>
+            <img src="/chiqui/chiqui_ia.png" alt="Chiqui IA" className="w-9 h-9 object-contain flex-shrink-0" />
             <div>
               <p className="text-sm font-bold text-[#3D2B1F]">{resumenInteligente.titulo}</p>
               <p className="text-xs text-[#8A7560]">Lo esencial de los últimos {periodo} días</p>
@@ -560,9 +560,9 @@ export default function AnalisisPage() {
       {/* Lo observado este mes (insights) */}
       <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#EEE2D4]">
-          <span className="text-lg">🐶</span>
+          <img src="/chiqui/chiqui_lupa.png" alt="" className="w-9 h-9 object-contain flex-shrink-0" />
           <div>
-            <p className="text-sm font-bold">📊 Lo observado este mes</p>
+            <p className="text-sm font-bold">Lo observado este mes</p>
             <p className="text-xs text-[#8A7560]">{total} registros</p>
           </div>
         </div>
@@ -856,7 +856,7 @@ export default function AnalisisPage() {
         return (
           <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
             <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-[#EEE2D4]">
-              <span className="text-lg">🔁</span>
+              <img src="/chiqui/chiqui_analisis.png" alt="" className="w-9 h-9 object-contain flex-shrink-0" />
               <div>
                 <p className="font-bold text-sm text-[#3D2B1F]">Rutinas de cuidado</p>
                 <p className="text-[10px] text-[#8A7560]">Las más relevantes según todo el historial</p>
