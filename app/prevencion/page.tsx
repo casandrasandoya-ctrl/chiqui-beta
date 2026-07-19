@@ -503,7 +503,12 @@ export default function PrevencionPage() {
   if (obsResueltas.length > 0) badgesObs.push({ texto: `${obsResueltas.length} resuelta${obsResueltas.length === 1 ? '' : 's'}`, color: '#4CAF7D' })
 
   // Medicamentos: activos (azul, color reservado de la categoría)
-  const medsActivos = medicamentos.filter(m => m.estado === 'activo')
+  // Medicamentos: activo DERIVADO — no basta estado='activo' en la
+  // base; si fecha_fin ya pasó, el tratamiento terminó aunque el
+  // campo no se haya actualizado. Misma lógica que la tarjeta.
+  const medsActivos = medicamentos.filter(m =>
+    m.estado === 'activo' && (!m.fecha_fin || m.fecha_fin >= HOY_PREV)
+  )
   const badgeMeds: Badge | null = medicamentos.length === 0 ? null
     : medsActivos.length > 0 ? { texto: `${medsActivos.length} activo${medsActivos.length === 1 ? '' : 's'}`, color: '#4AABDB' }
     : { texto: 'Sin activos', color: '#8A7560' }
