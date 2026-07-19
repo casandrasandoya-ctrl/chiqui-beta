@@ -76,7 +76,13 @@ export default function FechaSelector({ value, onChange, label, opcional, placeh
   }
 
   const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl"
-  const anios = Array.from({ length: 15 }, (_, i) => anioActual - i)
+  // Rango de años: 10 pasados, año actual, 10 futuros.
+  // Cubre tanto fechas de nacimiento antiguas (perros/gatos suelen
+  // vivir hasta 20 años) como próximas fechas de vacunas,
+  // antiparasitarios o fin de tratamientos que van a futuro. El orden
+  // es descendente (más recientes arriba), con el año actual siempre
+  // visible al abrir.
+  const anios = Array.from({ length: 21 }, (_, i) => anioActual + 10 - i)
   const maxDias = selAnio !== null && selMes !== null ? diasEnMes(selAnio, selMes) : 31
   const dias = Array.from({ length: maxDias }, (_, i) => i + 1)
   const tieneValor = selAnio && selMes !== null && selDia
@@ -121,7 +127,22 @@ export default function FechaSelector({ value, onChange, label, opcional, placeh
             <button type="button" onClick={() => setAbierto(false)} className="text-[#8A7560] text-sm">✕</button>
           </div>
           {paso === 'anio' && (
-            <div className="grid grid-cols-3 gap-1 p-3 max-h-48 overflow-y-auto">
+            <div
+              className="grid grid-cols-3 gap-1 p-3 max-h-48 overflow-y-auto"
+              ref={el => {
+                // Al abrir, hacer scroll para que el año actual (o el
+                // seleccionado) quede visible en el centro. Sin esto,
+                // el rango que va a futuro obligaría a scrollear
+                // siempre hacia abajo para encontrar años cercanos.
+                if (!el) return
+                const objetivo = selAnio || anioActual
+                const idx = anios.indexOf(objetivo)
+                if (idx < 0) return
+                const fila = Math.floor(idx / 3)
+                const alturaFila = 44
+                el.scrollTop = Math.max(0, fila * alturaFila - 60)
+              }}
+            >
               {anios.map(a => (
                 <button key={a} type="button" onClick={() => elegirAnio(a)}
                   className={`py-2.5 rounded-xl text-sm font-semibold ${selAnio === a ? 'bg-[#FFBD59] text-[#1A1200]' : 'bg-[#F5EDE3] text-[#3D2B1F]'}`}>
