@@ -82,18 +82,14 @@ export default function SelectorMascota({
           {/* Capa invisible para cerrar el menu al tocar fuera */}
           <div className="fixed inset-0 z-30" onClick={() => setAbierto(false)} />
           <div className="absolute left-4 right-4 mt-1.5 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl overflow-hidden z-40 shadow-sm">
-            {/* Link al perfil dentro del desplegable */}
+            {/* Encabezado simple: la mascota activa YA se ve en la
+                tarjeta superior y en la lista — repetirla aquí por
+                tercera vez era redundancia visual. En su lugar, la
+                acción de perfil gana protagonismo. */}
             <Link href="/perfil" onClick={() => setAbierto(false)}
               className="w-full px-3 py-2.5 flex items-center justify-between border-b border-[#EEE2D4] bg-[#FBEAD9]">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full overflow-hidden bg-[#EEE2D4] flex items-center justify-center flex-shrink-0">
-                  {mascotaActiva.foto_url
-                    ? <img src={mascotaActiva.foto_url} alt="" className="w-full h-full object-cover" />
-                    : <span className="text-sm">{icono(mascotaActiva.especie)}</span>}
-                </div>
-                <span className="text-xs font-bold text-[#3D2B1F]">{mascotaActiva.nombre}</span>
-              </div>
-              <span className="text-xs font-bold text-[#CD7421]">Ver perfil ›</span>
+              <span className="text-xs font-semibold text-[#8A7560]">Mi compañero/a</span>
+              <span className="text-xs font-bold text-[#CD7421]">Editar perfil →</span>
             </Link>
             {/* Lista de mascotas: la ACTIVA destaca con borde dorado de
                 2px, fondo cálido, insignia "Perfil activo" y check en
