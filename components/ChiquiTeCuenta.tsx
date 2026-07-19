@@ -165,6 +165,9 @@ export default function ChiquiTeCuenta({ especie }: Props) {
   }, [especie, grupoIndex, grupoElegido])
 
   const [expandido, setExpandido] = useState<number | null>(null)
+  // Menú flotante del selector de categoría (popover que se superpone
+  // al contenido sin desplazarlo).
+  const [menuCategorias, setMenuCategorias] = useState(false)
 
   // Sexta tarjeta — una por cada uno de los 7 grupos temáticos.
   // Definida por especie porque el grupo 1, 2, 4 difieren entre perro y gato.
@@ -200,29 +203,51 @@ export default function ChiquiTeCuenta({ especie }: Props) {
       </div>
       <p className="text-xs text-[#8A7560] mb-2 ml-9">Tips y curiosidades para cuidarte mejor 🐾</p>
 
-      {/* Chips de categorías: por defecto todo sigue igual (grupo al
-          azar en cada visita). Tocar un chip filtra a esa categoría;
-          tocar el chip ya elegido devuelve el azar; y al refrescar o
-          volver a entrar, el filtro desaparece solo. */}
-      {(especie === 'Perro' || especie === 'Gato') && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1.5 mb-2.5 ml-9 -mr-4 pr-4" style={{ scrollbarWidth: 'none' }}>
-          {(especie === 'Gato' ? CHIPS_GATO : CHIPS_PERRO).map((label, i) => {
-            const activo = grupoIndex === i
-            return (
-              <button
-                key={label}
-                onClick={() => { setGrupoElegido(grupoElegido === i ? null : i); setExpandido(null) }}
-                className="text-[10px] font-semibold px-2.5 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0"
-                style={activo
-                  ? { background: '#FFBD5920', borderColor: '#FFBD59', color: '#8C572F', borderWidth: '1.5px' }
-                  : { background: '#FFFCF8', borderColor: '#EEE2D4', color: '#8A7560', borderWidth: '1.5px' }}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      )}
+      {/* Selector de categoría en UNA sola línea: muestra qué grupo
+          tocó al azar hoy (el azar sigue mandando por defecto). Al
+          tocarlo se abre un menú FLOTANTE sobre las tarjetas -- no
+          empuja el contenido. Elegir una categoría filtra los tips a
+          ella; al refrescar o volver a entrar, la selección manual
+          desaparece sola y regresa el azar. */}
+      {(especie === 'Perro' || especie === 'Gato') && (() => {
+        const categorias = especie === 'Gato' ? CHIPS_GATO : CHIPS_PERRO
+        return (
+          <div className="relative ml-9 mb-2.5">
+            <button
+              onClick={() => setMenuCategorias(v => !v)}
+              className="inline-flex items-center gap-1.5 bg-[#FFFCF8] border border-[#EEE2D4] rounded-full px-3 py-1.5"
+            >
+              <span className="text-[11px] text-[#8A7560]">
+                {grupoElegido !== null ? '📌 Estás viendo:' : '🎲 Hoy te tocó:'}
+              </span>
+              <span className="text-[11px] font-bold text-[#8C572F]">{categorias[grupoIndex]}</span>
+              <span className={`text-[#8A7560] text-[10px] transition-transform ${menuCategorias ? 'rotate-180' : ''}`}>▼</span>
+            </button>
+            {menuCategorias && (
+              <>
+                {/* Capa invisible: cierra el menú al tocar fuera */}
+                <div className="fixed inset-0 z-30" onClick={() => setMenuCategorias(false)} />
+                <div className="absolute left-0 top-full mt-1.5 w-56 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl overflow-hidden z-40 shadow-md">
+                  {categorias.map((label, i) => {
+                    const activo = grupoIndex === i
+                    return (
+                      <button
+                        key={label}
+                        onClick={() => { setGrupoElegido(i); setMenuCategorias(false); setExpandido(null) }}
+                        className="w-full px-3 py-2.5 flex items-center justify-between text-left border-b border-[#F5EDE3] last:border-0"
+                        style={activo ? { background: '#FBEAD9' } : {}}
+                      >
+                        <span className={`text-xs ${activo ? 'font-bold text-[#8C572F]' : 'font-medium text-[#3D2B1F]'}`}>{label}</span>
+                        {activo && <span className="w-4 h-4 rounded-full bg-[#4CAF7D] text-white flex items-center justify-center text-[9px] font-bold flex-shrink-0">✓</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Grid 2 columnas — 6 tarjetas en 3 filas */}
       <div className="grid grid-cols-2 gap-2.5 items-start">
