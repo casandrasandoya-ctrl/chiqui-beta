@@ -279,9 +279,9 @@ export default function ChiquiTeCuenta({ especie }: Props) {
               style={{
                 background: '#FFFCF8',
                 border: '1.5px solid #EEE2D4',
-                // Cerrada: altura fija (grid parejo). Abierta: crece
-                // según su contenido, empujando suavemente las de abajo.
-                minHeight: abierto ? 'auto' : '190px',
+                // Cerrada: altura fija más compacta (ritmo visual sin
+                // aire vacío). Abierta: crece según su contenido.
+                minHeight: abierto ? 'auto' : '150px',
               }}
             >
               {/* Emoji: diferenciador visual — el título es el protagonista */}
@@ -316,35 +316,35 @@ export default function ChiquiTeCuenta({ especie }: Props) {
               ) : (
                 <>
                   {bloques ? (
-                    // Formato estructurado (signos de alerta): fácil de
-                    // escanear en una emergencia. Reconocer + HAZ ESTO
-                    // + EVITA en bloques visuales claros.
-                    <div className="space-y-2 mb-1.5">
+                    // Formato estructurado para signos de alerta. Sin
+                    // cuadros de color que compitan con la tarjeta:
+                    // solo barra lateral verde (haz) o roja (evita)
+                    // + etiqueta en mayúsculas. Limpio y escaneable.
+                    <div className="space-y-2.5 mb-1.5">
                       {bloques.reconocer && (
-                        <div>
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#8A7560] mb-1">Cómo reconocerlo</p>
-                          <p className="text-[10px] text-[#5C4A3A] leading-relaxed">{bloques.reconocer}</p>
-                        </div>
+                        <p className="text-[10px] text-[#5C4A3A] leading-relaxed italic">
+                          {bloques.reconocer}
+                        </p>
                       )}
                       {bloques.haz && bloques.haz.length > 0 && (
-                        <div className="bg-[#4CAF7D14] border border-[#4CAF7D33] rounded-lg p-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#2E7D52] mb-1">❤️ Haz esto</p>
+                        <div className="pl-2.5" style={{ borderLeft: '2.5px solid #4CAF7D' }}>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#2E7D52] mb-1">Haz esto</p>
                           <ul className="space-y-0.5">
                             {bloques.haz.map((linea, li) => (
-                              <li key={li} className="text-[10px] text-[#3D2B1F] leading-relaxed pl-3 relative">
-                                <span className="absolute left-0">·</span>{linea}
+                              <li key={li} className="text-[10px] text-[#3D2B1F] leading-relaxed">
+                                {linea}
                               </li>
                             ))}
                           </ul>
                         </div>
                       )}
                       {bloques.evita && bloques.evita.length > 0 && (
-                        <div className="bg-[#E0525214] border border-[#E0525233] rounded-lg p-2">
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#B83232] mb-1">🚫 Evita</p>
+                        <div className="pl-2.5" style={{ borderLeft: '2.5px solid #E05252' }}>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#B83232] mb-1">Evita</p>
                           <ul className="space-y-0.5">
                             {bloques.evita.map((linea, li) => (
-                              <li key={li} className="text-[10px] text-[#3D2B1F] leading-relaxed pl-3 relative">
-                                <span className="absolute left-0">·</span>{linea}
+                              <li key={li} className="text-[10px] text-[#3D2B1F] leading-relaxed">
+                                {linea}
                               </li>
                             ))}
                           </ul>
