@@ -52,6 +52,9 @@ interface Novedad {
   destacada?: boolean  // true = celebración de HOY (tarjeta dorada)
   href?: string        // si existe, la tarjeta navega y la ✕ cierra
   accion?: string      // texto de acción subrayado (deja claro que es clickeable)
+  efimera?: boolean    // true = el cierre NO se persiste: desaparece de la
+                       // vista actual pero reaparece al volver al dashboard
+                       // (para acciones que deben insistir hasta completarse)
 }
 
 export function fechaHoyChile(): string {
@@ -208,6 +211,11 @@ function calcularNovedades(
       img: '/chiqui/chiqui_registro.png',
       href: '/registro-diario',
       accion: '✏️ Registrar hoy',
+      // Efímera: cerrar la tarjeta la oculta solo por ahora — al volver
+      // a entrar al dashboard reaparece, hasta que el registro exista.
+      // Registrar es LA acción central de la app y no debe poder
+      // silenciarse por todo el día con una ✕.
+      efimera: true,
       mensaje: `📝 Aún no has registrado hoy. ¿Cómo estuvo ${m.nombre}?`,
     })
   } else {
@@ -336,9 +344,13 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
     setMontado(true)
   }, [mascota.id])
 
-  function cerrar(key: string) {
-    try { localStorage.setItem(PREFIJO_STORAGE + key, '1') } catch { /* sin persistencia */ }
-    setCerradas(prev => new Set(prev).add(key))
+  function cerrar(n: Novedad) {
+    // Las novedades efímeras solo se cierran "por ahora" (memoria):
+    // al remontar el componente (volver al dashboard) reaparecen.
+    if (!n.efimera) {
+      try { localStorage.setItem(PREFIJO_STORAGE + n.key, '1') } catch { /* sin persistencia */ }
+    }
+    setCerradas(prev => new Set(prev).add(n.key))
   }
 
   if (!montado) return null
@@ -397,7 +409,7 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
             {contenidoTarjeta}
           </Link>
           <button
-            onClick={() => cerrar(actual.key)}
+            onClick={() => cerrar(actual)}
             className="absolute top-1/2 -translate-y-1/2 right-3 text-[#8A7560] text-sm p-1"
             aria-label="Cerrar novedad"
           >
@@ -407,7 +419,7 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
       ) : (
         <button
           key={actual.key}
-          onClick={() => cerrar(actual.key)}
+          onClick={() => cerrar(actual)}
           className="mx-4 fade-in w-[calc(100%-2rem)] flex items-center gap-3 rounded-2xl px-3.5 py-3 text-left"
           style={estiloTarjeta}
         >
