@@ -4,11 +4,10 @@ import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
 import SelectorMascota from '@/components/SelectorMascota'
 import { guardarMascotaActivaId, obtenerMascotaActivaId } from '@/utils/mascotaActiva'
-import CelebracionesMascota from '@/components/CelebracionesMascota'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
 import { calcularEtapaVida, formatearEdad } from '@/utils/etapaVida'
-import BannerNotificaciones from '@/components/BannerNotificaciones'
 import BannerInstalarApp from '@/components/BannerInstalarApp'
+import Novedades from '@/components/Novedades'
 import { useEffect, useState } from 'react'
 import ChiquiTeCuenta from '@/components/ChiquiTeCuenta'
 
@@ -101,35 +100,17 @@ export default function DashboardContenido({
         onCambiar={cambiarMascota}
       />
 
-      {/* Celebraciones: cumpleaños 🎂 y aniversario de unión 🏡 —
-          banners cálidos y cerrables (ver CelebracionesMascota.tsx) */}
-      <CelebracionesMascota mascota={m} />
-
-      {/* Saludo con Chiqui — pañoleta cambia según el estado del día:
-          roja = sin registro hoy, azul = registró (normal),
-          verde = registró y todo bien (verde), amarilla = precaución */}
-      {(() => {
-        let imagen = '/chiqui-roja.png'
-        let mensaje = `¡Hola! ¿Cómo estuvo ${m.nombre} hoy? Aún no has registrado.`
-        if (tieneRegistroHoy) {
-          if (color === '#4CAF7D') {
-            imagen = '/chiqui-verde.png'
-            mensaje = `¡Todo registrado hoy! ${m.nombre} está muy bien. 🐾`
-          } else if (color === '#F5C842' || color === '#F07A30') {
-            imagen = '/chiqui-amarilla.png'
-            mensaje = `Registrado. Hay algo que merece atención en ${m.nombre} hoy.`
-          } else {
-            imagen = '/chiqui-azul.png'
-            mensaje = `¡Gracias por observar a ${m.nombre} hoy!`
-          }
-        }
-        return (
-          <div className="mx-4 mb-3 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-3 py-2.5 flex items-center gap-2.5">
-            <img src={imagen} alt="Chiqui" className="w-12 h-12 flex-shrink-0 object-contain" />
-            <p className="text-xs font-semibold text-[#5C4A3A] leading-snug">{mensaje}</p>
-          </div>
-        )
-      })()}
+      {/* NOVEDADES — el único sistema de eventos del dashboard:
+          cumpleaños, aniversario, fechas especiales, estado del
+          registro diario, rachas, mensajes positivos y recordatorios.
+          Una tarjeta a la vez; ver components/Novedades.tsx */}
+      <Novedades
+        mascota={m}
+        mascotas={mascotas}
+        tieneRegistroHoy={tieneRegistroHoy}
+        color={color}
+        rachaRegistros={rachaRegistros}
+      />
 
       {/* TARJETA CELO ACTIVO */}
       {m.sexo === 'Hembra' && m.seguimiento_reproductivo !== false && !m.castrado && celoActivoHoy && (
@@ -142,25 +123,7 @@ export default function DashboardContenido({
         </div>
       )}
 
-      {/* Banner racha de registros — aparece cuando racha >= 3 */}
-      {rachaRegistros >= 3 && (
-        <div className="mx-4 mb-3 bg-[#FFFCF8] border border-[#FFBD59] rounded-2xl px-4 py-3 flex items-center gap-3">
-          <img src="/chiqui/chiqui_cool.png" alt="Chiqui" className="w-12 h-12 object-contain flex-shrink-0" />
-          <div>
-            <p className="text-sm font-bold text-[#3D2B1F]">
-              {rachaRegistros >= 30 ? '¡30 días o más! Chiqui no lo puede creer 😎' :
-               rachaRegistros >= 14 ? `¡${rachaRegistros} días seguidos! Eres un pro 😎` :
-               rachaRegistros >= 7  ? `¡${rachaRegistros} días! Una semana o más 😎` :
-               rachaRegistros >= 5  ? `¡${rachaRegistros} días seguidos! Sigue así 😎` :
-               `¡${rachaRegistros} días registrando! Buen comienzo 😎`}
-            </p>
-            <p className="text-xs text-[#8A7560] mt-0.5">Cada registro le da contexto a tu veterinario.</p>
-          </div>
-        </div>
-      )}
-
       <BannerInstalarApp />
-      <BannerNotificaciones mascotaId={m.id} />
 
       {/* Banner de etapa — solo Adulto Maduro y Senior */}
       {(() => {
@@ -206,9 +169,19 @@ export default function DashboardContenido({
                 return ` · ${formatearEdad(etapa)} · ${etapa.nombre}`
               })()}
             </div>
-            <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: `${color}26`, border: `1px solid ${color}4D`, color: '#FFFCF8' }}>
-              <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-              {estadoLabel}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: `${color}26`, border: `1px solid ${color}4D`, color: '#FFFCF8' }}>
+                <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+                {estadoLabel}
+              </div>
+              {/* Indicador PERMANENTE de racha: no es una novedad ni una
+                  celebración — muestra siempre la racha actual (solo si
+                  es mayor a 0) y se actualiza al completar el registro. */}
+              {rachaRegistros > 0 && (
+                <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: '#FFBD5933', border: '1px solid #FFBD5966', color: '#FFFCF8' }}>
+                  🔥 {rachaRegistros} {rachaRegistros === 1 ? 'día' : 'días'}
+                </div>
+              )}
             </div>
           </div>
         </div>
