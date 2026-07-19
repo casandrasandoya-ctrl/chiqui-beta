@@ -54,6 +54,12 @@ const TARJETAS_PERRO = [
   { emoji: '💪', cat: 'bien', titulo: 'Mi peso saludable', pregunta: '¿Cómo reconocer un peso saludable?', texto: 'Generalmente estoy en un peso saludable cuando mi cintura se aprecia al mirarme desde arriba, mis costillas se palpan fácilmente sin verse demasiado marcadas, tengo buena masa muscular y me mantengo activo. Cada perro es diferente: mi peso ideal siempre se interpreta según mi tamaño y raza.' },
   { emoji: '🍔', cat: 'salud', titulo: 'Señales de sobrepeso', pregunta: '¿Cómo saber si mi perro tiene sobrepeso?', texto: 'Si mis costillas comienzan a ser difíciles de palpar, mi cintura ya no se aprecia, se acumula grasa en mi abdomen o tórax, o me canso más fácil en paseos y juegos, podría tener sobrepeso. Mantener un peso saludable previene enfermedades y mejora mi calidad de vida.' },
   { emoji: '❤️', cat: 'salud', titulo: 'Un cambio de peso es una señal', pregunta: '¿Cuándo el peso puede afectar la salud de mi perro?', texto: 'El exceso de peso puede aumentar mi riesgo de problemas articulares, diabetes, enfermedades cardíacas y dificultad para respirar. Un cambio importante de peso no siempre significa una enfermedad, pero sí es una señal de que algo podría estar ocurriendo. Llevar un registro periódico y consultar con mi veterinario permitirá actuar a tiempo y cuidar mejor mi salud.' },
+  // GRUPO 7: Signos de alerta — orientación para reconocer y actuar
+  { emoji: '🌀', cat: 'salud', titulo: 'Convulsión', pregunta: '¿Cómo reconozco una convulsión?', texto: 'Me sacudo sin control, no respondo y luego puedo quedar desorientado. HAZ ESTO: aleja los objetos cercanos y cronometra el episodio para contárselo al veterinario. EVITA: sujetarme o poner algo en mi boca. Después llévame de inmediato al veterinario.' },
+  { emoji: '🌡️', cat: 'salud', titulo: 'Golpe de calor', pregunta: '¿Cómo reconozco un golpe de calor?', texto: 'Jadeo en exceso, estoy muy caliente o me cuesta moverme. HAZ ESTO: llévame a un lugar fresco y refréscame con agua fresca (no fría). EVITA: usar hielo directamente sobre mi cuerpo. Busca atención veterinaria de inmediato.' },
+  { emoji: '☠️', cat: 'salud', titulo: 'Intoxicación', pregunta: '¿Qué hago si sospecho intoxicación?', texto: 'Si sospechas que comí o lamí algo peligroso, lleva el envase o una foto de la sustancia al veterinario. EVITA: hacerme vomitar sin indicación profesional; algunos tóxicos causan más daño al salir. Cada minuto cuenta.' },
+  { emoji: '🚑', cat: 'salud', titulo: 'Accidente o golpe', pregunta: '¿Qué hago si sufrí un accidente?', texto: 'Si sufrí un accidente, muéveme lo menos posible y llévame al veterinario cuanto antes. EVITA: manipularme bruscamente si me ves muy adolorido. Puede haber lesiones internas que no se ven a simple vista.' },
+  { emoji: '🫁', cat: 'salud', titulo: 'Dificultad respiratoria', pregunta: '¿Cómo reconozco dificultad para respirar?', texto: 'Respiro con mucho esfuerzo o muy rápido, mis encías se ven pálidas o azuladas. HAZ ESTO: manténme tranquilo y busca atención veterinaria de inmediato. EVITA: darme comida o agua, y no me hagas caminar.' },
 ]
 
 const TARJETAS_GATO = [
@@ -105,6 +111,12 @@ const TARJETAS_GATO = [
   { emoji: '💪', cat: 'bien', titulo: 'Mi peso saludable', pregunta: '¿Cómo reconocer un peso saludable?', texto: 'Generalmente estoy en un peso saludable cuando mis costillas se palpan sin exceso de grasa, se aprecia una ligera cintura, tengo buena masa muscular y me mantengo activo y con buen estado general.' },
   { emoji: '🍔', cat: 'salud', titulo: 'Señales de sobrepeso', pregunta: '¿Cómo saber si mi gato tiene sobrepeso?', texto: 'Si mis costillas son difíciles de palpar, mi abdomen se ve más redondeado, acumulo grasa o pierdo agilidad para saltar y jugar, podría tener sobrepeso. Mantener un peso saludable previene enfermedades y mejora mi bienestar.' },
   { emoji: '❤️', cat: 'salud', titulo: 'Un cambio de peso es una señal', pregunta: '¿Cuándo el peso puede afectar la salud de mi gato?', texto: 'El sobrepeso puede aumentar mi riesgo de diabetes, problemas articulares, enfermedades hepáticas y menor movilidad. Un cambio importante de peso no siempre significa una enfermedad, pero sí es una señal de que algo podría estar ocurriendo. Llevar un registro periódico y consultar con mi veterinario permitirá actuar a tiempo y cuidar mejor mi salud.' },
+  // GRUPO 7: Signos de alerta — orientación para reconocer y actuar
+  { emoji: '🫁', cat: 'salud', titulo: 'Dificultad respiratoria', pregunta: '¿Cómo reconozco dificultad para respirar?', texto: 'Respiro con la boca abierta o hago mucho esfuerzo para respirar (los gatos casi nunca respiramos por la boca en reposo). HAZ ESTO: manténme tranquilo y llévame al veterinario de inmediato. EVITA: hacer que me mueva o forzarme a un transportador si me estreso mucho.' },
+  { emoji: '☠️', cat: 'salud', titulo: 'Intoxicación', pregunta: '¿Qué hago si sospecho intoxicación?', texto: 'Si sospechas que ingerí algo tóxico (lirios, chocolate, antipulgas de perro, medicamentos humanos), lleva toda la información posible al veterinario: envase, planta o foto. EVITA: darme remedios caseros o provocarme el vómito. Muchos productos comunes son muy peligrosos para nosotros.' },
+  { emoji: '🌡️', cat: 'salud', titulo: 'Golpe de calor', pregunta: '¿Cómo reconozco un golpe de calor?', texto: 'Estoy muy decaído, jadeo (algo raro en gatos) o mi cuerpo está muy caliente. HAZ ESTO: refréscame con agua fresca (no fría) y busca atención veterinaria. EVITA: usar hielo directamente sobre mi cuerpo. Los gatos toleramos menos el calor de lo que parece.' },
+  { emoji: '🚑', cat: 'salud', titulo: 'Caída o accidente', pregunta: '¿Qué hago si me caí o tuve un accidente?', texto: 'Si me caí desde altura o tuve un accidente, trasládame con mucho cuidado al veterinario, idealmente en una superficie plana o transportador. EVITA: manipularme más de lo necesario; puedo tener lesiones internas incluso si me veo bien.' },
+  { emoji: '🌀', cat: 'salud', titulo: 'Convulsión', pregunta: '¿Cómo reconozco una convulsión?', texto: 'Me sacudo sin control y no respondo. HAZ ESTO: aleja los objetos cercanos y cronometra el episodio para contárselo al veterinario. EVITA: sujetarme o poner algo en mi boca. Después del episodio, llévame de inmediato al veterinario.' },
 ]
 
 // Tarjetas generales (para otras especies)
@@ -127,8 +139,8 @@ interface Props {
 
 // Labels cortos de los 7 grupos temáticos, en el MISMO orden que los
 // grupos de tarjetas (el índice del chip es el índice del grupo).
-const CHIPS_PERRO = ['🍖 Alimentación', '🧸 Ansiedad', '🩺 Signos vitales', '💩 Digestión', '🐕 Bienestar', '🦴 Movimiento', '⚖️ Peso']
-const CHIPS_GATO = ['🍖 Alimentación', '🐈 Conducta', '🩺 Salud', '🎾 Juego', '💩 Digestión', '🦴 Movimiento', '⚖️ Peso']
+const CHIPS_PERRO = ['🍖 Alimentación', '🧸 Ansiedad', '🩺 Signos vitales', '💩 Digestión', '🐕 Bienestar', '🦴 Movimiento', '⚖️ Peso', '🚨 Signos de alerta']
+const CHIPS_GATO = ['🍖 Alimentación', '🐈 Conducta', '🩺 Salud', '🎾 Juego', '💩 Digestión', '🦴 Movimiento', '⚖️ Peso', '🚨 Signos de alerta']
 
 export default function ChiquiTeCuenta({ especie }: Props) {
   // Seleccionar 5 tarjetas del dia — rotan segun dia del año
@@ -140,7 +152,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
   // categoría seleccionado; al refrescar o volver a entrar, el
   // componente se monta de nuevo y vuelve a null — el filtro se
   // elimina solo y regresa el azar, tal como debe ser.
-  const [grupoAleatorio] = useState(() => Math.floor(Math.random() * 7))
+  const [grupoAleatorio] = useState(() => Math.floor(Math.random() * 8))
   const [grupoElegido, setGrupoElegido] = useState<number | null>(null)
   const grupoIndex = grupoElegido !== null ? grupoElegido : grupoAleatorio
 
@@ -176,6 +188,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
     { img: '/chiqui/chiqui_paseo.png', titulo: '¿Conoces sus señales de bienestar?', texto: 'Lee los tips de Chiqui sobre comportamiento, ejercicio y cuidado diario.' },
     { img: '/chiqui/chiqui_tranquilo.png', titulo: '¿Conoces las señales de molestias articulares?', texto: 'Lee los tips de Chiqui y aprende a detectar cambios en su movimiento.' },
     { img: '/chiqui/chiqui_ejercicio.png', titulo: '¿Tu compañero tiene un peso saludable?', texto: 'Lee los tips de Chiqui y aprende a reconocer las señales de bajo peso, peso saludable y sobrepeso.' },
+    { img: '/chiqui/chiqui_alerta.png', titulo: '¿Sabes reconocer signos de alerta?', texto: 'Lee los tips de Chiqui para saber qué hacer (y qué evitar) ante convulsiones, golpe de calor, intoxicación, accidentes o dificultad para respirar.' },
   ]
   const GRUPOS_GATO = [
     { img: '/chiqui/chiqui_chef.png', titulo: '¿Sabes qué puede comer tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué sí y qué no puede comer.' },
@@ -185,6 +198,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
     { img: '/chiqui/chiqui_caca.png', titulo: '¿Sabes leer las heces de tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué te dice cada color y forma.' },
     { img: '/chiqui/chiqui_tranquilo.png', titulo: '¿Sabes reconocer molestias articulares en tu gato?', texto: 'Lee los tips de Chiqui y aprende a detectar cambios sutiles en su movimiento.' },
     { img: '/chiqui/chiqui_ejercicio.png', titulo: '¿Tu compañero tiene un peso saludable?', texto: 'Lee los tips de Chiqui y aprende a reconocer las señales de bajo peso, peso saludable y sobrepeso.' },
+    { img: '/chiqui/chiqui_alerta.png', titulo: '¿Sabes reconocer signos de alerta?', texto: 'Lee los tips de Chiqui para saber qué hacer (y qué evitar) ante convulsiones, intoxicación, golpe de calor, caídas o dificultad para respirar.' },
   ]
   const sextaTarjeta = useMemo(() => {
     const grupos = especie === 'Gato' ? GRUPOS_GATO : GRUPOS_PERRO

@@ -298,12 +298,25 @@ function calcularNovedades(
   // ---- 8. MENSAJE POSITIVO (cuando ya no hay nada más importante) ----
   if (tieneRegistroHoy) {
     const [aH, mH, dH] = hoyStr.split('-').map(Number)
-    const idx = (aH * 366 + mH * 31 + dH) % MENSAJES_POSITIVOS.length
-    lista.push({
-      key: `positivo_${m.id}_${hoyStr}`,
-      img: '/chiqui/chiqui_corazon.png',
-      mensaje: MENSAJES_POSITIVOS[idx].replace('{nombre}', m.nombre),
-    })
+    // Cada 4 días, en vez del mensaje positivo, invitamos a leer los
+    // ChiquiTips del final del dashboard — así se refuerza que existen
+    // sin ser insistentes. Recordar que registrar es lo importante:
+    // esto es "postre", no comida principal.
+    const diaDelAnio = aH * 366 + mH * 31 + dH
+    if (diaDelAnio % 4 === 0) {
+      lista.push({
+        key: `tips_invitacion_${hoyStr}`,
+        img: '/chiqui/chiqui_lentes.png',
+        mensaje: `📖 Al final del dashboard te dejé ChiquiTips que te pueden ayudar a entender mejor a ${m.nombre}. ¡Échales un vistazo!`,
+      })
+    } else {
+      const idx = diaDelAnio % MENSAJES_POSITIVOS.length
+      lista.push({
+        key: `positivo_${m.id}_${hoyStr}`,
+        img: '/chiqui/chiqui_corazon.png',
+        mensaje: MENSAJES_POSITIVOS[idx].replace('{nombre}', m.nombre),
+      })
+    }
   }
 
   // ---- 9. RECORDATORIO DE NOTIFICACIONES ----
