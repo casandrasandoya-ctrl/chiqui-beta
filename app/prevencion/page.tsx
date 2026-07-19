@@ -427,25 +427,46 @@ export default function PrevencionPage() {
     return Math.round((f.getTime() - h.getTime()) / 86400000)
   }
 
-  // Vacunas / antiparasitarios: miran la PRÓXIMA fecha más cercana
-  // entre todos los registros (regla del proyecto: por dosis más
-  // reciente pendiente). "Vencido" si ya pasó, "en N días" si está
-  // cerca, "al día" si la próxima está lejos o no hay pendientes.
-  function badgePreventivo(items: any[], campoProxima: string): Badge | null {
+  // Vacunas / antiparasitarios: SOLO la dosis más reciente manda
+  // (regla del proyecto). Una dosis antigua cuya "próxima" ya venció
+  // NO debe marcar la sección como vencida si después se aplicó otra
+  // dosis con su próxima fecha aún vigente. Se ordena por fecha de
+  // aplicación y se mira la próxima fecha de la más nueva.
+  function badgePreventivo(items: any[]): Badge | null {
     if (items.length === 0) return null
-    const proximas = items
-      .map(i => i[campoProxima])
-      .filter(Boolean)
-      .map(f => diasHasta(f))
-    if (proximas.length === 0) return { texto: 'Sin próxima', color: '#8A7560' }
-    const min = Math.min(...proximas)
+    const masReciente = items
+      .slice()
+      .sort((a, b) => String(b.fecha_aplicacion || '').localeCompare(String(a.fecha_aplicacion || '')))[0]
+    const prox = masReciente?.proxima_fecha
+    if (!prox) return { texto: 'Sin próxima', color: '#8A7560' }
+    const min = diasHasta(prox)
     if (min < 0) return { texto: 'Vencido', color: '#E05252' }
     if (min === 0) return { texto: 'Hoy', color: '#F07A30' }
     if (min <= 30) return { texto: `En ${min} ${min === 1 ? 'día' : 'días'}`, color: '#F5C842' }
     return { texto: 'Al día', color: '#4CAF7D' }
   }
-  const badgeVacunas = badgePreventivo(vacunas, 'proxima_fecha')
-  const badgeAntis = badgePreventivo(antis, 'proxima_fecha')
+  const badgeVacunas = (() => {
+    // Vacunas: cada tipo (antirrábica, séxtuple...) tiene su propio
+    // ciclo. Se agrupa por nombre, se toma la dosis más reciente de
+    // cada una, y el badge refleja la MÁS URGENTE entre ellas.
+    if (vacunas.length === 0) return null
+    const porNombre = new Map<string, any>()
+    for (const v of vacunas) {
+      const k = (v.nombre || '').toLowerCase().trim()
+      const prev = porNombre.get(k)
+      if (!prev || String(v.fecha_aplicacion || '').localeCompare(String(prev.fecha_aplicacion || '')) > 0) {
+        porNombre.set(k, v)
+      }
+    }
+    const dias = Array.from(porNombre.values()).map(v => v.proxima_fecha).filter(Boolean).map(f => diasHasta(f))
+    if (dias.length === 0) return { texto: 'Sin próxima', color: '#8A7560' }
+    const min = Math.min(...dias)
+    if (min < 0) return { texto: 'Vencido', color: '#E05252' }
+    if (min === 0) return { texto: 'Hoy', color: '#F07A30' }
+    if (min <= 30) return { texto: `En ${min} ${min === 1 ? 'día' : 'días'}`, color: '#F5C842' }
+    return { texto: 'Al día', color: '#4CAF7D' }
+  })()
+  const badgeAntis = badgePreventivo(antis)
 
   // Observaciones: cuántas activas (rojo) y cuántas resueltas (verde)
   const badgesObs: Badge[] = []
