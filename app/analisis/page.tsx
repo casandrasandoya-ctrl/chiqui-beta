@@ -448,9 +448,21 @@ export default function AnalisisPage() {
     '30min_1h': 45,
     '1_2h': 90,
     '2_4h': 180,
+    // tiempo_exacto no está aquí: sus minutos vienen del campo
+    // paseo_minutos_exactos del propio registro.
   }
   const esPerro = mascota?.especie === 'Perro'
-  const minutosPaseoMes = registros.reduce((acc, r) => acc + (MINUTOS_POR_PASEO[r.paseo] || 0), 0)
+  // Minutos de paseo de un registro: usa el valor EXACTO cuando el
+  // usuario lo capturó; si no, cae al promedio del rango. Así el
+  // promedio mensual y semanal ganan precisión sin obligar a nadie a
+  // usar cronómetro.
+  function minutosDePaseo(r: any): number {
+    if (typeof r?.paseo_minutos_exactos === 'number' && r.paseo_minutos_exactos > 0) {
+      return r.paseo_minutos_exactos
+    }
+    return MINUTOS_POR_PASEO[r?.paseo] || 0
+  }
+  const minutosPaseoMes = registros.reduce((acc, r) => acc + minutosDePaseo(r), 0)
   const horasPaseoMes = Math.floor(minutosPaseoMes / 60)
   const minRestantesPaseoMes = minutosPaseoMes % 60
 
@@ -458,6 +470,8 @@ export default function AnalisisPage() {
     const hoy = new Date()
     const hoyStr = fechaChile(hoy)
     const regHoy = registros.find(r => r.fecha === hoyStr)
+    // Cualquier valor de paseo distinto de no_paseo cuenta para la
+    // racha (incluye tiempo_exacto).
     const tieneHoy = regHoy && regHoy.paseo && regHoy.paseo !== 'no_paseo'
     const inicio = tieneHoy ? 0 : 1
     let racha = 0
@@ -480,7 +494,7 @@ export default function AnalisisPage() {
     const d = new Date(); d.setDate(d.getDate() - (6 - i))
     const fechaStr = fechaChile(d)
     const reg = registros.find(r => r.fecha === fechaStr)
-    return { fecha: d, minutos: reg ? (MINUTOS_POR_PASEO[reg.paseo] || 0) : 0 }
+    return { fecha: d, minutos: reg ? minutosDePaseo(reg) : 0 }
   })
   const maxMinutosSemana = Math.max(...paseoUltimos7.map(p => p.minutos), 1)
 

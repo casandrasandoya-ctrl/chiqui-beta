@@ -229,6 +229,11 @@ function getCategorias(especie: string): Categoria[] {
       {value:'30min_1h',emoji:'🐕',label:'30 min a 1 hora'},
       {value:'1_2h',emoji:'🏃',label:'1 a 2 horas'},
       {value:'2_4h',emoji:'🏞',label:'2 a 4 horas'},
+      // Sexta opción: al seleccionarla se abre un input inline (h/min)
+      // bajo el grid. Los minutos se guardan en la columna
+      // paseo_minutos_exactos y el análisis usa ese valor cuando existe;
+      // si no, cae al rango del label como hasta ahora.
+      {value:'tiempo_exacto',emoji:'⏱️',label:'Registrar tiempo exacto'},
     ]}
 
   const categorias = [energia, animo, apetito, agua, digestion, heces, arenero, pelaje, conducta, movilidad]
@@ -311,6 +316,9 @@ function RegistroContenido() {
   const [especie, setEspecie] = useState('')
   const [sel, setSel] = useState<Record<string,string>>({})
   const [det, setDet] = useState<Record<string,string[]>>({})
+  // Minutos exactos de paseo cuando el usuario elige "⏱️ Registrar
+  // tiempo exacto". Se guarda en columna paseo_minutos_exactos.
+  const [paseoMinutos, setPaseoMinutos] = useState<number | null>(null)
   const [fechaRegistro, setFechaRegistro] = useState('')
   const [nota, setNota] = useState('')
   const [cuidados, setCuidados] = useState<Set<string>>(new Set())
@@ -541,6 +549,7 @@ function RegistroContenido() {
       conducta: sel.conducta || null, conducta_detalle: det.conducta?.join(', ') || null,
       movilidad: sel.movilidad || null, movilidad_detalle: det.movilidad?.join(', ') || null,
       paseo: sel.paseo || null,
+      paseo_minutos_exactos: sel.paseo === 'tiempo_exacto' ? paseoMinutos : null,
       signos_alerta: signos.size > 0 ? Array.from(signos).join(', ') : null,
       signos_alerta_otro: signos.has('otro_signo') && signoOtroTexto.trim() ? signoOtroTexto.trim() : null,
       fue_al_vet: cuidados.has('vet'), se_bano: cuidados.has('bano'),
@@ -658,6 +667,10 @@ function RegistroContenido() {
                             return {...p, [cat.id]: op.value}
                           })
                           if (!op.detalle) setDet(p => { const n={...p}; delete n[cat.id]; return n })
+                          // Al cambiar a otra opción de paseo (o
+                          // deseleccionar), los minutos exactos ya no
+                          // aplican.
+                          if (cat.id === 'paseo' && op.value !== 'tiempo_exacto') setPaseoMinutos(null)
                         }}
                         className="flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all"
                         style={selVal===op.value ? {borderColor:cat.color,background:'rgba(61,214,181,0.08)',borderWidth:'1.5px'} : {background:'#FFFCF8',borderColor:'#EEE2D4',borderWidth:'1.5px'}}>
@@ -666,6 +679,55 @@ function RegistroContenido() {
                       </button>
                     ))}
                   </div>
+                  {/* Input inline de tiempo exacto: aparece bajo el
+                      grid cuando el usuario elige ⏱️ en paseo. Sin
+                      cronómetro: dos selects rápidos de horas y
+                      minutos. Se guarda como minutos totales en
+                      paseo_minutos_exactos. */}
+                  {cat.id === 'paseo' && selVal === 'tiempo_exacto' && (
+                    <div className="bg-[#FBEAD9] rounded-xl p-3 border border-[#EEE2D4] mb-2">
+                      <p className="text-xs text-[#8A7560] uppercase tracking-wider font-semibold mb-2">¿Cuánto duró el paseo?</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <label className="text-[10px] text-[#8A7560]">Horas</label>
+                          <select
+                            value={Math.floor((paseoMinutos ?? 0) / 60)}
+                            onChange={e => {
+                              const h = Number(e.target.value)
+                              const min = (paseoMinutos ?? 0) % 60
+                              setPaseoMinutos(h * 60 + min)
+                            }}
+                            className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-lg px-2 py-2 text-sm text-[#3D2B1F]"
+                          >
+                            {Array.from({length: 13}, (_, i) => (
+                              <option key={i} value={i}>{i} h</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[10px] text-[#8A7560]">Minutos</label>
+                          <select
+                            value={(paseoMinutos ?? 0) % 60}
+                            onChange={e => {
+                              const min = Number(e.target.value)
+                              const h = Math.floor((paseoMinutos ?? 0) / 60)
+                              setPaseoMinutos(h * 60 + min)
+                            }}
+                            className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-lg px-2 py-2 text-sm text-[#3D2B1F]"
+                          >
+                            {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(m => (
+                              <option key={m} value={m}>{m} min</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="pt-4">
+                          <p className="text-xs font-bold text-[#8C572F]">
+                            = {paseoMinutos ?? 0} min
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {selVal && opSel?.detalle && (
                     <div className="bg-[#FBEAD9] rounded-xl p-3 border border-[#EEE2D4] space-y-3">
                       {opSel.detalle.map((sub, subIdx) => (
