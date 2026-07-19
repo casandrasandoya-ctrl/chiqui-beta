@@ -115,14 +115,11 @@ const TARJETAS_GENERAL = [
 ]
 
 
-const COLORES_CAT: Record<string, { color: string; bg: string; border: string; label: string }> = {
-  alim:  { color: '#CD7421', bg: '#FEF3E7', border: '#F5C09A', label: 'Alimentación' },
-  salud: { color: '#2E7D52', bg: '#EAF6EF', border: '#A8D5B5', label: 'Salud' },
-  comp:  { color: '#6B3FA0', bg: '#F3EEFF', border: '#C9A8F0', label: 'Comportamiento' },
-  bien:  { color: '#1A6B9A', bg: '#EBF6FC', border: '#8DCCED', label: 'Bienestar' },
-  seg:   { color: '#B83232', bg: '#FDEAEA', border: '#F0AAAA', label: 'Seguridad' },
-  mov:   { color: '#4B5563', bg: '#F1F2F4', border: '#C7CBD1', label: 'Movilidad' },
-}
+// Nota: las tarjetas ya no muestran chip ni colores de subcategoría
+// (generaban desorden visual al mezclar subcategorías dentro de un
+// mismo grupo temático). El campo `cat` de cada tarjeta se conserva en
+// los datos por si se necesita a futuro, pero no pinta nada en la UI.
+// La categoría visible del grupo la comunica el selector "Hoy te tocó".
 
 interface Props {
   especie: string
@@ -259,28 +256,24 @@ export default function ChiquiTeCuenta({ especie }: Props) {
           <p className="text-[10px] text-[#8A7560] leading-relaxed">{sextaTarjeta.texto}</p>
         </div>
         {tarjetasHoy.map((t, i) => {
-          const cat = COLORES_CAT[(t as any).cat] || COLORES_CAT.bien
           const abierto = expandido === i
           return (
             <div
               key={i}
               className="rounded-2xl p-3 flex flex-col"
-              style={{ background: '#FFFCF8', border: `1.5px solid ${cat.border}` }}
+              style={{ background: '#FFFCF8', border: '1.5px solid #EEE2D4' }}
             >
-              {/* Badge categoría */}
-              <div className="flex items-center gap-1 mb-2">
-                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[#F5EDE3]" style={{ color: cat.color }}>
-                  {cat.label}
-                </span>
-              </div>
-
-              {/* Emoji */}
+              {/* Sin chip de subcategoría: la categoría ya la comunica
+                  el selector de arriba, y las subcategorías mezcladas
+                  dentro de un mismo grupo generaban desorden visual.
+                  El emoji es el diferenciador visual de cada tarjeta y
+                  el TÍTULO es el protagonista. */}
               <div className="mb-1.5">
                 <span className="text-xl">{t.emoji}</span>
               </div>
 
-              {/* Título */}
-              <p className="font-bold text-xs leading-snug mb-1" style={{ color: cat.color }}>{t.titulo}</p>
+              {/* Título — lo primero que debe llamar la atención */}
+              <p className="font-bold text-xs leading-snug mb-1 text-[#3D2B1F]">{t.titulo}</p>
 
               {/* Pregunta corta o texto expandido */}
               {!abierto ? (
@@ -290,8 +283,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
                   </p>
                   <button
                     onClick={() => setExpandido(i)}
-                    className="text-[10px] font-bold mt-auto text-left"
-                    style={{ color: cat.color }}
+                    className="text-[10px] font-bold mt-auto text-left text-[#CD7421]"
                   >
                     Ver más ↓
                   </button>
@@ -301,8 +293,7 @@ export default function ChiquiTeCuenta({ especie }: Props) {
                   <p className="text-[10px] text-[#5C4A3A] leading-relaxed mb-1">{t.texto}</p>
                   <button
                     onClick={() => setExpandido(null)}
-                    className="text-[10px] font-bold mt-auto text-left"
-                    style={{ color: cat.color }}
+                    className="text-[10px] font-bold mt-auto text-left text-[#CD7421]"
                   >
                     Ver menos ↑
                   </button>
