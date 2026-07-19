@@ -856,7 +856,7 @@ export default function AnalisisPage() {
         return (
           <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
             <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-[#EEE2D4]">
-              <img src="/chiqui/chiqui_analisis.png" alt="" className="w-9 h-9 object-contain flex-shrink-0" />
+              <img src="/chiqui/chiqui_cuidados.png" alt="" className="w-9 h-9 object-contain flex-shrink-0" />
               <div>
                 <p className="font-bold text-sm text-[#3D2B1F]">Rutinas de cuidado</p>
                 <p className="text-[10px] text-[#8A7560]">Las más relevantes según todo el historial</p>
