@@ -30,6 +30,7 @@ interface Mascota {
   raza?: string
   sexo?: string
   fecha_nacimiento?: string
+  fecha_union?: string
   color?: string
   castrado?: boolean
   peso_actual?: number
@@ -95,6 +96,7 @@ export default function PerfilPage() {
       nombre: form.nombre,
       raza: form.raza,
       fecha_nacimiento: form.fecha_nacimiento,
+      fecha_union: form.fecha_union || null,
       color: form.color,
       castrado: form.castrado,
       peso_actual: pesoNuevo,
@@ -184,6 +186,7 @@ export default function PerfilPage() {
     ['Especie', mascota?.especie || '-'],
     ['Raza', mascota?.raza || '-'],
     ['Nacimiento', mascota?.fecha_nacimiento || '-'],
+    ['Se unió a tu familia', mascota?.fecha_union || '-'],
     ['Color', mascota?.color || '-'],
     ['Alimentación', mascota?.alimentacion_tipo ? `${mascota.alimentacion_tipo}${mascota.alimentacion_marca ? ' · ' + mascota.alimentacion_marca : ''}` : '-'],
     ['Alergias', mascota?.alergias || 'Ninguna conocida'],
@@ -286,6 +289,7 @@ export default function PerfilPage() {
               ['Nombre', 'nombre', 'text', 'ej. Luna'],
               ['Raza', 'raza', 'text', 'ej. Mestizo'],
               ['Fecha de nacimiento', 'fecha_nacimiento', 'date', ''],
+              ['Se unió a tu familia', 'fecha_union', 'date', ''],
               ['Color', 'color', 'text', 'ej. Caramelo'],
               ['Peso (kg)', 'peso_actual', 'number', 'ej. 8.5'],
               ['Marca / proteína', 'alimentacion_marca', 'text', 'ej. Belcando salmón'],

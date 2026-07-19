@@ -4,6 +4,7 @@ import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
 import SelectorMascota from '@/components/SelectorMascota'
 import { guardarMascotaActivaId, obtenerMascotaActivaId } from '@/utils/mascotaActiva'
+import CelebracionesMascota from '@/components/CelebracionesMascota'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
 import { calcularEtapaVida, formatearEdad } from '@/utils/etapaVida'
 import BannerNotificaciones from '@/components/BannerNotificaciones'
@@ -99,6 +100,10 @@ export default function DashboardContenido({
         mascotaActiva={mascotas.find(ms => ms.id === m.id) || mascotas[0]}
         onCambiar={cambiarMascota}
       />
+
+      {/* Celebraciones: cumpleaños 🎂 y aniversario de unión 🏡 —
+          banners cálidos y cerrables (ver CelebracionesMascota.tsx) */}
+      <CelebracionesMascota mascota={m} />
 
       {/* Saludo con Chiqui — pañoleta cambia según el estado del día:
           roja = sin registro hoy, azul = registró (normal),
