@@ -212,20 +212,6 @@ export default function DashboardContenido({
         </div>
       </Link>
 
-      {/* BOTÓN REGISTRAR HOY */}
-      {!tieneRegistroHoy && (
-        <Link href="/registro-diario" className="mx-4 mb-4 bg-[#FFBD59] rounded-2xl px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-white/30 flex items-center justify-center text-lg">✏️</div>
-            <div className="text-left">
-              <div className="font-heading text-[15px] font-extrabold text-[#5C3A12]">Registrar hoy</div>
-              <div className="text-[11px] text-[#5C3A12]/70 mt-0.5">¿Cómo estuvo {m.nombre}?</div>
-            </div>
-          </div>
-          <span className="text-xl text-[#5C3A12]/50">›</span>
-        </Link>
-      )}
-
       {/* PRÓXIMOS — grid 2x2 */}
       {proximosItems.length > 0 && (
         <>

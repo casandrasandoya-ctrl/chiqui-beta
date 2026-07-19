@@ -51,6 +51,7 @@ interface Novedad {
   mensaje: string
   destacada?: boolean  // true = celebración de HOY (tarjeta dorada)
   href?: string        // si existe, la tarjeta navega y la ✕ cierra
+  accion?: string      // texto de acción subrayado (deja claro que es clickeable)
 }
 
 export function fechaHoyChile(): string {
@@ -206,6 +207,7 @@ function calcularNovedades(
       key: `estado_sinregistro_${m.id}_${hoyStr}`,
       img: '/chiqui/chiqui_registro.png',
       href: '/registro-diario',
+      accion: '✏️ Registrar hoy',
       mensaje: `📝 Aún no has registrado hoy. ¿Cómo estuvo ${m.nombre}?`,
     })
   } else {
@@ -245,6 +247,7 @@ function calcularNovedades(
       key: `seguimiento_${seg.id}_b${bloque}`,
       img: '/chiqui/chiqui_vet.png',
       href: '/prevencion',
+      accion: '🩺 Actualizar seguimiento',
       mensaje: `🩺 Hace ${seg.diasSinActualizar} días que no actualizas el seguimiento de "${seg.titulo}". ¿Cómo sigue ${m.nombre}?`,
     })
   }
@@ -279,6 +282,7 @@ function calcularNovedades(
       key: `recinte_${r.tipo}_${m.id}_${hoyStr}`,
       img: '/chiqui/chiqui_lupa.png',
       href: r.href,
+      accion: r.tipo === 'peso' ? '⚖️ Actualizar peso' : '✏️ Registrar ahora',
       mensaje: r.mensaje(r.dias as number),
     })
   }
@@ -300,6 +304,7 @@ function calcularNovedades(
       key: `recordatorio_notif_${hoyStr}`,
       img: '/chiqui/chiqui_recordatorio.png',
       href: '/perfil',
+      accion: '🔔 Activar recordatorios',
       mensaje: `🔔 Activa los recordatorios diarios para no olvidar registrar a ${m.nombre}.`,
     })
   }
@@ -353,9 +358,18 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
   const contenidoTarjeta = (
     <>
       <img src={actual.img} alt="Chiqui" className="w-14 h-14 object-contain flex-shrink-0" />
-      <p className={`flex-1 leading-snug ${actual.destacada ? 'text-sm font-bold text-[#3D2B1F]' : 'text-xs font-semibold text-[#5C4A3A]'}`}>
-        {actual.mensaje}
-      </p>
+      <div className="flex-1">
+        <p className={`leading-snug ${actual.destacada ? 'text-sm font-bold text-[#3D2B1F]' : 'text-xs font-semibold text-[#5C4A3A]'}`}>
+          {actual.mensaje}
+        </p>
+        {/* Línea de acción subrayada: deja claro que la tarjeta se
+            puede tocar (además de poder cerrarla con la ✕) */}
+        {actual.href && actual.accion && (
+          <span className="inline-block mt-1 text-[11px] font-bold text-[#CD7421] underline underline-offset-2">
+            {actual.accion}
+          </span>
+        )}
+      </div>
     </>
   )
   const estiloTarjeta = actual.destacada
