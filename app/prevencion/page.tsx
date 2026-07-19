@@ -415,6 +415,77 @@ export default function PrevencionPage() {
   const obsActivas = obs.filter(o => o.estado !== 'resuelta')
   const obsResueltas = obs.filter(o => o.estado === 'resuelta')
 
+  // --- Mini-resúmenes de estado por sección ---
+  // Cada encabezado muestra a la derecha una o más "píldoras" que
+  // resumen su estado de un vistazo, sin abrir la sección. Un badge
+  // tiene texto y color del semáforo de salud de la app.
+  interface Badge { texto: string; color: string }
+  const HOY_PREV = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+  function diasHasta(fecha: string): number {
+    const h = new Date(HOY_PREV + 'T00:00:00')
+    const f = new Date(fecha + 'T00:00:00')
+    return Math.round((f.getTime() - h.getTime()) / 86400000)
+  }
+
+  // Vacunas / antiparasitarios: miran la PRÓXIMA fecha más cercana
+  // entre todos los registros (regla del proyecto: por dosis más
+  // reciente pendiente). "Vencido" si ya pasó, "en N días" si está
+  // cerca, "al día" si la próxima está lejos o no hay pendientes.
+  function badgePreventivo(items: any[], campoProxima: string): Badge | null {
+    if (items.length === 0) return null
+    const proximas = items
+      .map(i => i[campoProxima])
+      .filter(Boolean)
+      .map(f => diasHasta(f))
+    if (proximas.length === 0) return { texto: 'Sin próxima', color: '#8A7560' }
+    const min = Math.min(...proximas)
+    if (min < 0) return { texto: 'Vencido', color: '#E05252' }
+    if (min === 0) return { texto: 'Hoy', color: '#F07A30' }
+    if (min <= 30) return { texto: `En ${min} ${min === 1 ? 'día' : 'días'}`, color: '#F5C842' }
+    return { texto: 'Al día', color: '#4CAF7D' }
+  }
+  const badgeVacunas = badgePreventivo(vacunas, 'proxima_fecha')
+  const badgeAntis = badgePreventivo(antis, 'proxima_fecha')
+
+  // Observaciones: cuántas activas (rojo) y cuántas resueltas (verde)
+  const badgesObs: Badge[] = []
+  if (obsActivas.length > 0) badgesObs.push({ texto: `${obsActivas.length} activa${obsActivas.length === 1 ? '' : 's'}`, color: '#F07A30' })
+  if (obsResueltas.length > 0) badgesObs.push({ texto: `${obsResueltas.length} resuelta${obsResueltas.length === 1 ? '' : 's'}`, color: '#4CAF7D' })
+
+  // Medicamentos: activos (azul, color reservado de la categoría)
+  const medsActivos = medicamentos.filter(m => m.estado === 'activo')
+  const badgeMeds: Badge | null = medicamentos.length === 0 ? null
+    : medsActivos.length > 0 ? { texto: `${medsActivos.length} activo${medsActivos.length === 1 ? '' : 's'}`, color: '#4AABDB' }
+    : { texto: 'Sin activos', color: '#8A7560' }
+
+  // Enfermedades: activas/crónicas (rojo) vs solo resueltas (verde)
+  const enfActivas = enfermedades.filter(e => e.estado === 'activa' || e.estado === 'cronica')
+  const badgeEnf: Badge | null = enfermedades.length === 0 ? null
+    : enfActivas.length > 0 ? { texto: `${enfActivas.length} activa${enfActivas.length === 1 ? '' : 's'}`, color: '#E05252' }
+    : { texto: 'Resueltas', color: '#4CAF7D' }
+
+  // Peso / exámenes / revisiones: "hace N días" desde el último registro
+  function badgeUltimo(items: any[], campoFecha: string): Badge | null {
+    if (items.length === 0) return null
+    const fechas = items.map(i => i[campoFecha]).filter(Boolean).map(f => diasHasta(f))
+    if (fechas.length === 0) return null
+    const dias = Math.abs(Math.max(...fechas)) // el más reciente
+    if (dias === 0) return { texto: 'Hoy', color: '#4CAF7D' }
+    return { texto: `Hace ${dias} ${dias === 1 ? 'día' : 'días'}`, color: '#8A7560' }
+  }
+  const badgeExamenes = badgeUltimo(examenes, 'fecha')
+  const badgeRevisiones = badgeUltimo(revisiones, 'fecha')
+
+  // Píldora reutilizable para los encabezados de sección
+  function PildoraBadge({ b }: { b: Badge }) {
+    return (
+      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${b.color}1F`, color: b.color }}>
+        {b.texto}
+      </span>
+    )
+  }
+
+
   if (loading) return <div className="min-h-screen flex items-center justify-center text-[#8A7560]">Cargando...</div>
 
   return (
@@ -497,7 +568,7 @@ export default function PrevencionPage() {
       {/* VACUNAS */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('vacunas')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-          <span className="font-bold text-sm text-[#3D2B1F]">💉 Vacunas</span>
+          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">💉 Vacunas</span>{badgeVacunas && <PildoraBadge b={badgeVacunas} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('vacuna'); setForm({}); setEditandoId(null); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
             <span className="text-[#8A7560] text-lg">{estaAbierta('vacunas') ? '⌃' : '⌄'}</span>
@@ -552,7 +623,7 @@ export default function PrevencionPage() {
       {/* ANTIPARASITARIOS */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('anti')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-          <span className="font-bold text-sm text-[#3D2B1F]">💊 Antiparasitarios</span>
+          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">💊 Antiparasitarios</span>{badgeAntis && <PildoraBadge b={badgeAntis} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('anti'); setForm({}); setEditandoId(null); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
             <span className="text-[#8A7560] text-lg">{estaAbierta('anti') ? '⌃' : '⌄'}</span>
@@ -616,7 +687,7 @@ export default function PrevencionPage() {
       {/* MEDICAMENTOS */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('medicamentos')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-          <span className="font-bold text-sm text-[#3D2B1F]">🩹 Medicamentos</span>
+          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">🩹 Medicamentos</span>{badgeMeds && <PildoraBadge b={badgeMeds} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('medicamento'); setForm({}); setEditandoId(null); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
             <span className="text-[#8A7560] text-lg">{estaAbierta('medicamentos') ? '⌃' : '⌄'}</span>
@@ -670,7 +741,7 @@ export default function PrevencionPage() {
       {/* ENFERMEDADES */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('enfermedades')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-          <span className="font-bold text-sm text-[#3D2B1F]">🏥 Enfermedades</span>
+          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">🏥 Enfermedades</span>{badgeEnf && <PildoraBadge b={badgeEnf} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('enfermedad'); setForm({}); setEditandoId(null); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
             <span className="text-[#8A7560] text-lg">{estaAbierta('enfermedades') ? '⌃' : '⌄'}</span>
@@ -723,7 +794,7 @@ export default function PrevencionPage() {
       {/* OBSERVACIONES — MEJORAS 1 y 2 */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('obs')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-          <span className="font-bold text-sm text-[#3D2B1F]">👁️ Observaciones</span>
+          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">👁️ Observaciones</span>{badgesObs.map((b, i) => <PildoraBadge key={i} b={b} />)}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('obs'); setForm({}); setEditandoId(null); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Nueva</span>
             <span className="text-[#8A7560] text-lg">{estaAbierta('obs') ? '⌃' : '⌄'}</span>
@@ -895,7 +966,7 @@ export default function PrevencionPage() {
       {/* EXÁMENES */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('examenes')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-          <span className="font-bold text-sm text-[#3D2B1F]">📄 Exámenes</span>
+          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">📄 Exámenes</span>{badgeExamenes && <PildoraBadge b={badgeExamenes} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('examen'); setForm({}); setEditandoId(null); setArchivoExamen(null); setErrorExamen(''); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
             <span className="text-[#8A7560] text-lg">{estaAbierta('examenes') ? '⌃' : '⌄'}</span>
@@ -973,7 +1044,7 @@ export default function PrevencionPage() {
       {revisiones.length > 0 && (
         <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           <button onClick={() => toggleSeccion('revisiones')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-            <span className="font-bold text-sm text-[#3D2B1F]">🔍 Revisiones Corporales</span>
+            <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">🔍 Revisiones Corporales</span>{badgeRevisiones && <PildoraBadge b={badgeRevisiones} />}</div>
             <span className="text-[#8A7560] text-lg">{estaAbierta('revisiones') ? '⌃' : '⌄'}</span>
           </button>
           {estaAbierta('revisiones') && (
