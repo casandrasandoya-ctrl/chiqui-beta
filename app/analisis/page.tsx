@@ -405,40 +405,65 @@ export default function AnalisisPage() {
   // reales de la mascota (mismo enfoque que las Rutinas y los Insights).
   const nombreM = mascota?.nombre || 'tu mascota'
   const seguimientosActivos = registros.filter(r => r.seguimiento_lesion).length
-  const resumenInteligente: { titulo: string; parrafos: string[] } | null = total === 0 ? null : (() => {
-    const parrafos: string[] = []
-    // Estado general
-    const estadoBase = pctBien >= 80
-      ? `Durante los últimos ${periodo} días, ${nombreM} se mantuvo estable. Su energía y ánimo estuvieron normales o positivos en el ${pctBien}% de los días registrados.`
-      : pctBien >= 50
-        ? `Durante los últimos ${periodo} días, ${nombreM} tuvo altibajos. Alrededor del ${pctBien}% de los días se registraron con normalidad.`
-        : `Durante los últimos ${periodo} días se registraron varios días con señales que vale la pena observar en ${nombreM}.`
-    let detalle = ''
+  const resumenInteligente: { titulo: string; sintesis: string; estadoLabel: string; estadoIcon: string; estadoColor: string } | null = total === 0 ? null : (() => {
+    // Estado general del período: 4 niveles según el semáforo de salud
+    // de la app. Prioridad de mayor a menor: signos de alerta rojos >
+    // muchos síntomas naranjos > algunos síntomas amarillos > estable.
+    // Este estado es la CONCLUSIÓN de una línea; el detalle queda en
+    // las tarjetas de abajo (evitamos repetir "coméntalo con tu vet"
+    // varias veces).
+    let estadoLabel = ''
+    let estadoIcon = ''
+    let estadoColor = ''
     if (signosUltimos30 > 0) {
-      detalle = ` Se registró ${signosUltimos30} día${signosUltimos30 === 1 ? '' : 's'} con signos de alerta, algo que conviene comentar con tu veterinario.`
-    } else if (naranjos + rojos > 0) {
-      detalle = ` Hubo ${naranjos + rojos} día${naranjos + rojos === 1 ? '' : 's'} con síntomas notables, sin llegar a signos de alerta.`
-    } else if (total >= 3) {
-      detalle = ` No se registraron síntomas de alerta en el período.`
-    }
-    parrafos.push(estadoBase + detalle)
-    // Seguimientos
-    if (seguimientosActivos > 0) {
-      parrafos.push(`Hay seguimientos de lesión o recuperación en curso (${seguimientosActivos} registro${seguimientosActivos === 1 ? '' : 's'} en el período). Revisa la sección de Salud Preventiva para ver su evolución.`)
-    }
-    // Recomendación
-    let recomendacion = ''
-    if (signosUltimos30 > 0 || rojos > 0) {
-      recomendacion = `Te recomiendo mantener a ${nombreM} en observación y compartir estos registros con tu veterinario en la próxima consulta.`
-    } else if (naranjos > 0 || seguimientosActivos > 0) {
-      recomendacion = `Continúa observando y registrando cualquier cambio. Tener este historial le da contexto valioso a tu veterinario.`
-    } else if (total >= 3) {
-      recomendacion = `Todo se ve bien. Sigue registrando con esta constancia para detectar a tiempo cualquier cambio en ${nombreM}.`
+      estadoLabel = 'Consulta veterinaria prioritaria'
+      estadoIcon = '🔴'
+      estadoColor = '#E05252'
+    } else if (naranjos >= 3 || rojos >= 2) {
+      estadoLabel = 'Seguimiento recomendado'
+      estadoIcon = '🟠'
+      estadoColor = '#F07A30'
+    } else if (naranjos > 0 || rojos > 0 || (amarillos >= 5) || seguimientosActivos > 0) {
+      estadoLabel = 'Requiere observación'
+      estadoIcon = '🟡'
+      estadoColor = '#F5C842'
     } else {
-      recomendacion = `Sigue registrando para que pueda darte una lectura más completa de la salud de ${nombreM}.`
+      estadoLabel = 'Estable'
+      estadoIcon = '🟢'
+      estadoColor = '#4CAF7D'
     }
-    parrafos.push(recomendacion)
-    return { titulo: 'Resumen del período', parrafos }
+
+    // Síntesis: una frase que combina lo esencial del período (días
+    // registrados, % de normalidad, síntomas notables y seguimientos).
+    // Solo datos observados, sin recomendaciones — las recomendaciones
+    // viven en las tarjetas de abajo y no queremos repetirlas aquí.
+    const partes: string[] = []
+    if (signosUltimos30 > 0 || naranjos + rojos >= 3) {
+      partes.push(`Durante los últimos ${periodo} días se registraron varios episodios relevantes en ${nombreM}.`)
+    } else if (pctBien >= 80) {
+      partes.push(`Durante los últimos ${periodo} días, ${nombreM} se mantuvo estable: energía y ánimo normales o positivos en el ${pctBien}% de los días registrados.`)
+    } else if (pctBien >= 50) {
+      partes.push(`Durante los últimos ${periodo} días, ${nombreM} tuvo altibajos: alrededor del ${pctBien}% de los días se registraron con normalidad.`)
+    } else {
+      partes.push(`Durante los últimos ${periodo} días, la mayoría de los registros de ${nombreM} incluyeron señales que vale la pena revisar.`)
+    }
+    // Cuantificar síntomas y signos si los hubo
+    const detallesNum: string[] = []
+    if (signosUltimos30 > 0) detallesNum.push(`${signosUltimos30} día${signosUltimos30 === 1 ? '' : 's'} con signos de alerta`)
+    if (naranjos + rojos > 0) detallesNum.push(`${naranjos + rojos} día${naranjos + rojos === 1 ? '' : 's'} con síntomas notables`)
+    if (detallesNum.length > 0) {
+      partes.push(`Se contaron ${detallesNum.join(' y ')} en el período.`)
+    }
+    if (seguimientosActivos > 0) {
+      partes.push(`Además, hay seguimientos de lesión o recuperación en curso (${seguimientosActivos} registro${seguimientosActivos === 1 ? '' : 's'}).`)
+    }
+    return {
+      titulo: 'Resumen del período',
+      sintesis: partes.join(' '),
+      estadoLabel,
+      estadoIcon,
+      estadoColor,
+    }
   })()
 
   // --- Cálculos de Paseo (solo aplica a perros) ---
@@ -528,13 +553,17 @@ export default function AnalisisPage() {
     return '#E05252'
   }
 
-  // Texto amigable para "próxima estimada" / "días desde"
-  function textoProxima(dias: number | null): string {
-    if (dias === null) return ''
-    if (dias < 0) return `Ya pasaron ${Math.abs(dias)} días de lo habitual`
-    if (dias === 0) return 'Te tocaría hoy'
-    if (dias === 1) return 'Te tocaría mañana'
-    return `Te tocaría de nuevo en ${dias} días`
+  // Estado con semáforo para "próxima estimada" / "días desde".
+  // Rutina retrasada = tarjeta con prioridad automática visible en el
+  // color, sin necesidad de leer todo el texto.
+  function estadoProxima(dias: number | null): { texto: string; color: string; icono: string } {
+    if (dias === null) return { texto: '', color: '#8A7560', icono: '' }
+    if (dias <= -3) return { texto: `Hace ${Math.abs(dias)} días estaba pendiente`, color: '#E05252', icono: '🔴' }
+    if (dias < 0) return { texto: `Estaba pendiente hace ${Math.abs(dias)} ${Math.abs(dias) === 1 ? 'día' : 'días'}`, color: '#F07A30', icono: '🟠' }
+    if (dias === 0) return { texto: 'Corresponde realizarla hoy', color: '#F07A30', icono: '🟠' }
+    if (dias === 1) return { texto: 'Te tocaría mañana', color: '#F5C842', icono: '🟡' }
+    if (dias <= 3) return { texto: `Te tocaría en ${dias} días`, color: '#F5C842', icono: '🟡' }
+    return { texto: `Te tocaría de nuevo en ${dias} días`, color: '#4CAF7D', icono: '🟢' }
   }
 
   const MESES_CORTOS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
@@ -564,10 +593,22 @@ export default function AnalisisPage() {
               <p className="text-xs text-[#8A7560]">Lo esencial de los últimos {periodo} días</p>
             </div>
           </div>
-          <div className="px-4 py-3 space-y-2.5">
-            {resumenInteligente.parrafos.map((p, i) => (
-              <p key={i} className="text-xs text-[#3D2B1F] leading-relaxed">{p}</p>
-            ))}
+          <div className="px-4 py-3">
+            <p className="text-xs text-[#3D2B1F] leading-relaxed mb-3">{resumenInteligente.sintesis}</p>
+            {/* Conclusión de una sola línea con semáforo: no reemplaza
+                el juicio veterinario, ayuda al tutor a entender rápido
+                el panorama. Las recomendaciones específicas viven en
+                las tarjetas de abajo. */}
+            <div
+              className="flex items-center gap-2 rounded-xl px-3 py-2"
+              style={{ background: `${resumenInteligente.estadoColor}14`, border: `1px solid ${resumenInteligente.estadoColor}33` }}
+            >
+              <span className="text-base">{resumenInteligente.estadoIcon}</span>
+              <p className="text-xs">
+                <span className="font-semibold text-[#8A7560]">Estado general: </span>
+                <span className="font-bold" style={{ color: resumenInteligente.estadoColor }}>{resumenInteligente.estadoLabel}</span>
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -796,16 +837,21 @@ export default function AnalisisPage() {
               </div>
               <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-sm">⏱️</span>
-                  <span className="text-[10px] text-[#8A7560]">Paseo este mes (estimado)</span>
+                  <span className="text-sm">🕒</span>
+                  <span className="text-[10px] text-[#8A7560]">Paseo este mes</span>
                 </div>
                 <div className="font-bold text-lg text-[#3D2B1F]">{horasPaseoMes}h {minRestantesPaseoMes}m</div>
+                {/* Si al menos un registro del período tiene tiempo
+                    exacto, dejamos el título limpio; si todos son
+                    rangos, avisamos que el total es aproximado. */}
+                {!registros.some(r => typeof r.paseo_minutos_exactos === 'number' && r.paseo_minutos_exactos > 0) && (
+                  <p className="text-[9px] text-[#8A7560] mt-0.5">≈ Basado en registros aproximados</p>
+                )}
               </div>
             </div>
             <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] px-4 py-2.5">
               <div className="flex items-center justify-between mb-1.5">
                 <p className="text-[10px] font-semibold text-[#8A7560]">Últimos 7 días</p>
-                <p className="text-[9px] text-[#8A7560] italic">estimado</p>
               </div>
               <div className="flex items-end justify-between gap-1 h-8">
                 {paseoUltimos7.map((p, i) => {
@@ -856,9 +902,14 @@ export default function AnalisisPage() {
                 <p className="text-[11px] text-[#8A7560] mt-0.5">
                   Última vez: hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'} · {r.ocurrencias} registros
                 </p>
-                <p className="text-[11px] font-semibold mt-0.5" style={{ color: (r.proximaEstimadaDias ?? 0) < 0 ? '#F07A30' : '#4CAF7D' }}>
-                  {textoProxima(r.proximaEstimadaDias)}
-                </p>
+                {(() => {
+                  const ep = estadoProxima(r.proximaEstimadaDias)
+                  return (
+                    <p className="text-[11px] font-semibold mt-0.5" style={{ color: ep.color }}>
+                      {ep.icono} {ep.texto}
+                    </p>
+                  )
+                })()}
               </>
             ) : (
               <p className="text-xs text-[#8A7560]">
