@@ -128,12 +128,24 @@ interface Props {
   especie: string
 }
 
+// Labels cortos de los 7 grupos temáticos, en el MISMO orden que los
+// grupos de tarjetas (el índice del chip es el índice del grupo).
+const CHIPS_PERRO = ['🍖 Alimentación', '🧸 Ansiedad', '🩺 Signos vitales', '💩 Digestión', '🐕 Bienestar', '🦴 Movimiento', '⚖️ Peso']
+const CHIPS_GATO = ['🍖 Alimentación', '🐈 Conducta', '🩺 Salud', '🎾 Juego', '💩 Digestión', '🦴 Movimiento', '⚖️ Peso']
+
 export default function ChiquiTeCuenta({ especie }: Props) {
   // Seleccionar 5 tarjetas del dia — rotan segun dia del año
   // Cada grupo de 5 tarjetas en el array trata UN solo tema.
-  // grupoIndex elige cuál de los 7 grupos mostrar — rota al azar
-  // cada vez que se monta el componente (al entrar a la app).
-  const [grupoIndex] = useState(() => Math.floor(Math.random() * 7))
+  // grupoAleatorio elige cuál de los 7 grupos mostrar — rota al azar
+  // cada vez que se monta el componente (al entrar a la app). Ese
+  // efecto sorpresa es SIEMPRE el comportamiento por defecto.
+  // grupoElegido solo existe mientras el usuario tenga un chip de
+  // categoría seleccionado; al refrescar o volver a entrar, el
+  // componente se monta de nuevo y vuelve a null — el filtro se
+  // elimina solo y regresa el azar, tal como debe ser.
+  const [grupoAleatorio] = useState(() => Math.floor(Math.random() * 7))
+  const [grupoElegido, setGrupoElegido] = useState<number | null>(null)
+  const grupoIndex = grupoElegido !== null ? grupoElegido : grupoAleatorio
 
   const tarjetasHoy = useMemo(() => {
     const lista = especie === 'Perro' ? TARJETAS_PERRO
@@ -143,8 +155,14 @@ export default function ChiquiTeCuenta({ especie }: Props) {
     if (lista.length < 30) return lista.slice(0, 5) // fallback TARJETAS_GENERAL
 
     const inicio = grupoIndex * 5
-    return lista.slice(inicio, inicio + 5)
-  }, [especie, grupoIndex])
+    const grupo = lista.slice(inicio, inicio + 5)
+    // Si la categoría fue elegida desde los chips, sus tarjetas se
+    // muestran en orden aleatorio dentro de ella.
+    if (grupoElegido !== null) {
+      return grupo.slice().sort(() => Math.random() - 0.5)
+    }
+    return grupo
+  }, [especie, grupoIndex, grupoElegido])
 
   const [expandido, setExpandido] = useState<number | null>(null)
 
@@ -180,7 +198,31 @@ export default function ChiquiTeCuenta({ especie }: Props) {
         <img src="/chiqui/chiqui_leyendo.png" alt="Chiqui" className="w-8 h-8 object-contain" />
         <span className="font-bold text-sm text-[#3D2B1F]">Chiqui Tips</span>
       </div>
-      <p className="text-xs text-[#8A7560] mb-3 ml-9">Tips y curiosidades para cuidarte mejor 🐾</p>
+      <p className="text-xs text-[#8A7560] mb-2 ml-9">Tips y curiosidades para cuidarte mejor 🐾</p>
+
+      {/* Chips de categorías: por defecto todo sigue igual (grupo al
+          azar en cada visita). Tocar un chip filtra a esa categoría;
+          tocar el chip ya elegido devuelve el azar; y al refrescar o
+          volver a entrar, el filtro desaparece solo. */}
+      {(especie === 'Perro' || especie === 'Gato') && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1.5 mb-2.5 ml-9 -mr-4 pr-4" style={{ scrollbarWidth: 'none' }}>
+          {(especie === 'Gato' ? CHIPS_GATO : CHIPS_PERRO).map((label, i) => {
+            const activo = grupoIndex === i
+            return (
+              <button
+                key={label}
+                onClick={() => { setGrupoElegido(grupoElegido === i ? null : i); setExpandido(null) }}
+                className="text-[10px] font-semibold px-2.5 py-1.5 rounded-full border whitespace-nowrap flex-shrink-0"
+                style={activo
+                  ? { background: '#FFBD5920', borderColor: '#FFBD59', color: '#8C572F', borderWidth: '1.5px' }
+                  : { background: '#FFFCF8', borderColor: '#EEE2D4', color: '#8A7560', borderWidth: '1.5px' }}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Grid 2 columnas — 6 tarjetas en 3 filas */}
       <div className="grid grid-cols-2 gap-2.5 items-start">
