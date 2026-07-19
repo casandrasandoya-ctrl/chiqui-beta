@@ -16,11 +16,6 @@ function calcEdad(f: string) {
   const m = (h.getFullYear() - n.getFullYear()) * 12 + (h.getMonth() - n.getMonth())
   return m < 12 ? `${m}m` : m % 12 > 0 ? `${Math.floor(m / 12)}a ${m % 12}m` : `${Math.floor(m / 12)}a`
 }
-function fmtFecha(f: string) {
-  const ms = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-  const d = new Date(f + 'T00:00:00')
-  return `${d.getDate()} ${ms[d.getMonth()]} ${d.getFullYear()}`
-}
 
 interface MascotaResumen {
   id: string
@@ -36,9 +31,10 @@ interface Props {
   edad: string | null
   color: string
   estadoLabel: string
-  obsActiva: { titulo: string; fecha_inicio: string } | null | undefined
   proximosItems: { label: string; sub: string; dias: string; color: string }[]
   tieneRegistroHoy: boolean
+  seguimientosPendientes: { id: string; titulo: string; diasSinActualizar: number }[]
+  diasSinCampo: { apetito: number | null; agua: number | null; heces: number | null; peso: number | null }
   cuidadosRecientes: { grupo: string; label: string; emoji: string; dias: number }[]
   rachaPaseo: number | null
   rachaEnRiesgo: boolean
@@ -48,7 +44,7 @@ interface Props {
 }
 
 export default function DashboardContenido({
-  mascotas, mascota: m, color, estadoLabel, obsActiva, proximosItems, tieneRegistroHoy, cuidadosRecientes, rachaPaseo, rachaEnRiesgo, celoActivoHoy, diaCeloHoy, rachaRegistros,
+  mascotas, mascota: m, color, estadoLabel, proximosItems, tieneRegistroHoy, cuidadosRecientes, rachaPaseo, rachaEnRiesgo, celoActivoHoy, diaCeloHoy, rachaRegistros, seguimientosPendientes, diasSinCampo,
 }: Props) {
   const router = useRouter()
   const [cuidadosExpandido, setCuidadosExpandido] = useState(false)
@@ -110,6 +106,8 @@ export default function DashboardContenido({
         tieneRegistroHoy={tieneRegistroHoy}
         color={color}
         rachaRegistros={rachaRegistros}
+        seguimientos={seguimientosPendientes}
+        diasSinCampo={diasSinCampo}
       />
 
       {/* TARJETA CELO ACTIVO */}
@@ -213,39 +211,6 @@ export default function DashboardContenido({
           </div>
         </div>
       </Link>
-
-      {/* PREGUNTA ROTATIVA — mismas preguntas del splash, refuerzan
-          el habito de registrar cada vez que el usuario entra al dashboard */}
-      {(() => {
-        const PREGUNTAS = [
-          `Si esta noche algo cambia en ${m.nombre}, ¿tendrías el historial para contarle al vet?`,
-          `¿Recuerdas cuándo comió bien por última vez?`,
-          `¿Notaste algo distinto hoy, o todo igual que ayer?`,
-          `Si el vet pregunta "¿hace cuánto tiene eso?"... ¿sabrías responder?`,
-          `¿Cuándo fue su último paseo? ¿Y el anterior?`,
-        ]
-        // Rotar por dia de la semana para que cambie cada dia pero sea
-        // consistente durante el mismo dia (no cambia al recargar)
-        const hoy = new Date()
-        const idx = (hoy.getFullYear() * 366 + hoy.getMonth() * 31 + hoy.getDate()) % PREGUNTAS.length
-        return (
-          <div className="mx-4 mb-3 bg-[#FBEAD9] rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5">
-            <span className="text-lg flex-shrink-0">💭</span>
-            <p className="text-xs leading-relaxed text-[#7A4A2F] italic">
-              {PREGUNTAS[idx]}
-            </p>
-          </div>
-        )
-      })()}
-
-      {/* ALERT BANNER - observación activa */}
-      {obsActiva && (
-        <div className="mx-4 mb-3 bg-[#EFE4DB] rounded-2xl px-3.5 py-2.5">
-          <p className="text-xs leading-relaxed text-[#7A6555]">
-            <strong className="text-[#5C4A3A]">En observación:</strong> {obsActiva.titulo}, desde {fmtFecha(obsActiva.fecha_inicio)}.
-          </p>
-        </div>
-      )}
 
       {/* BOTÓN REGISTRAR HOY */}
       {!tieneRegistroHoy && (

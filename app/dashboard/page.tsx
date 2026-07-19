@@ -71,7 +71,7 @@ export default async function Dashboard({ searchParams }: Props) {
     supabase.from('registros_diarios').select('estado_dia').eq('mascota_id', m.id).eq('fecha', hoy).single(),
     supabase.from('vacunas').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
     supabase.from('antiparasitarios').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
-    supabase.from('observaciones').select('titulo,fecha_inicio').eq('mascota_id', m.id).eq('estado', 'activa').limit(1),
+    supabase.from('observaciones').select('id,titulo,fecha_inicio').eq('mascota_id', m.id).eq('estado', 'activa').limit(10),
     supabase.from('medicamentos').select('nombre,proximo_control').eq('mascota_id', m.id).gte('proximo_control', hoy).order('proximo_control').limit(2),
     supabase.from('enfermedades').select('diagnostico,proxima_revision').eq('mascota_id', m.id).gte('proxima_revision', hoy).order('proxima_revision').limit(2),
   ])
@@ -81,6 +81,48 @@ export default async function Dashboard({ searchParams }: Props) {
     const hoyDate = new Date(hoy + 'T00:00:00')
     const fechaDate = new Date(fecha + 'T00:00:00')
     return Math.round((hoyDate.getTime() - fechaDate.getTime()) / 86400000)
+  }
+
+  // --- Seguimientos pendientes (novedad, ya no tarjeta fija) ---
+  // Para cada observación ACTIVA, la "última actualización" es su
+  // evolución más reciente (o la fecha de inicio si no tiene ninguna).
+  // Si lleva 15+ días sin actualizar, el sistema de Novedades pedirá
+  // acción; al registrar una evolución, el contador se reinicia solo.
+  let evolucionesObs: { observacion_id: string; fecha: string }[] = []
+  const idsObs = (obs || []).map((o: any) => o.id as string)
+  if (idsObs.length > 0) {
+    const { data: evos } = await supabase
+      .from('observacion_evoluciones')
+      .select('observacion_id,fecha')
+      .in('observacion_id', idsObs)
+    evolucionesObs = (evos || []) as { observacion_id: string; fecha: string }[]
+  }
+  const DIAS_SEGUIMIENTO = 15
+  const seguimientosPendientes = (obs || [])
+    .map((o: any) => {
+      const fechasEvos = evolucionesObs.filter(e => e.observacion_id === o.id).map(e => e.fecha)
+      const ultimaFecha = fechasEvos.length > 0 ? fechasEvos.sort().reverse()[0] : o.fecha_inicio
+      return { id: o.id as string, titulo: o.titulo as string, diasSinActualizar: diasDesde(ultimaFecha) }
+    })
+    .filter(sg => sg.diasSinActualizar >= DIAS_SEGUIMIENTO)
+
+  // --- Recordatorios inteligentes: días desde el último registro CON
+  // dato de cada campo clave. null = ese campo nunca se ha registrado
+  // (a un usuario nuevo no se le recuerda algo que nunca ha usado; el
+  // hábito general lo cubre la novedad "Aún no has registrado hoy").
+  const [{ data: regCampos }, { data: ultimoPesoReg }] = await Promise.all([
+    supabase.from('registros_diarios').select('fecha,apetito,agua,heces').eq('mascota_id', m.id).order('fecha', { ascending: false }).limit(60),
+    supabase.from('historial_peso').select('fecha').eq('mascota_id', m.id).order('fecha', { ascending: false }).limit(1),
+  ])
+  function diasDesdeUltimoCampo(campo: 'apetito' | 'agua' | 'heces'): number | null {
+    const conDato = (regCampos || []).find((r: any) => r[campo] !== null && r[campo] !== undefined && r[campo] !== '')
+    return conDato ? diasDesde(conDato.fecha) : null
+  }
+  const diasSinCampo = {
+    apetito: diasDesdeUltimoCampo('apetito'),
+    agua: diasDesdeUltimoCampo('agua'),
+    heces: diasDesdeUltimoCampo('heces'),
+    peso: ultimoPesoReg && ultimoPesoReg[0]?.fecha ? diasDesde(ultimoPesoReg[0].fecha) : null,
   }
 
   // Definición de los cuidados posibles, organizados por grupo (mismo
@@ -223,7 +265,6 @@ export default async function Dashboard({ searchParams }: Props) {
 
   const proximaVacuna = vacunas?.[0]
   const proximoAnti = antis?.[0]
-  const obsActiva = obs?.[0]
   const proximoMed = medsConControl?.[0]
   const proximaRevisionEnf = enfsConRevision?.[0]
 
@@ -340,9 +381,10 @@ export default async function Dashboard({ searchParams }: Props) {
       edad={edad}
       color={color}
       estadoLabel={estadoLabel}
-      obsActiva={obsActiva}
       proximosItems={proximosItems}
       tieneRegistroHoy={!!regHoy}
+      seguimientosPendientes={seguimientosPendientes}
+      diasSinCampo={diasSinCampo}
       cuidadosRecientes={cuidadosRecientes}
       rachaPaseo={rachaPaseo}
         rachaRegistros={rachaRegistros}
