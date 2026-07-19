@@ -181,24 +181,24 @@ export default function ChiquiTeCuenta({ especie }: Props) {
   // Sexta tarjeta — una por cada uno de los 7 grupos temáticos.
   // Definida por especie porque el grupo 1, 2, 4 difieren entre perro y gato.
   const GRUPOS_PERRO = [
-    { img: '/chiqui/chiqui_chef.png', titulo: '¿Sabes qué puede comer tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué sí y qué no puede comer.' },
-    { img: '/chiqui/chiqui_juguetes.png', titulo: '¿Quieres ayudarlo con la ansiedad?', texto: 'Lee los tips de Chiqui y descubre cómo el juego olfativo y el Kong pueden calmarlo.' },
-    { img: '/chiqui/chiqui_doctor.png', titulo: '¿Sabes cuáles son sus signos vitales normales?', texto: 'Lee los tips de Chiqui y aprende a reconocerlos en casa.' },
-    { img: '/chiqui/chiqui_caca.png', titulo: '¿Sabes leer las heces de tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué te dice cada color y forma.' },
-    { img: '/chiqui/chiqui_paseo.png', titulo: '¿Conoces sus señales de bienestar?', texto: 'Lee los tips de Chiqui sobre comportamiento, ejercicio y cuidado diario.' },
-    { img: '/chiqui/chiqui_tranquilo.png', titulo: '¿Conoces las señales de molestias articulares?', texto: 'Lee los tips de Chiqui y aprende a detectar cambios en su movimiento.' },
-    { img: '/chiqui/chiqui_ejercicio.png', titulo: '¿Tu compañero tiene un peso saludable?', texto: 'Lee los tips de Chiqui y aprende a reconocer las señales de bajo peso, peso saludable y sobrepeso.' },
-    { img: '/chiqui/chiqui_alerta.png', titulo: '¿Sabes reconocer signos de alerta?', texto: 'Lee los tips de Chiqui para saber qué hacer (y qué evitar) ante convulsiones, golpe de calor, intoxicación, accidentes o dificultad para respirar.' },
+    { img: '/chiqui/chiqui_chef.png', titulo: '¿Qué puede comer tu perro?', texto: 'Alimentos seguros, tóxicos y las verduras que sí puede probar como premio.' },
+    { img: '/chiqui/chiqui_juguetes.png', titulo: '¿Cómo aliviar su ansiedad?', texto: 'Juegos olfativos, Kong y Lick Mat: ideas para calmarlo desde casa.' },
+    { img: '/chiqui/chiqui_doctor.png', titulo: 'Sus signos vitales normales', texto: 'Frecuencia cardíaca, temperatura, agua y dientes: qué es normal en tu perro.' },
+    { img: '/chiqui/chiqui_caca.png', titulo: 'Qué dicen sus heces', texto: 'Color, forma y consistencia: cuándo son normales y cuándo consultar al vet.' },
+    { img: '/chiqui/chiqui_paseo.png', titulo: 'Cómo cuidar su bienestar', texto: 'Ejercicio, sueño, estrés y plantas peligrosas: claves de su día a día.' },
+    { img: '/chiqui/chiqui_tranquilo.png', titulo: 'Señales de molestias articulares', texto: 'Cambios sutiles al levantarse, saltar, caminar o jugar que vale la pena observar.' },
+    { img: '/chiqui/chiqui_ejercicio.png', titulo: '¿Está en su peso ideal?', texto: 'Señales de bajo peso, peso saludable y sobrepeso, y cuándo importa vigilarlo.' },
+    { img: '/chiqui/chiqui_alerta.png', titulo: '¿Sabes reconocer un signo de alerta?', texto: 'Aprende a reconocer las señales, qué hacer y qué evitar en las situaciones más importantes.' },
   ]
   const GRUPOS_GATO = [
-    { img: '/chiqui/chiqui_chef.png', titulo: '¿Sabes qué puede comer tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué sí y qué no puede comer.' },
-    { img: '/chiqui/chiqui_pregunta.png', titulo: '¿Entiendes el comportamiento de tu gato?', texto: 'Lee los tips de Chiqui y descubre qué te está diciendo.' },
-    { img: '/chiqui/chiqui_doctor.png', titulo: '¿Sabes cuáles son sus signos de salud?', texto: 'Lee los tips de Chiqui y aprende a reconocerlos en casa.' },
-    { img: '/chiqui/chiqui_juguetes.png', titulo: '¿Sabes cómo enriquecer su día a día?', texto: 'Lee los tips de Chiqui sobre juego y enriquecimiento ambiental.' },
-    { img: '/chiqui/chiqui_caca.png', titulo: '¿Sabes leer las heces de tu mascota?', texto: 'Lee los tips de Chiqui y descubre qué te dice cada color y forma.' },
-    { img: '/chiqui/chiqui_tranquilo.png', titulo: '¿Sabes reconocer molestias articulares en tu gato?', texto: 'Lee los tips de Chiqui y aprende a detectar cambios sutiles en su movimiento.' },
-    { img: '/chiqui/chiqui_ejercicio.png', titulo: '¿Tu compañero tiene un peso saludable?', texto: 'Lee los tips de Chiqui y aprende a reconocer las señales de bajo peso, peso saludable y sobrepeso.' },
-    { img: '/chiqui/chiqui_alerta.png', titulo: '¿Sabes reconocer signos de alerta?', texto: 'Lee los tips de Chiqui para saber qué hacer (y qué evitar) ante convulsiones, intoxicación, golpe de calor, caídas o dificultad para respirar.' },
+    { img: '/chiqui/chiqui_chef.png', titulo: '¿Qué puede comer tu gato?', texto: 'Pescado, leche, agua y alimentos tóxicos: lo que sí y lo que nunca.' },
+    { img: '/chiqui/chiqui_pregunta.png', titulo: 'Qué te dice su comportamiento', texto: 'Amasar, ronronear, mirar la ventana: qué significa cada gesto de tu gato.' },
+    { img: '/chiqui/chiqui_doctor.png', titulo: 'Señales de su salud diaria', texto: 'Temperatura, dientes, sol, bolas de pelo y antiparasitarios: lo esencial en casa.' },
+    { img: '/chiqui/chiqui_juguetes.png', titulo: 'Cómo enriquecer su día a día', texto: 'Juego, cajas, catnip y ventanas: ideas simples para un gato feliz en casa.' },
+    { img: '/chiqui/chiqui_caca.png', titulo: 'Qué dicen sus heces', texto: 'Color, forma y señales de alerta como sangre o heces negras.' },
+    { img: '/chiqui/chiqui_tranquilo.png', titulo: 'Señales de molestias articulares', texto: 'Cambios sutiles al saltar, bajar o jugar que vale la pena observar.' },
+    { img: '/chiqui/chiqui_ejercicio.png', titulo: '¿Está en su peso ideal?', texto: 'Señales de bajo peso, peso saludable y sobrepeso, y cuándo importa vigilarlo.' },
+    { img: '/chiqui/chiqui_alerta.png', titulo: '¿Sabes reconocer un signo de alerta?', texto: 'Aprende a reconocer las señales, qué hacer y qué evitar en las situaciones más importantes.' },
   ]
   const sextaTarjeta = useMemo(() => {
     const grupos = especie === 'Gato' ? GRUPOS_GATO : GRUPOS_PERRO
@@ -316,40 +316,26 @@ export default function ChiquiTeCuenta({ especie }: Props) {
               ) : (
                 <>
                   {bloques ? (
-                    // Formato estructurado para signos de alerta. Sin
-                    // cuadros de color que compitan con la tarjeta:
-                    // solo barra lateral verde (haz) o roja (evita)
-                    // + etiqueta en mayúsculas. Limpio y escaneable.
-                    <div className="space-y-2.5 mb-1.5">
+                    // Signos de alerta: sin títulos ni barras
+                    // laterales — cada acción lleva su emoji inline
+                    // (✅ para hacer, 🚫 para evitar). El semáforo se
+                    // lee en la línea misma, más compacto y natural.
+                    <div className="space-y-1 mb-1.5">
                       {bloques.reconocer && (
-                        <p className="text-[10px] text-[#5C4A3A] leading-relaxed italic">
+                        <p className="text-[10px] text-[#5C4A3A] leading-relaxed italic mb-1.5">
                           {bloques.reconocer}
                         </p>
                       )}
-                      {bloques.haz && bloques.haz.length > 0 && (
-                        <div className="pl-2.5" style={{ borderLeft: '2.5px solid #4CAF7D' }}>
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#2E7D52] mb-1">Haz esto</p>
-                          <ul className="space-y-0.5">
-                            {bloques.haz.map((linea, li) => (
-                              <li key={li} className="text-[10px] text-[#3D2B1F] leading-relaxed">
-                                {linea}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {bloques.evita && bloques.evita.length > 0 && (
-                        <div className="pl-2.5" style={{ borderLeft: '2.5px solid #E05252' }}>
-                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#B83232] mb-1">Evita</p>
-                          <ul className="space-y-0.5">
-                            {bloques.evita.map((linea, li) => (
-                              <li key={li} className="text-[10px] text-[#3D2B1F] leading-relaxed">
-                                {linea}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      {bloques.haz && bloques.haz.map((linea, li) => (
+                        <p key={'h' + li} className="text-[10px] text-[#3D2B1F] leading-relaxed">
+                          <span className="mr-1">✅</span>{linea}
+                        </p>
+                      ))}
+                      {bloques.evita && bloques.evita.map((linea, li) => (
+                        <p key={'e' + li} className="text-[10px] text-[#3D2B1F] leading-relaxed">
+                          <span className="mr-1">🚫</span>{linea}
+                        </p>
+                      ))}
                     </div>
                   ) : (
                     <p className="text-[10px] text-[#5C4A3A] leading-relaxed mb-1">{t.texto}</p>
