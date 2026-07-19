@@ -398,6 +398,49 @@ export default function AnalisisPage() {
 
   const ultimos7 = registros.slice(0, 7).reverse()
 
+  // --- RESUMEN INTELIGENTE DEL PERÍODO (plantillas inteligentes) ---
+  // Sintetiza el período en un texto interpretativo con estructura de
+  // informe: Estado general · Seguimientos · Recomendación. No es IA
+  // remota: son reglas que arman frases naturales a partir de los datos
+  // reales de la mascota (mismo enfoque que las Rutinas y los Insights).
+  const nombreM = mascota?.nombre || 'tu mascota'
+  const seguimientosActivos = registros.filter(r => r.seguimiento_lesion).length
+  const resumenInteligente: { titulo: string; parrafos: string[] } | null = total === 0 ? null : (() => {
+    const parrafos: string[] = []
+    // Estado general
+    const estadoBase = pctBien >= 80
+      ? `Durante los últimos ${periodo} días, ${nombreM} se mantuvo estable. Su energía y ánimo estuvieron normales o positivos en el ${pctBien}% de los días registrados.`
+      : pctBien >= 50
+        ? `Durante los últimos ${periodo} días, ${nombreM} tuvo altibajos. Alrededor del ${pctBien}% de los días se registraron con normalidad.`
+        : `Durante los últimos ${periodo} días se registraron varios días con señales que vale la pena observar en ${nombreM}.`
+    let detalle = ''
+    if (signosUltimos30 > 0) {
+      detalle = ` Se registró ${signosUltimos30} día${signosUltimos30 === 1 ? '' : 's'} con signos de alerta, algo que conviene comentar con tu veterinario.`
+    } else if (naranjos + rojos > 0) {
+      detalle = ` Hubo ${naranjos + rojos} día${naranjos + rojos === 1 ? '' : 's'} con síntomas notables, sin llegar a signos de alerta.`
+    } else if (total >= 3) {
+      detalle = ` No se registraron síntomas de alerta en el período.`
+    }
+    parrafos.push(estadoBase + detalle)
+    // Seguimientos
+    if (seguimientosActivos > 0) {
+      parrafos.push(`Hay seguimientos de lesión o recuperación en curso (${seguimientosActivos} registro${seguimientosActivos === 1 ? '' : 's'} en el período). Revisa la sección de Salud Preventiva para ver su evolución.`)
+    }
+    // Recomendación
+    let recomendacion = ''
+    if (signosUltimos30 > 0 || rojos > 0) {
+      recomendacion = `Te recomiendo mantener a ${nombreM} en observación y compartir estos registros con tu veterinario en la próxima consulta.`
+    } else if (naranjos > 0 || seguimientosActivos > 0) {
+      recomendacion = `Continúa observando y registrando cualquier cambio. Tener este historial le da contexto valioso a tu veterinario.`
+    } else if (total >= 3) {
+      recomendacion = `Todo se ve bien. Sigue registrando con esta constancia para detectar a tiempo cualquier cambio en ${nombreM}.`
+    } else {
+      recomendacion = `Sigue registrando para que pueda darte una lectura más completa de la salud de ${nombreM}.`
+    }
+    parrafos.push(recomendacion)
+    return { titulo: 'Resumen del período', parrafos }
+  })()
+
   // --- Cálculos de Paseo (solo aplica a perros) ---
   const MINUTOS_POR_PASEO: Record<string, number> = {
     no_paseo: 0,
@@ -497,12 +540,29 @@ export default function AnalisisPage() {
       </div>
       {/* Selector de mascota */}
       {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
-      {/* Insights Chiqui */}
+      {/* Resumen inteligente del período — plantillas inteligentes */}
+      {resumenInteligente && (
+        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#EEE2D4]" style={{ background: 'linear-gradient(135deg, #FFBD5918, #FFFCF8)' }}>
+            <span className="text-lg">🤖</span>
+            <div>
+              <p className="text-sm font-bold text-[#3D2B1F]">{resumenInteligente.titulo}</p>
+              <p className="text-xs text-[#8A7560]">Lo esencial de los últimos {periodo} días</p>
+            </div>
+          </div>
+          <div className="px-4 py-3 space-y-2.5">
+            {resumenInteligente.parrafos.map((p, i) => (
+              <p key={i} className="text-xs text-[#3D2B1F] leading-relaxed">{p}</p>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Lo observado este mes (insights) */}
       <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#EEE2D4]">
           <span className="text-lg">🐶</span>
           <div>
-            <p className="text-sm font-bold">Lo que observé este mes</p>
+            <p className="text-sm font-bold">📊 Lo observado este mes</p>
             <p className="text-xs text-[#8A7560]">{total} registros</p>
           </div>
         </div>
@@ -583,156 +643,12 @@ export default function AnalisisPage() {
           )}
         </div>
       )}
-      {/* Rutinas de cuidado — cada cuánto, sobre todo el historial */}
-      {rutinas.length > 0 && (
-        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
-          <button onClick={() => setAbiertaRutinas(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-            <div className="flex items-center gap-2.5">
-              <span className="text-lg">🔁</span>
-              <div>
-                <p className="font-bold text-sm text-[#3D2B1F]">Rutinas de cuidado</p>
-                <p className="text-[10px] text-[#8A7560]">Cada cuánto haces cada cosa, según todo el historial</p>
-              </div>
-            </div>
-            <span className="text-[#8A7560] text-lg">{abiertaRutinas ? '⌃' : '⌄'}</span>
-          </button>
-          {abiertaRutinas && (
-            <div className="border-t border-[#EEE2D4] divide-y divide-[#EEE2D4]">
-              {rutinas.map(r => (
-                <div key={r.columna} className="px-4 py-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-base flex-shrink-0">{r.emoji}</span>
-                    <p className="text-xs font-semibold text-[#3D2B1F] flex-1">{r.label}</p>
-                  </div>
-                  {r.promedioDias !== null ? (
-                    <>
-                      <p className="text-xs text-[#3D2B1F] leading-relaxed">
-                        {r.frase.replace('{cada}', textoCada(r.promedioDias)).replace('{nombre}', mascota?.nombre || 'tu mascota')}
-                      </p>
-                      <p className="text-[11px] text-[#8A7560] mt-0.5">
-                        Última vez: hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'} · {r.ocurrencias} registros
-                      </p>
-                      <p className="text-[11px] font-semibold mt-0.5" style={{ color: (r.proximaEstimadaDias ?? 0) < 0 ? '#F07A30' : '#4CAF7D' }}>
-                        {textoProxima(r.proximaEstimadaDias)}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-xs text-[#8A7560]">
-                      Solo 1 registro hasta ahora (hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'}) — falta otro para calcular un promedio.
-                    </p>
-                  )}
-                </div>
-              ))}
-              <p className="text-[10px] text-[#8A7560] px-4 py-2.5 italic">Calculado sobre todo el historial registrado de {mascota?.nombre}, no solo los últimos 30 días.</p>
-            </div>
-          )}
-        </div>
-      )}
-      {/* Resumen estadístico */}
       {total > 0 && <>
-        <div className="px-5 mb-2">
-          <div className="flex items-center gap-2">
-            <img src="/chiqui/chiqui_analisis.png" alt="" className="w-8 h-8 object-contain" />
-            <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Resumen del período</h2>
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-2 mx-4 mb-4">
-          {[
-            { label: 'Total', val: total, color: '#3DD6B5' },
-            { label: 'Verdes', val: verdes, color: '#4CAF7D' },
-            { label: 'Leve', val: amarillos, color: '#F5C842' },
-            { label: 'Síntoma', val: naranjos + rojos, color: '#F07A30' },
-          ].map(s => (
-            <div key={s.label} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
-              <div className="font-bold text-lg" style={{ color: s.color }}>{s.val}</div>
-              <div className="text-[9px] text-[#8A7560] uppercase tracking-wider mt-0.5">{s.label}</div>
-            </div>
-          ))}
-        </div>
-        {/* Paseo (solo perros) */}
-        {esPerro && (
-          <>
-            <div className="px-5 mb-2">
-              <div className="flex items-center gap-2">
-                <img src="/chiqui/chiqui_paseo.png" alt="" className="w-8 h-8 object-contain" />
-                <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Paseo</h2>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 mx-4 mb-3">
-              <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-sm">🔥</span>
-                  <span className="text-[10px] text-[#8A7560]">Racha de paseos</span>
-                </div>
-                <div className="font-bold text-lg text-[#3D2B1F]">{rachaPaseo} {rachaPaseo === 1 ? 'día' : 'días'}</div>
-                {rachaEnRiesgo && rachaPaseo > 0 && (
-                  <p className="text-[10px] text-[#F07A30] mt-0.5 font-semibold">⚠️ Pasea hoy para mantenerla</p>
-                )}
-              </div>
-              <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-sm">⏱️</span>
-                  <span className="text-[10px] text-[#8A7560]">Paseo este mes (estimado)</span>
-                </div>
-                <div className="font-bold text-lg text-[#3D2B1F]">{horasPaseoMes}h {minRestantesPaseoMes}m</div>
-              </div>
-            </div>
-            <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
-              <p className="text-xs font-semibold text-[#8A7560] mb-3">Paseo por día (últimos 7 días)</p>
-              <div className="flex items-end justify-between gap-1.5 h-16">
-                {paseoUltimos7.map((p, i) => {
-                  const diasSemana = ['D','L','M','M','J','V','S']
-                  const alturaPct = p.minutos > 0 ? Math.max((p.minutos / maxMinutosSemana) * 100, 8) : 4
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div
-                        className="w-full rounded-lg transition-all"
-                        style={{ height: `${alturaPct}%`, background: p.minutos > 0 ? '#FFBD59' : 'rgba(140,87,47,0.08)', minHeight: '4px' }}
-                      />
-                      <span className="text-[9px] text-[#8A7560]">{diasSemana[p.fecha.getDay()]}</span>
-                    </div>
-                  )
-                })}
-              </div>
-              <p className="text-[10px] text-[#8A7560] mt-2 italic">Estimado a partir del rango de duración registrado cada día.</p>
-            </div>
-          </>
-        )}
-        {/* Últimos 7 días visual */}
-        <div className="px-5 mb-2">
-          <div className="flex items-center gap-2">
-            <img src="/chiqui/chiqui_calendario.png" alt="" className="w-8 h-8 object-contain" />
-            <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Últimos 7 días</h2>
-          </div>
-        </div>
-        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
-          <div className="flex items-end justify-between gap-1 h-16">
-            {Array(7).fill(null).map((_, i) => {
-              const reg = ultimos7[i]
-              const color = reg ? ESTADO_COLOR[reg.estado_dia] : 'rgba(140,87,47,0.08)'
-              const d = new Date(); d.setDate(d.getDate() - (6 - i))
-              return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full rounded-lg transition-all" style={{ height: reg ? '100%' : '20%', background: color, minHeight: '8px' }}/>
-                  <span className="text-[9px] text-[#8A7560]">{d.getDate()}</span>
-                </div>
-              )
-            })}
-          </div>
-          <div className="flex gap-3 mt-3">
-            {Object.entries(ESTADO_COLOR).map(([e, c]) => (
-              <div key={e} className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full" style={{ background: c }}/>
-                <span className="text-[9px] text-[#8A7560] capitalize">{e}</span>
-              </div>
-            ))}
-          </div>
-        </div>
         {/* Normalidad por categoría — desplegable */}
         {(normalidadPorCategoria.length > 0 || respReciente || tempReciente || celoInfo) && (
           <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
             <button onClick={() => setAbiertaNormalidad(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-              <span className="font-bold text-sm text-[#3D2B1F]">📊 Lo observado este mes</span>
+              <span className="font-bold text-sm text-[#3D2B1F]">📊 Normalidad por categoría</span>
               <span className="text-[#8A7560] text-lg">{abiertaNormalidad ? '⌃' : '⌄'}</span>
             </button>
             {abiertaNormalidad && (
@@ -789,6 +705,178 @@ export default function AnalisisPage() {
             )}
           </div>
         )}
+      </>}
+      {total > 0 && <>
+        {/* Últimos 7 días visual */}
+        <div className="px-5 mb-2">
+          <div className="flex items-center gap-2">
+            <img src="/chiqui/chiqui_calendario.png" alt="" className="w-8 h-8 object-contain" />
+            <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Últimos 7 días</h2>
+          </div>
+        </div>
+        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
+          <div className="flex items-end justify-between gap-1 h-16">
+            {Array(7).fill(null).map((_, i) => {
+              const reg = ultimos7[i]
+              const color = reg ? ESTADO_COLOR[reg.estado_dia] : 'rgba(140,87,47,0.08)'
+              const d = new Date(); d.setDate(d.getDate() - (6 - i))
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full rounded-lg transition-all" style={{ height: reg ? '100%' : '20%', background: color, minHeight: '8px' }}/>
+                  <span className="text-[9px] text-[#8A7560]">{d.getDate()}</span>
+                </div>
+              )
+            })}
+          </div>
+          <div className="flex gap-3 mt-3">
+            {Object.entries(ESTADO_COLOR).map(([e, c]) => (
+              <div key={e} className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full" style={{ background: c }}/>
+                <span className="text-[9px] text-[#8A7560] capitalize">{e}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>}
+      {total > 0 && <>
+        <div className="px-5 mb-2">
+          <div className="flex items-center gap-2">
+            <img src="/chiqui/chiqui_analisis.png" alt="" className="w-8 h-8 object-contain" />
+            <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Resumen del período</h2>
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-2 mx-4 mb-4">
+          {[
+            { label: 'Total', val: total, color: '#3DD6B5' },
+            { label: 'Verdes', val: verdes, color: '#4CAF7D' },
+            { label: 'Leve', val: amarillos, color: '#F5C842' },
+            { label: 'Síntoma', val: naranjos + rojos, color: '#F07A30' },
+          ].map(s => (
+            <div key={s.label} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
+              <div className="font-bold text-lg" style={{ color: s.color }}>{s.val}</div>
+              <div className="text-[9px] text-[#8A7560] uppercase tracking-wider mt-0.5">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </>}
+      {total > 0 && <>
+        {/* Paseo (solo perros) */}
+        {esPerro && (
+          <>
+            <div className="px-5 mb-2">
+              <div className="flex items-center gap-2">
+                <img src="/chiqui/chiqui_paseo.png" alt="" className="w-8 h-8 object-contain" />
+                <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Paseo</h2>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 mx-4 mb-3">
+              <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-sm">🔥</span>
+                  <span className="text-[10px] text-[#8A7560]">Racha de paseos</span>
+                </div>
+                <div className="font-bold text-lg text-[#3D2B1F]">{rachaPaseo} {rachaPaseo === 1 ? 'día' : 'días'}</div>
+                {rachaEnRiesgo && rachaPaseo > 0 && (
+                  <p className="text-[10px] text-[#F07A30] mt-0.5 font-semibold">⚠️ Pasea hoy para mantenerla</p>
+                )}
+              </div>
+              <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-sm">⏱️</span>
+                  <span className="text-[10px] text-[#8A7560]">Paseo este mes (estimado)</span>
+                </div>
+                <div className="font-bold text-lg text-[#3D2B1F]">{horasPaseoMes}h {minRestantesPaseoMes}m</div>
+              </div>
+            </div>
+            <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] px-4 py-2.5">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[10px] font-semibold text-[#8A7560]">Últimos 7 días</p>
+                <p className="text-[9px] text-[#8A7560] italic">estimado</p>
+              </div>
+              <div className="flex items-end justify-between gap-1 h-8">
+                {paseoUltimos7.map((p, i) => {
+                  const diasSemana = ['D','L','M','M','J','V','S']
+                  const alturaPct = p.minutos > 0 ? Math.max((p.minutos / maxMinutosSemana) * 100, 12) : 6
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                      <div
+                        className="w-full rounded transition-all"
+                        style={{ height: `${alturaPct}%`, background: p.minutos > 0 ? '#FFBD59' : 'rgba(140,87,47,0.08)', minHeight: '3px' }}
+                      />
+                      <span className="text-[8px] text-[#8A7560]">{diasSemana[p.fecha.getDay()]}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </>
+        )}
+      </>}
+      {/* Rutinas de cuidado — cada cuánto, sobre todo el historial.
+          Se muestran las 3 más relevantes ordenadas por prioridad
+          (retrasadas y próximas a vencer primero); el resto aparece al
+          tocar "Ver todas". */}
+      {rutinas.length > 0 && (() => {
+        // Prioridad: menor "proximaEstimadaDias" primero (negativo =
+        // retrasado, luego lo que vence pronto). Las rutinas sin
+        // promedio (1 solo registro) van al final.
+        const rutinasOrdenadas = rutinas.slice().sort((a, b) => {
+          const pa = a.proximaEstimadaDias ?? 99999
+          const pb = b.proximaEstimadaDias ?? 99999
+          return pa - pb
+        })
+        const top = rutinasOrdenadas.slice(0, 3)
+        const resto = rutinasOrdenadas.slice(3)
+        const visibles = abiertaRutinas ? rutinasOrdenadas : top
+        const renderRutina = (r: RutinaCalculada) => (
+          <div key={r.columna} className="px-4 py-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base flex-shrink-0">{r.emoji}</span>
+              <p className="text-xs font-semibold text-[#3D2B1F] flex-1">{r.label}</p>
+            </div>
+            {r.promedioDias !== null ? (
+              <>
+                <p className="text-xs text-[#3D2B1F] leading-relaxed">
+                  {r.frase.replace('{cada}', textoCada(r.promedioDias)).replace('{nombre}', mascota?.nombre || 'tu mascota')}
+                </p>
+                <p className="text-[11px] text-[#8A7560] mt-0.5">
+                  Última vez: hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'} · {r.ocurrencias} registros
+                </p>
+                <p className="text-[11px] font-semibold mt-0.5" style={{ color: (r.proximaEstimadaDias ?? 0) < 0 ? '#F07A30' : '#4CAF7D' }}>
+                  {textoProxima(r.proximaEstimadaDias)}
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-[#8A7560]">
+                Solo 1 registro hasta ahora (hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'}) — falta otro para calcular un promedio.
+              </p>
+            )}
+          </div>
+        )
+        return (
+          <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+            <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-[#EEE2D4]">
+              <span className="text-lg">🔁</span>
+              <div>
+                <p className="font-bold text-sm text-[#3D2B1F]">Rutinas de cuidado</p>
+                <p className="text-[10px] text-[#8A7560]">Las más relevantes según todo el historial</p>
+              </div>
+            </div>
+            <div className="divide-y divide-[#EEE2D4]">
+              {visibles.map(renderRutina)}
+            </div>
+            {resto.length > 0 && (
+              <button onClick={() => setAbiertaRutinas(v => !v)} className="w-full px-4 py-2.5 text-xs font-bold text-[#CD7421] border-t border-[#EEE2D4]">
+                {abiertaRutinas ? 'Ver menos' : `Ver todas las rutinas (${rutinas.length})`}
+              </button>
+            )}
+            {abiertaRutinas && (
+              <p className="text-[10px] text-[#8A7560] px-4 py-2.5 italic border-t border-[#EEE2D4]">Calculado sobre todo el historial registrado de {mascota?.nombre}, no solo los últimos 30 días.</p>
+            )}
+          </div>
+        )
+      })()}
+      {total > 0 && <>
         {/* Registros recientes — desplegable */}
         <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           <button onClick={() => setAbiertoRecientes(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
