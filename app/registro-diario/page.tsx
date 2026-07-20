@@ -326,6 +326,15 @@ function RegistroContenido() {
   const [signoOtroTexto, setSignoOtroTexto] = useState('')
   const [signosAbierto, setSignosAbierto] = useState(false)
   const [miniModal, setMiniModal] = useState<'vacuna' | 'anti' | 'medicamento' | null>(null)
+  // Medicamentos activos de la mascota (para elegir en el mini-modal
+  // en vez de crear duplicados). Se carga al elegir mascota.
+  const [medsActivos, setMedsActivos] = useState<{ id: string; nombre: string; frecuencia: string | null }[]>([])
+  // En el mini-modal de medicamento: id del elegido para "cumplimiento"
+  // o null si va a crear uno nuevo.
+  const [medElegidoId, setMedElegidoId] = useState<string | null>(null)
+  // Modo del mini-modal: 'lista' muestra los activos + botón nuevo;
+  // 'nuevo' muestra el formulario para crear tratamiento nuevo.
+  const [medModo, setMedModo] = useState<'lista' | 'nuevo'>('lista')
   const [miniForm, setMiniForm] = useState<{ nombre: string; proxima_fecha: string; tipo: string }>({ nombre: '', proxima_fecha: '', tipo: 'interno' })
   const [miniError, setMiniError] = useState('')
   const [miniGuardando, setMiniGuardando] = useState(false)
@@ -467,7 +476,7 @@ function RegistroContenido() {
     })
   }
 
-  function toggleCuidado(valor: string) {
+  async function toggleCuidado(valor: string) {
     // Vacuna, antiparasitario y medicamento necesitan datos adicionales
     // (nombre, tipo) antes de poder marcarse, asi que en vez de marcar
     // directo, abren un mini-formulario. Si ya estaban marcados,
@@ -475,6 +484,23 @@ function RegistroContenido() {
     // la marca).
     const necesitaMiniModal = valor === 'vacuna_hoy' || valor === 'anti_hoy' || valor === 'medicamento_hoy'
     if (necesitaMiniModal && !cuidados.has(valor)) {
+      // Al abrir el mini-modal de medicamento, cargar los activos de
+      // la mascota para poder elegir "cumplimiento" en lugar de crear
+      // duplicados. Si no hay ninguno activo, salta directo a "nuevo".
+      if (valor === 'medicamento_hoy' && mascotaId) {
+        const hoyStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+        const { data: medsRaw } = await supabase
+          .from('medicamentos')
+          .select('id,nombre,frecuencia,fecha_fin,estado')
+          .eq('mascota_id', mascotaId)
+          .eq('estado', 'activo')
+        const activos = (medsRaw || [])
+          .filter((md: any) => !md.fecha_fin || md.fecha_fin >= hoyStr)
+          .map((md: any) => ({ id: md.id as string, nombre: md.nombre as string, frecuencia: (md.frecuencia || null) as string | null }))
+        setMedsActivos(activos)
+        setMedElegidoId(activos.length > 0 ? activos[0].id : null)
+        setMedModo(activos.length > 0 ? 'lista' : 'nuevo')
+      }
       setMiniModal(valor === 'vacuna_hoy' ? 'vacuna' : valor === 'anti_hoy' ? 'anti' : 'medicamento')
       setMiniForm({ nombre: '', proxima_fecha: '', tipo: 'interno' })
       setMiniError('')
@@ -496,18 +522,63 @@ function RegistroContenido() {
     setMiniGuardando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setMiniGuardando(false); return }
-    const tabla = miniModal === 'vacuna' ? 'vacunas' : miniModal === 'anti' ? 'antiparasitarios' : 'medicamentos'
+    // Rama especial de medicamento: distinguir cumplimiento vs. crear
+    // tratamiento nuevo. Vacunas y antiparasitarios siguen igual (esos
+    // eventos SÍ son puntuales por definición, no se repiten diario).
+    if (miniModal === 'medicamento') {
+      if (medModo === 'lista' && medElegidoId) {
+        // CUMPLIMIENTO: inserta una toma del día, sin duplicar el
+        // tratamiento. UNIQUE(medicamento_id, fecha) previene toma
+        // repetida si el usuario toca dos veces por accidente.
+        const { error: errToma } = await supabase.from('medicamento_tomas').upsert({
+          user_id: user.id,
+          mascota_id: mascotaId,
+          medicamento_id: medElegidoId,
+          fecha: fechaRegistro,
+        }, { onConflict: 'medicamento_id,fecha' })
+        setMiniGuardando(false)
+        if (errToma) {
+          setMiniError('No se pudo registrar la toma. Intenta de nuevo.')
+          return
+        }
+        setCuidados(prev => new Set(prev).add('medicamento_hoy'))
+        setMiniModal(null)
+        return
+      }
+      // TRATAMIENTO NUEVO: crea el medicamento y su primera toma.
+      const { data: nuevoMed, error: errMed } = await supabase.from('medicamentos').insert({
+        mascota_id: mascotaId,
+        user_id: user.id,
+        nombre: miniForm.nombre.trim(),
+        fecha_inicio: fechaRegistro,
+        proximo_control: miniForm.proxima_fecha || null,
+        estado: 'activo',
+      }).select('id').single()
+      if (errMed || !nuevoMed) {
+        setMiniGuardando(false)
+        setMiniError('No se pudo guardar el medicamento. Intenta de nuevo.')
+        return
+      }
+      // Primera toma del tratamiento en la fecha del registro.
+      await supabase.from('medicamento_tomas').upsert({
+        user_id: user.id,
+        mascota_id: mascotaId,
+        medicamento_id: nuevoMed.id,
+        fecha: fechaRegistro,
+      }, { onConflict: 'medicamento_id,fecha' })
+      setMiniGuardando(false)
+      setCuidados(prev => new Set(prev).add('medicamento_hoy'))
+      setMiniModal(null)
+      return
+    }
+
+    const tabla = miniModal === 'vacuna' ? 'vacunas' : 'antiparasitarios'
     const datos: any = {
       mascota_id: mascotaId,
       user_id: user.id,
       nombre: miniForm.nombre.trim(),
-    }
-    if (miniModal === 'medicamento') {
-      datos.fecha_inicio = fechaRegistro
-      datos.proximo_control = miniForm.proxima_fecha || null
-    } else {
-      datos.fecha_aplicacion = fechaRegistro
-      datos.proxima_fecha = miniForm.proxima_fecha || null
+      fecha_aplicacion: fechaRegistro,
+      proxima_fecha: miniForm.proxima_fecha || null,
     }
     if (miniModal === 'anti') datos.tipo = miniForm.tipo
     const { error } = await supabase.from(tabla).insert(datos)
@@ -901,52 +972,109 @@ function RegistroContenido() {
               </h2>
               <button onClick={cancelarMiniModal} className="text-[#8A7560] text-xl">✕</button>
             </div>
-            <p className="text-xs text-[#8A7560] -mt-2">Esto se guarda automáticamente en Prevención.</p>
-            <div>
-              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">
-                {miniModal === 'vacuna' ? 'Nombre de la vacuna *' : miniModal === 'anti' ? 'Nombre del producto *' : 'Nombre del medicamento *'}
-              </label>
-              <input
-                className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none"
-                placeholder={miniModal === 'vacuna' ? 'ej. Séxtuple, Antirrábica...' : miniModal === 'anti' ? 'ej. Bravecto, Simparica...' : 'ej. Amoxicilina'}
-                value={miniForm.nombre}
-                onChange={e => setMiniForm(p => ({ ...p, nombre: e.target.value }))}
-                autoFocus
-              />
-            </div>
-            {miniModal === 'anti' && (
-              <div>
-                <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Tipo</label>
-                <select
-                  className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
-                  value={miniForm.tipo}
-                  onChange={e => setMiniForm(p => ({ ...p, tipo: e.target.value }))}
+            {/* Rama especial: medicamento con activos → elegir uno o
+                crear nuevo tratamiento. Nunca más duplicados por
+                marcar cumplimiento diario. */}
+            {miniModal === 'medicamento' && medModo === 'lista' && medsActivos.length > 0 ? (
+              <>
+                <p className="text-xs text-[#8A7560] -mt-2">¿Cuál medicamento le diste hoy?</p>
+                <div className="space-y-1.5">
+                  {medsActivos.map(md => (
+                    <button
+                      key={md.id}
+                      onClick={() => setMedElegidoId(md.id)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
+                      style={medElegidoId === md.id
+                        ? { borderColor: '#4AABDB', background: '#4AABDB14', borderWidth: '1.5px' }
+                        : { borderColor: '#EEE2D4', background: '#FBEAD9', borderWidth: '1.5px' }}
+                    >
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={medElegidoId === md.id ? { background: '#4AABDB', color: 'white' } : { border: '1.5px solid #EEE2D4' }}>
+                        {medElegidoId === md.id && <span className="text-[10px] font-bold">✓</span>}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-[#3D2B1F]">{md.nombre}</p>
+                        {md.frecuencia && <p className="text-[10px] text-[#8A7560]">{md.frecuencia}</p>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => { setMedModo('nuevo'); setMedElegidoId(null); setMiniForm(p => ({ ...p, nombre: '' })) }}
+                  className="w-full text-xs font-bold text-[#CD7421] py-2 text-left"
                 >
-                  <option value="interno">Interno</option>
-                  <option value="externo">Externo</option>
-                  <option value="ambos">Ambos</option>
-                </select>
-              </div>
+                  ＋ Es un medicamento nuevo
+                </button>
+                {miniError && <p className="text-xs text-[#E05252]">{miniError}</p>}
+                <button
+                  onClick={confirmarMiniModal}
+                  disabled={miniGuardando || !medElegidoId}
+                  className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm disabled:opacity-50"
+                >
+                  {miniGuardando ? 'Guardando...' : 'Confirmar toma de hoy'}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-[#8A7560] -mt-2">
+                  {miniModal === 'medicamento' && medModo === 'nuevo' && medsActivos.length > 0
+                    ? 'Nuevo tratamiento — se guarda en Prevención.'
+                    : 'Esto se guarda automáticamente en Prevención.'}
+                </p>
+                <div>
+                  <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">
+                    {miniModal === 'vacuna' ? 'Nombre de la vacuna *' : miniModal === 'anti' ? 'Nombre del producto *' : 'Nombre del medicamento *'}
+                  </label>
+                  <input
+                    className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none"
+                    placeholder={miniModal === 'vacuna' ? 'ej. Séxtuple, Antirrábica...' : miniModal === 'anti' ? 'ej. Bravecto, Simparica...' : 'ej. Amoxicilina'}
+                    value={miniForm.nombre}
+                    onChange={e => setMiniForm(p => ({ ...p, nombre: e.target.value }))}
+                    autoFocus
+                  />
+                </div>
+                {miniModal === 'anti' && (
+                  <div>
+                    <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Tipo</label>
+                    <select
+                      className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
+                      value={miniForm.tipo}
+                      onChange={e => setMiniForm(p => ({ ...p, tipo: e.target.value }))}
+                    >
+                      <option value="interno">Interno</option>
+                      <option value="externo">Externo</option>
+                      <option value="ambos">Ambos</option>
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">
+                    {miniModal === 'vacuna' ? 'Próxima vacunación · opcional' : miniModal === 'anti' ? 'Próxima dosis · opcional' : 'Próximo control · opcional'}
+                  </label>
+                  {/* FechaSelector siempre reemplaza el input date nativo (regla #7) */}
+                  <FechaSelector
+                    value={miniForm.proxima_fecha}
+                    onChange={v => setMiniForm(p => ({ ...p, proxima_fecha: v }))}
+                    opcional
+                  />
+                </div>
+                {miniModal === 'medicamento' && medsActivos.length > 0 && medModo === 'nuevo' && (
+                  <button
+                    onClick={() => { setMedModo('lista'); setMedElegidoId(medsActivos[0].id) }}
+                    className="w-full text-xs font-bold text-[#CD7421] py-1 text-left"
+                  >
+                    ← Volver a elegir uno existente
+                  </button>
+                )}
+                {miniError && <p className="text-xs text-[#E05252]">{miniError}</p>}
+                <button
+                  onClick={confirmarMiniModal}
+                  disabled={miniGuardando}
+                  className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm disabled:opacity-50"
+                >
+                  {miniGuardando ? 'Guardando...' : 'Guardar y marcar'}
+                </button>
+              </>
             )}
-            <div>
-              <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">
-                {miniModal === 'vacuna' ? 'Próxima vacunación · opcional' : miniModal === 'anti' ? 'Próxima dosis · opcional' : 'Próximo control · opcional'}
-              </label>
-              {/* FechaSelector siempre reemplaza el input date nativo (regla #7) */}
-              <FechaSelector
-                value={miniForm.proxima_fecha}
-                onChange={v => setMiniForm(p => ({ ...p, proxima_fecha: v }))}
-                opcional
-              />
-            </div>
-            {miniError && <p className="text-xs text-[#E05252]">{miniError}</p>}
-            <button
-              onClick={confirmarMiniModal}
-              disabled={miniGuardando}
-              className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm disabled:opacity-50"
-            >
-              {miniGuardando ? 'Guardando...' : 'Guardar y marcar'}
-            </button>
           </div>
         </div>
       )}

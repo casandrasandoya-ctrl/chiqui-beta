@@ -132,16 +132,27 @@ export default async function Dashboard({ searchParams }: Props) {
   // tratamiento terminó aunque el campo no se haya actualizado.
   const { data: medsActivosRaw } = await supabase
     .from('medicamentos')
-    .select('nombre,frecuencia,fecha_fin')
+    .select('id,nombre,frecuencia,fecha_fin')
     .eq('mascota_id', m.id)
     .eq('estado', 'activo')
   const medsActivos = (medsActivosRaw || []).filter((med: any) =>
     !med.fecha_fin || med.fecha_fin >= hoy
   )
-  const yaMarcoMedHoy = !!(regHoy && (regHoy as any).medicamento_hoy)
-  const medicamentosPendientesHoy = medsActivos.length > 0 && !yaMarcoMedHoy
-    ? medsActivos.map((m: any) => ({ nombre: m.nombre as string, frecuencia: (m.frecuencia || null) as string | null }))
-    : []
+  // Tomas de HOY por cada medicamento activo. Solo los que NO tienen
+  // toma hoy generan novedad.
+  const idsActivos = medsActivos.map((m: any) => m.id as string)
+  let idsConTomaHoy: Set<string> = new Set()
+  if (idsActivos.length > 0) {
+    const { data: tomasHoy } = await supabase
+      .from('medicamento_tomas')
+      .select('medicamento_id')
+      .eq('mascota_id', m.id)
+      .eq('fecha', hoy)
+    idsConTomaHoy = new Set(((tomasHoy || []) as { medicamento_id: string }[]).map(t => t.medicamento_id))
+  }
+  const medicamentosPendientesHoy = medsActivos
+    .filter((md: any) => !idsConTomaHoy.has(md.id))
+    .map((md: any) => ({ nombre: md.nombre as string, frecuencia: (md.frecuencia || null) as string | null }))
 
   // Definición de los cuidados posibles, organizados por grupo (mismo
   // orden que en el registro diario: Veterinario y salud → Prevención →

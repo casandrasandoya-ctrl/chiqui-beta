@@ -68,6 +68,8 @@ export default function PrevencionPage() {
   const [form, setForm] = useState<any>({})
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [menuAbierto, setMenuAbierto] = useState<{ tipo: 'vacuna' | 'anti' | 'medicamento'; id: string } | null>(null)
+  // IDs de medicamentos cuyo historial de tomas está expandido.
+  const [tomasExpandidas, setTomasExpandidas] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
   // Mejora 2: marcar observación como resuelta
   const [modalResolverObs, setModalResolverObs] = useState<string | null>(null)
@@ -129,7 +131,7 @@ export default function PrevencionPage() {
       supabase.from('vacunas').select('*').eq('mascota_id', id).order('fecha_aplicacion', { ascending: false }),
       supabase.from('antiparasitarios').select('*').eq('mascota_id', id).order('fecha_aplicacion', { ascending: false }),
       supabase.from('observaciones').select('*').eq('mascota_id', id).order('created_at', { ascending: false }),
-      supabase.from('medicamentos').select('*').eq('mascota_id', id).order('fecha_inicio', { ascending: false }),
+      supabase.from('medicamentos').select('*, medicamento_tomas(fecha)').eq('mascota_id', id).order('fecha_inicio', { ascending: false }),
       supabase.from('enfermedades').select('*').eq('mascota_id', id).order('fecha_diagnostico', { ascending: false }),
       supabase.from('examenes').select('*').eq('mascota_id', id).order('fecha', { ascending: false }),
       supabase.from('revisiones_corporales').select('*').eq('mascota_id', id).order('fecha', { ascending: false }),
@@ -790,6 +792,43 @@ export default function PrevencionPage() {
                       </div>
                     </div>
                     {med.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {med.nota}</p>}
+                    {/* Historial de tomas de este tratamiento. Se
+                        cargan como relación medicamento_tomas del
+                        select. Mostramos conteo + últimas 3, con
+                        opción de expandir todas. */}
+                    {(() => {
+                      const tomas = (med.medicamento_tomas || []) as { fecha: string }[]
+                      if (tomas.length === 0) return null
+                      const tomasOrdenadas = [...tomas].sort((a, b) => b.fecha.localeCompare(a.fecha))
+                      const expandido = tomasExpandidas.has(med.id)
+                      const visibles = expandido ? tomasOrdenadas : tomasOrdenadas.slice(0, 3)
+                      return (
+                        <div className="mt-3 pt-2.5 border-t border-[#EEE2D4]">
+                          <p className="text-[10px] font-bold text-[#8A7560] uppercase tracking-wider mb-1.5">
+                            {tomas.length} {tomas.length === 1 ? 'toma registrada' : 'tomas registradas'}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {visibles.map((t, i) => (
+                              <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-[#4AABDB]/15 text-[#3D2B1F] font-medium">
+                                {fmt(t.fecha)}
+                              </span>
+                            ))}
+                          </div>
+                          {tomasOrdenadas.length > 3 && (
+                            <button
+                              onClick={() => setTomasExpandidas(prev => {
+                                const next = new Set(prev)
+                                if (next.has(med.id)) next.delete(med.id); else next.add(med.id)
+                                return next
+                              })}
+                              className="text-[10px] font-bold text-[#CD7421] mt-1.5"
+                            >
+                              {expandido ? 'Ver menos' : `Ver todas (${tomasOrdenadas.length})`}
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
                 )
