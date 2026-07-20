@@ -67,7 +67,7 @@ export default function PrevencionPage() {
   const [modal, setModal] = useState<'vacuna' | 'anti' | 'obs' | 'medicamento' | 'enfermedad' | 'examen' | null>(null)
   const [form, setForm] = useState<any>({})
   const [editandoId, setEditandoId] = useState<string | null>(null)
-  const [menuAbierto, setMenuAbierto] = useState<{ tipo: 'vacuna' | 'anti' | 'medicamento'; id: string } | null>(null)
+  const [menuAbierto, setMenuAbierto] = useState<{ tipo: 'vacuna' | 'anti' | 'medicamento' | 'enfermedad'; id: string } | null>(null)
   // IDs de medicamentos cuyo historial de tomas está expandido.
   const [tomasExpandidas, setTomasExpandidas] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
@@ -204,8 +204,18 @@ export default function PrevencionPage() {
         await supabase.from('medicamentos').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0], indicado_por_vet: !!form.indicado_por_vet, dosis_por_dia: Number(form.dosis_por_dia) || 1 })
       }
     } else if (modal === 'enfermedad') {
-      const { data: nuevaEnf } = await supabase.from('enfermedades').insert({ ...base, ...form, fecha_diagnostico: form.fecha_diagnostico || new Date().toISOString().split('T')[0] }).select('id').single()
-      if (nuevaEnf && fotoSalud) await subirFotoSalud('enfermedades', nuevaEnf.id, user.id)
+      if (editandoId) {
+        // Al editar preservamos user_id/mascota_id (no viene del form);
+        // fecha_diagnostico ya está en el form, no se pisa si vino
+        // vacío desde el modal.
+        const payload: Record<string, unknown> = { ...form }
+        if (!payload.proxima_revision) payload.proxima_revision = null
+        await supabase.from('enfermedades').update(payload).eq('id', editandoId)
+        if (fotoSalud) await subirFotoSalud('enfermedades', editandoId, user.id)
+      } else {
+        const { data: nuevaEnf } = await supabase.from('enfermedades').insert({ ...base, ...form, fecha_diagnostico: form.fecha_diagnostico || new Date().toISOString().split('T')[0] }).select('id').single()
+        if (nuevaEnf && fotoSalud) await subirFotoSalud('enfermedades', nuevaEnf.id, user.id)
+      }
     }
     await cargarDatos(mascota.id)
     setModal(null); setForm({}); setSaving(false); setEditandoId(null)
@@ -430,6 +440,27 @@ export default function PrevencionPage() {
     setMenuAbierto(null)
     if (!confirm('¿Eliminar este medicamento?')) return
     await supabase.from('medicamentos').delete().eq('id', id)
+    if (mascota) await cargarDatos(mascota.id)
+  }
+
+  function editarEnf(enf: any) {
+    setEditandoId(enf.id)
+    setForm({
+      diagnostico: enf.diagnostico || '',
+      fecha_diagnostico: enf.fecha_diagnostico || '',
+      veterinario: enf.veterinario || '',
+      estado: enf.estado || 'activa',
+      proxima_revision: enf.proxima_revision || '',
+      nota: enf.nota || '',
+    })
+    setModal('enfermedad'); setMenuAbierto(null)
+    // Foto existente se preserva; si el user sube una nueva la reemplaza.
+    setFotoSalud(null); setFotoSaludPreview(enf.foto_url || null); setErrorFotoSalud('')
+  }
+  async function eliminarEnf(id: string) {
+    setMenuAbierto(null)
+    if (!confirm('¿Eliminar esta enfermedad? También se borrarán sus datos asociados.')) return
+    await supabase.from('enfermedades').delete().eq('id', id)
     if (mascota) await cargarDatos(mascota.id)
   }
 
@@ -906,9 +937,12 @@ export default function PrevencionPage() {
                             {enf.veterinario && <p className="text-xs text-[#8A7560]">Por: {enf.veterinario}</p>}
                           </div>
                         </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: `${estadoColor[enf.estado]}20`, color: estadoColor[enf.estado] }}>
-                          {estadoLabel[enf.estado] || enf.estado}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: `${estadoColor[enf.estado]}20`, color: estadoColor[enf.estado] }}>
+                            {estadoLabel[enf.estado] || enf.estado}
+                          </span>
+                          <button onClick={() => setMenuAbierto({ tipo: 'enfermedad', id: enf.id })} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
+                        </div>
                       </div>
                       {enf.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {enf.nota}</p>}
                       {enf.foto_url && <img src={enf.foto_url} alt={enf.diagnostico} className="w-full h-40 object-cover rounded-xl mt-2" />}
@@ -1209,6 +1243,7 @@ export default function PrevencionPage() {
               if (menuAbierto.tipo === 'vacuna') { const v = vacunas.find((x: any) => x.id === menuAbierto.id); if (v) editarVacuna(v) }
               else if (menuAbierto.tipo === 'anti') { const a = antis.find((x: any) => x.id === menuAbierto.id); if (a) editarAnti(a) }
               else if (menuAbierto.tipo === 'medicamento') { const md = medicamentos.find((x: any) => x.id === menuAbierto.id); if (md) editarMed(md) }
+              else if (menuAbierto.tipo === 'enfermedad') { const ef = enfermedades.find((x: any) => x.id === menuAbierto.id); if (ef) editarEnf(ef) }
             }} className="w-full px-4 py-3.5 text-left text-sm font-medium text-[#3D2B1F] flex items-center gap-3">
               <span className="text-lg">✏️</span> Editar
             </button>
@@ -1217,6 +1252,7 @@ export default function PrevencionPage() {
               if (menuAbierto.tipo === 'vacuna') eliminarVacuna(menuAbierto.id)
               else if (menuAbierto.tipo === 'anti') eliminarAnti(menuAbierto.id)
               else if (menuAbierto.tipo === 'medicamento') eliminarMed(menuAbierto.id)
+              else if (menuAbierto.tipo === 'enfermedad') eliminarEnf(menuAbierto.id)
             }} className="w-full px-4 py-3.5 text-left text-sm font-medium text-[#E05252] flex items-center gap-3">
               <span className="text-lg">🗑️</span> Eliminar
             </button>
@@ -1233,7 +1269,7 @@ export default function PrevencionPage() {
                 {modal === 'vacuna' ? (editandoId ? '💉 Editar vacuna' : '💉 Nueva vacuna')
                   : modal === 'anti' ? (editandoId ? '💊 Editar antiparasitario' : '💊 Nuevo antiparasitario')
                   : modal === 'medicamento' ? (editandoId ? '🩹 Editar medicamento' : '🩹 Nuevo medicamento')
-                  : modal === 'enfermedad' ? '🏥 Nuevo diagnóstico'
+                  : modal === 'enfermedad' ? (editandoId ? '🏥 Editar diagnóstico' : '🏥 Nuevo diagnóstico')
                   : modal === 'examen' ? '📄 Nuevo examen'
                   : '👁️ Nueva observación'}
               </h2>

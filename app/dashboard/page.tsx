@@ -159,16 +159,13 @@ export default async function Dashboard({ searchParams }: Props) {
       const dadas = tomasHoyPorMed[md.id] || 0
       return dadas < esperadas
     })
-    .map((md: any) => {
-      const esperadas = Math.max(1, Number(md.dosis_por_dia) || 1)
-      const dadas = tomasHoyPorMed[md.id] || 0
-      // Si son varias dosis, cuéntalo en el nombre para que la novedad
-      // le muestre al tutor cuánto falta.
-      const nombreConProgreso = esperadas > 1
-        ? `${md.nombre} (${dadas}/${esperadas} hoy)`
-        : md.nombre
-      return { nombre: nombreConProgreso as string, frecuencia: (md.frecuencia || null) as string | null }
-    })
+    .map((md: any) => ({
+      id: md.id as string,
+      nombreOriginal: md.nombre as string,
+      frecuencia: (md.frecuencia || null) as string | null,
+      dosisPorDia: Math.max(1, Number(md.dosis_por_dia) || 1),
+      tomasHoy: tomasHoyPorMed[md.id] || 0,
+    }))
 
   // Definición de los cuidados posibles, organizados por grupo (mismo
   // orden que en el registro diario: Veterinario y salud → Prevención →

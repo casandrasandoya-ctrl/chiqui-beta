@@ -43,7 +43,13 @@ interface Props {
   rachaRegistros: number
   seguimientos: { id: string; titulo: string; diasSinActualizar: number }[]
   diasSinCampo: { apetito: number | null; agua: number | null; heces: number | null; peso: number | null }
-  medicamentosPendientesHoy: { nombre: string; frecuencia: string | null }[]
+  medicamentosPendientesHoy: {
+    id: string
+    nombreOriginal: string
+    frecuencia: string | null
+    dosisPorDia: number
+    tomasHoy: number
+  }[]
 }
 
 interface Novedad {
@@ -53,6 +59,10 @@ interface Novedad {
   destacada?: boolean  // true = celebración de HOY (tarjeta dorada)
   href?: string        // si existe, la tarjeta navega y la ✕ cierra
   accion?: string      // texto de acción subrayado (deja claro que es clickeable)
+  // Callback opcional que resuelve la novedad sin navegar (ej. una
+  // dosis registrada en 1 tap desde el dashboard). Cuando existe, se
+  // usa en lugar de href.
+  onAccion?: () => Promise<void>
   efimera?: boolean    // true = el cierre NO se persiste: desaparece de la
                        // vista actual pero reaparece al volver al dashboard
                        // (para acciones que deben insistir hasta completarse)
@@ -250,21 +260,37 @@ function calcularNovedades(
   // "Recibió medicamento", preguntamos con cariño. Efímera: al cerrar
   // desaparece de la vista actual pero reaparece si vuelve al dashboard
   // sin marcarlo — es una acción concreta que importa.
-  if (medicamentosPendientesHoy.length > 0) {
-    // Un solo mensaje aunque haya varios medicamentos; los listamos
-    // por nombre para que el tutor sepa cuáles.
-    const nombres = medicamentosPendientesHoy.map(x => x.nombre).join(' y ')
-    // Frecuencia solo si TODOS comparten la misma (para no confundir).
-    const freqs = new Set(medicamentosPendientesHoy.map(x => x.frecuencia).filter(Boolean))
-    const freqTexto = freqs.size === 1 ? ` (${[...freqs][0]})` : ''
+  // Una novedad por cada medicamento pendiente. Así el usuario puede
+  // marcar la dosis específica con 1 tap y no tiene que "batch" en
+  // una sola tarjeta con varios nombres. Cada novedad expone tanto
+  // acción rápida (registrar aquí mismo) como link al registro
+  // completo. Todas efímeras: si cierran sin marcar, reaparecen.
+  for (const md of medicamentosPendientesHoy) {
+    const restantes = md.dosisPorDia - md.tomasHoy
+    // Textos según si es dosis única o múltiple.
+    let mensaje: string
+    let etiquetaAccion: string
+    if (md.dosisPorDia === 1) {
+      mensaje = `💊 ¿Ya le diste ${md.nombreOriginal} a ${m.nombre} hoy?${md.frecuencia ? ` (${md.frecuencia})` : ''}`
+      etiquetaAccion = '✓ Ya se lo di'
+    } else {
+      const siguienteDosis = md.tomasHoy + 1
+      mensaje = `💊 Le toca la dosis ${siguienteDosis} de ${md.dosisPorDia} de ${md.nombreOriginal} a ${m.nombre}.${md.tomasHoy > 0 ? ` (Van ${md.tomasHoy}/${md.dosisPorDia} hoy)` : ''}`
+      etiquetaAccion = `✓ Registrar dosis ${siguienteDosis}`
+    }
     lista.push({
-      key: `med_hoy_${m.id}_${hoyStr}`,
+      key: `med_hoy_${md.id}_${hoyStr}_${md.tomasHoy}`,
       img: '/chiqui/chiqui_medicamentos.png',
-      href: '/registro-diario',
-      accion: '💊 Marcar en el registro',
+      mensaje,
+      accion: etiquetaAccion,
+      // La acción se conecta al callback en el componente Novedades
+      // (más abajo, tras props). Aquí queda el id para identificarla.
+      onAccion: undefined, // se rellena dinámicamente en el componente
       efimera: true,
-      mensaje: `💊 ¿Ya le diste el medicamento a ${m.nombre}${medicamentosPendientesHoy.length === 1 ? '' : 's'}? (${nombres}${freqTexto})`,
-    })
+    } as any)
+    // También añadimos el id como campo extra para el callback:
+    ;(lista[lista.length - 1] as any).medicamentoId = md.id
+    ;(lista[lista.length - 1] as any).dosisNum = md.tomasHoy + 1
   }
 
   // ---- 6. SEGUIMIENTOS PENDIENTES (15+ días sin actualizar) ----
@@ -361,6 +387,24 @@ function calcularNovedades(
 const PREFIJO_STORAGE = 'chiqui_novedad_'
 
 export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, rachaRegistros, seguimientos, diasSinCampo, medicamentosPendientesHoy }: Props) {
+  // Registrar dosis rápida desde el dashboard, sin ir al registro
+  // diario. Marca la toma con el dosis_num que corresponde (calculado
+  // por el server) y refresca para re-consultar novedades.
+  async function registrarDosisRapida(medicamentoId: string, dosisNum: number) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const hoyStr = fechaHoyChile()
+    await supabase.from('medicamento_tomas').upsert({
+      user_id: user.id,
+      mascota_id: mascota.id,
+      medicamento_id: medicamentoId,
+      fecha: hoyStr,
+      dosis_num: dosisNum,
+    }, { onConflict: 'medicamento_id,fecha,dosis_num' })
+    // Refrescar el dashboard para que el server recalcule el estado
+    // (novedad completa, la de esta dosis desaparece).
+    if (typeof window !== 'undefined') window.location.reload()
+  }
   const [cerradas, setCerradas] = useState<Set<string>>(new Set())
   const [sinPermisoNotif, setSinPermisoNotif] = useState(false)
   // Se espera al montaje para leer localStorage y Notification (evita
@@ -394,10 +438,23 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
   if (!montado) return null
 
   const especies = new Set(mascotas.map(ms => ms.especie))
-  const pendientes = calcularNovedades(
+  const pendientesRaw = calcularNovedades(
     mascota, especies, tieneRegistroHoy, color, rachaRegistros, sinPermisoNotif, fechaHoyChile(),
     seguimientos, diasSinCampo, medicamentosPendientesHoy,
-  ).filter(n => !cerradas.has(n.key))
+  )
+  // Enlazar onAccion de las novedades de medicamento con el callback
+  // real. Se hace acá (no en calcularNovedades) para que la función
+  // pura no dependa de supabase.
+  const pendientes = pendientesRaw
+    .map(n => {
+      const medId = (n as any).medicamentoId as string | undefined
+      const dosisNum = (n as any).dosisNum as number | undefined
+      if (medId && dosisNum) {
+        return { ...n, onAccion: () => registrarDosisRapida(medId, dosisNum) }
+      }
+      return n
+    })
+    .filter(n => !cerradas.has(n.key))
 
   if (pendientes.length === 0) return null
 
@@ -414,7 +471,7 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
         </p>
         {/* Línea de acción subrayada: deja claro que la tarjeta se
             puede tocar (además de poder cerrarla con la ✕) */}
-        {actual.href && actual.accion && (
+        {((actual.href || actual.onAccion) && actual.accion) && (
           <span className="inline-block mt-1 text-[11px] font-bold text-[#CD7421] underline underline-offset-2">
             {actual.accion}
           </span>
@@ -441,7 +498,27 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
 
       {/* UNA sola tarjeta a la vez — misma estructura para todas.
           key={actual.key} reinicia la animación fade al cambiar. */}
-      {actual.href ? (
+      {actual.onAccion ? (
+        // Novedad con acción rápida (ej. registrar dosis desde el
+        // dashboard): tocar la tarjeta EJECUTA la acción y la
+        // novedad queda resuelta. La ✕ sigue cerrándola sin ejecutar.
+        <div key={actual.key} className="mx-4 fade-in relative">
+          <button
+            onClick={() => { actual.onAccion && actual.onAccion() }}
+            className="w-full flex items-center gap-3 rounded-2xl px-3.5 py-3 pr-10 text-left"
+            style={estiloTarjeta}
+          >
+            {contenidoTarjeta}
+          </button>
+          <button
+            onClick={() => cerrar(actual)}
+            className="absolute top-1/2 -translate-y-1/2 right-3 text-[#8A7560] text-sm p-1"
+            aria-label="Cerrar novedad"
+          >
+            ✕
+          </button>
+        </div>
+      ) : actual.href ? (
         <div key={actual.key} className="mx-4 fade-in relative">
           <Link href={actual.href} className="w-full flex items-center gap-3 rounded-2xl px-3.5 py-3 pr-10 text-left" style={estiloTarjeta}>
             {contenidoTarjeta}

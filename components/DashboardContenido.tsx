@@ -35,7 +35,13 @@ interface Props {
   tieneRegistroHoy: boolean
   seguimientosPendientes: { id: string; titulo: string; diasSinActualizar: number }[]
   diasSinCampo: { apetito: number | null; agua: number | null; heces: number | null; peso: number | null }
-  medicamentosPendientesHoy: { nombre: string; frecuencia: string | null }[]
+  medicamentosPendientesHoy: {
+    id: string
+    nombreOriginal: string
+    frecuencia: string | null
+    dosisPorDia: number
+    tomasHoy: number
+  }[]
   cuidadosRecientes: { grupo: string; label: string; emoji: string; dias: number }[]
   rachaPaseo: number | null
   rachaEnRiesgo: boolean
