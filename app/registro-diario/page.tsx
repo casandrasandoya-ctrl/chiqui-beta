@@ -515,7 +515,13 @@ function RegistroContenido() {
   }
 
   async function confirmarMiniModal() {
-    if (!miniForm.nombre.trim()) {
+    // En modo lista (cumplimiento de medicamento existente) NO se pide
+    // nombre — la elección es el radio-button. Se valida solo que haya
+    // uno seleccionado más abajo, en la rama de medicamento. En los
+    // demás casos (vacuna, anti, medicamento nuevo) el nombre es
+    // obligatorio.
+    const enModoLista = miniModal === 'medicamento' && medModo === 'lista'
+    if (!enModoLista && !miniForm.nombre.trim()) {
       setMiniError('Escribe el nombre para continuar.')
       return
     }
