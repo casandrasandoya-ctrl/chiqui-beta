@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { createClient } from '@/utils/supabase/client'
 
 // ============================================================
 // NOVEDADES — el único sistema de eventos del Dashboard
@@ -387,6 +388,7 @@ function calcularNovedades(
 const PREFIJO_STORAGE = 'chiqui_novedad_'
 
 export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, rachaRegistros, seguimientos, diasSinCampo, medicamentosPendientesHoy }: Props) {
+  const supabase = createClient()
   // Registrar dosis rápida desde el dashboard, sin ir al registro
   // diario. Marca la toma con el dosis_num que corresponde (calculado
   // por el server) y refresca para re-consultar novedades.
