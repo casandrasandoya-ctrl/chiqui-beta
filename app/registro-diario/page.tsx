@@ -329,9 +329,10 @@ function RegistroContenido() {
   // Medicamentos activos de la mascota (para elegir en el mini-modal
   // en vez de crear duplicados). Se carga al elegir mascota.
   const [medsActivos, setMedsActivos] = useState<{ id: string; nombre: string; frecuencia: string | null }[]>([])
-  // En el mini-modal de medicamento: id del elegido para "cumplimiento"
-  // o null si va a crear uno nuevo.
-  const [medElegidoId, setMedElegidoId] = useState<string | null>(null)
+  // En el mini-modal de medicamento: IDs elegidos para "cumplimiento"
+  // (Set porque el usuario puede estar tomando varios a la vez y
+  // marcarlos todos en una sola acción).
+  const [medsElegidosIds, setMedsElegidosIds] = useState<Set<string>>(new Set())
   // Modo del mini-modal: 'lista' muestra los activos + botón nuevo;
   // 'nuevo' muestra el formulario para crear tratamiento nuevo.
   const [medModo, setMedModo] = useState<'lista' | 'nuevo'>('lista')
@@ -498,7 +499,10 @@ function RegistroContenido() {
           .filter((md: any) => !md.fecha_fin || md.fecha_fin >= hoyStr)
           .map((md: any) => ({ id: md.id as string, nombre: md.nombre as string, frecuencia: (md.frecuencia || null) as string | null }))
         setMedsActivos(activos)
-        setMedElegidoId(activos.length > 0 ? activos[0].id : null)
+        // Pre-selección amable: todos marcados. Si el usuario tiene
+        // varios tratamientos activos, lo más común es que le haya
+        // dado todos hoy. Solo desmarca los que no le dio.
+        setMedsElegidosIds(new Set(activos.map(a => a.id)))
         setMedModo(activos.length > 0 ? 'lista' : 'nuevo')
       }
       setMiniModal(valor === 'vacuna_hoy' ? 'vacuna' : valor === 'anti_hoy' ? 'anti' : 'medicamento')
@@ -532,16 +536,19 @@ function RegistroContenido() {
     // tratamiento nuevo. Vacunas y antiparasitarios siguen igual (esos
     // eventos SÍ son puntuales por definición, no se repiten diario).
     if (miniModal === 'medicamento') {
-      if (medModo === 'lista' && medElegidoId) {
-        // CUMPLIMIENTO: inserta una toma del día, sin duplicar el
-        // tratamiento. UNIQUE(medicamento_id, fecha) previene toma
-        // repetida si el usuario toca dos veces por accidente.
-        const { error: errToma } = await supabase.from('medicamento_tomas').upsert({
+      if (medModo === 'lista' && medsElegidosIds.size > 0) {
+        // CUMPLIMIENTO MÚLTIPLE: una toma por cada medicamento elegido.
+        // UNIQUE(medicamento_id, fecha) previene tomas repetidas si
+        // el usuario ya había marcado alguno hoy y vuelve a confirmar.
+        const filas = Array.from(medsElegidosIds).map(medId => ({
           user_id: user.id,
           mascota_id: mascotaId,
-          medicamento_id: medElegidoId,
+          medicamento_id: medId,
           fecha: fechaRegistro,
-        }, { onConflict: 'medicamento_id,fecha' })
+        }))
+        const { error: errToma } = await supabase
+          .from('medicamento_tomas')
+          .upsert(filas, { onConflict: 'medicamento_id,fecha' })
         setMiniGuardando(false)
         if (errToma) {
           setMiniError('No se pudo registrar la toma. Intenta de nuevo.')
@@ -983,29 +990,45 @@ function RegistroContenido() {
                 marcar cumplimiento diario. */}
             {miniModal === 'medicamento' && medModo === 'lista' && medsActivos.length > 0 ? (
               <>
-                <p className="text-xs text-[#8A7560] -mt-2">¿Cuál medicamento le diste hoy?</p>
+                <p className="text-xs text-[#8A7560] -mt-2">
+                  {medsActivos.length === 1 ? '¿Le diste este medicamento hoy?' : 'Marca los que le diste hoy (puedes elegir varios).'}
+                </p>
                 <div className="space-y-1.5">
-                  {medsActivos.map(md => (
-                    <button
-                      key={md.id}
-                      onClick={() => setMedElegidoId(md.id)}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
-                      style={medElegidoId === md.id
-                        ? { borderColor: '#4AABDB', background: '#4AABDB14', borderWidth: '1.5px' }
-                        : { borderColor: '#EEE2D4', background: '#FBEAD9', borderWidth: '1.5px' }}
-                    >
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={medElegidoId === md.id ? { background: '#4AABDB', color: 'white' } : { border: '1.5px solid #EEE2D4' }}>
-                        {medElegidoId === md.id && <span className="text-[10px] font-bold">✓</span>}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-[#3D2B1F]">{md.nombre}</p>
-                        {md.frecuencia && <p className="text-[10px] text-[#8A7560]">{md.frecuencia}</p>}
-                      </div>
-                    </button>
-                  ))}
+                  {medsActivos.map(md => {
+                    const elegido = medsElegidosIds.has(md.id)
+                    return (
+                      <button
+                        key={md.id}
+                        onClick={() => setMedsElegidosIds(prev => {
+                          const next = new Set(prev)
+                          if (next.has(md.id)) next.delete(md.id); else next.add(md.id)
+                          return next
+                        })}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
+                        style={elegido
+                          ? { borderColor: '#4AABDB', background: '#4AABDB14', borderWidth: '1.5px' }
+                          : { borderColor: '#EEE2D4', background: '#FBEAD9', borderWidth: '1.5px' }}
+                      >
+                        {/* Checkbox cuadrado — comunica "puedes elegir
+                            varios", distinto del radio (elige uno). */}
+                        <span
+                          className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+                          style={elegido
+                            ? { background: '#4AABDB', color: 'white' }
+                            : { border: '1.5px solid #C7B8A5', background: '#FFFCF8' }}
+                        >
+                          {elegido && <span className="text-[11px] font-bold leading-none">✓</span>}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-[#3D2B1F]">{md.nombre}</p>
+                          {md.frecuencia && <p className="text-[10px] text-[#8A7560]">{md.frecuencia}</p>}
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
                 <button
-                  onClick={() => { setMedModo('nuevo'); setMedElegidoId(null); setMiniForm(p => ({ ...p, nombre: '' })) }}
+                  onClick={() => { setMedModo('nuevo'); setMedsElegidosIds(new Set()); setMiniForm(p => ({ ...p, nombre: '' })) }}
                   className="w-full text-xs font-bold text-[#CD7421] py-2 text-left"
                 >
                   ＋ Es un medicamento nuevo
@@ -1013,10 +1036,16 @@ function RegistroContenido() {
                 {miniError && <p className="text-xs text-[#E05252]">{miniError}</p>}
                 <button
                   onClick={confirmarMiniModal}
-                  disabled={miniGuardando || !medElegidoId}
+                  disabled={miniGuardando || medsElegidosIds.size === 0}
                   className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm disabled:opacity-50"
                 >
-                  {miniGuardando ? 'Guardando...' : 'Confirmar toma de hoy'}
+                  {miniGuardando
+                    ? 'Guardando...'
+                    : medsElegidosIds.size === 0
+                      ? 'Marca al menos uno'
+                      : medsElegidosIds.size === 1
+                        ? 'Confirmar toma de hoy'
+                        : `Confirmar ${medsElegidosIds.size} tomas de hoy`}
                 </button>
               </>
             ) : (
@@ -1065,7 +1094,7 @@ function RegistroContenido() {
                 </div>
                 {miniModal === 'medicamento' && medsActivos.length > 0 && medModo === 'nuevo' && (
                   <button
-                    onClick={() => { setMedModo('lista'); setMedElegidoId(medsActivos[0].id) }}
+                    onClick={() => { setMedModo('lista'); setMedsElegidosIds(new Set(medsActivos.map(a => a.id))) }}
                     className="w-full text-xs font-bold text-[#CD7421] py-1 text-left"
                   >
                     ← Volver a elegir uno existente
