@@ -292,6 +292,10 @@ function calcularNovedades(
     // También añadimos el id como campo extra para el callback:
     ;(lista[lista.length - 1] as any).medicamentoId = md.id
     ;(lista[lista.length - 1] as any).dosisNum = md.tomasHoy + 1
+    // Mensaje de confirmación (toast) tras registrar la dosis.
+    ;(lista[lista.length - 1] as any).mensajeOk = md.dosisPorDia === 1
+      ? `✓ Registraste la dosis de ${md.nombreOriginal} de hoy`
+      : `✓ Dosis ${md.tomasHoy + 1} de ${md.dosisPorDia} de ${md.nombreOriginal} registrada`
   }
 
   // ---- 6. SEGUIMIENTOS PENDIENTES (15+ días sin actualizar) ----
@@ -389,10 +393,14 @@ const PREFIJO_STORAGE = 'chiqui_novedad_'
 
 export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, rachaRegistros, seguimientos, diasSinCampo, medicamentosPendientesHoy }: Props) {
   const supabase = createClient()
+  // Toast de confirmación tras registrar una dosis desde el dashboard.
+  // Sin esto, el reload en seco dejaba al usuario sin feedback de que
+  // su acción funcionó.
+  const [toast, setToast] = useState<string | null>(null)
   // Registrar dosis rápida desde el dashboard, sin ir al registro
   // diario. Marca la toma con el dosis_num que corresponde (calculado
-  // por el server) y refresca para re-consultar novedades.
-  async function registrarDosisRapida(medicamentoId: string, dosisNum: number) {
+  // por el server), muestra confirmación y refresca para re-consultar.
+  async function registrarDosisRapida(medicamentoId: string, dosisNum: number, mensajeOk: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const hoyStr = fechaHoyChile()
@@ -403,9 +411,12 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
       fecha: hoyStr,
       dosis_num: dosisNum,
     }, { onConflict: 'medicamento_id,fecha,dosis_num' })
-    // Refrescar el dashboard para que el server recalcule el estado
-    // (novedad completa, la de esta dosis desaparece).
-    if (typeof window !== 'undefined') window.location.reload()
+    // Mostrar confirmación y recién luego refrescar, para que el
+    // usuario alcance a ver que su acción quedó registrada.
+    setToast(mensajeOk)
+    setTimeout(() => {
+      if (typeof window !== 'undefined') window.location.reload()
+    }, 1400)
   }
   const [cerradas, setCerradas] = useState<Set<string>>(new Set())
   const [sinPermisoNotif, setSinPermisoNotif] = useState(false)
@@ -451,8 +462,9 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
     .map(n => {
       const medId = (n as any).medicamentoId as string | undefined
       const dosisNum = (n as any).dosisNum as number | undefined
+      const mensajeOk = (n as any).mensajeOk as string | undefined
       if (medId && dosisNum) {
-        return { ...n, onAccion: () => registrarDosisRapida(medId, dosisNum) }
+        return { ...n, onAccion: () => registrarDosisRapida(medId, dosisNum, mensajeOk || '✓ Dosis registrada') }
       }
       return n
     })
@@ -487,6 +499,17 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
 
   return (
     <div className="mb-3">
+      {/* Toast de confirmación tras registrar una dosis. Aparece
+          abajo, verde, con check — cierra el ciclo de la acción antes
+          de que la página se refresque. */}
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[80] px-4 w-full max-w-[420px] fade-in">
+          <div className="bg-[#4CAF7D] text-white rounded-2xl px-4 py-3 shadow-lg flex items-center gap-2.5 mx-auto">
+            <span className="text-lg flex-shrink-0">✓</span>
+            <span className="text-sm font-semibold leading-snug">{toast.replace(/^✓ /, '')}</span>
+          </div>
+        </div>
+      )}
       {/* Encabezado de sección, con la misma identidad del Dashboard */}
       <div className="flex items-center justify-between px-5 pb-2">
         <div className="flex items-center gap-2">
