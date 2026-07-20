@@ -328,7 +328,7 @@ function RegistroContenido() {
   const [miniModal, setMiniModal] = useState<'vacuna' | 'anti' | 'medicamento' | null>(null)
   // Medicamentos activos de la mascota (para elegir en el mini-modal
   // en vez de crear duplicados). Se carga al elegir mascota.
-  const [medsActivos, setMedsActivos] = useState<{ id: string; nombre: string; frecuencia: string | null }[]>([])
+  const [medsActivos, setMedsActivos] = useState<{ id: string; nombre: string; frecuencia: string | null; dosisPorDia: number; tomasHoy: number }[]>([])
   // En el mini-modal de medicamento: IDs elegidos para "cumplimiento"
   // (Set porque el usuario puede estar tomando varios a la vez y
   // marcarlos todos en una sola acción).
@@ -492,17 +492,37 @@ function RegistroContenido() {
         const hoyStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
         const { data: medsRaw } = await supabase
           .from('medicamentos')
-          .select('id,nombre,frecuencia,fecha_fin,estado')
+          .select('id,nombre,frecuencia,fecha_fin,estado,dosis_por_dia')
           .eq('mascota_id', mascotaId)
           .eq('estado', 'activo')
-        const activos = (medsRaw || [])
+        const activosBase = (medsRaw || [])
           .filter((md: any) => !md.fecha_fin || md.fecha_fin >= hoyStr)
-          .map((md: any) => ({ id: md.id as string, nombre: md.nombre as string, frecuencia: (md.frecuencia || null) as string | null }))
+        // Tomas de HOY para saber cuál dosis toca en cada medicamento.
+        const idsAct = activosBase.map((a: any) => a.id)
+        let tomasHoyPorMed: Record<string, number> = {}
+        if (idsAct.length > 0) {
+          const { data: tomasRaw } = await supabase
+            .from('medicamento_tomas')
+            .select('medicamento_id')
+            .in('medicamento_id', idsAct)
+            .eq('fecha', hoyStr)
+          for (const t of (tomasRaw || []) as { medicamento_id: string }[]) {
+            tomasHoyPorMed[t.medicamento_id] = (tomasHoyPorMed[t.medicamento_id] || 0) + 1
+          }
+        }
+        const activos = activosBase.map((md: any) => ({
+          id: md.id as string,
+          nombre: md.nombre as string,
+          frecuencia: (md.frecuencia || null) as string | null,
+          dosisPorDia: Math.max(1, Number(md.dosis_por_dia) || 1),
+          tomasHoy: tomasHoyPorMed[md.id] || 0,
+        }))
         setMedsActivos(activos)
-        // Pre-selección amable: todos marcados. Si el usuario tiene
-        // varios tratamientos activos, lo más común es que le haya
-        // dado todos hoy. Solo desmarca los que no le dio.
-        setMedsElegidosIds(new Set(activos.map(a => a.id)))
+        // Pre-selección amable: solo se pre-marcan los que AÚN NO
+        // completaron sus tomas del día (para evitar registrar de más).
+        setMedsElegidosIds(new Set(
+          activos.filter(a => a.tomasHoy < a.dosisPorDia).map(a => a.id)
+        ))
         setMedModo(activos.length > 0 ? 'lista' : 'nuevo')
       }
       setMiniModal(valor === 'vacuna_hoy' ? 'vacuna' : valor === 'anti_hoy' ? 'anti' : 'medicamento')
@@ -538,17 +558,23 @@ function RegistroContenido() {
     if (miniModal === 'medicamento') {
       if (medModo === 'lista' && medsElegidosIds.size > 0) {
         // CUMPLIMIENTO MÚLTIPLE: una toma por cada medicamento elegido.
-        // UNIQUE(medicamento_id, fecha) previene tomas repetidas si
-        // el usuario ya había marcado alguno hoy y vuelve a confirmar.
-        const filas = Array.from(medsElegidosIds).map(medId => ({
-          user_id: user.id,
-          mascota_id: mascotaId,
-          medicamento_id: medId,
-          fecha: fechaRegistro,
-        }))
+        // dosis_num = siguiente dosis disponible del día (tomasHoy+1).
+        // UNIQUE(medicamento_id, fecha, dosis_num) previene la misma
+        // dosis dos veces (si vuelve a tocar sin que cambien los datos).
+        const filas = Array.from(medsElegidosIds).map(medId => {
+          const md = medsActivos.find(a => a.id === medId)
+          const siguienteDosis = md ? Math.min(md.dosisPorDia, md.tomasHoy + 1) : 1
+          return {
+            user_id: user.id,
+            mascota_id: mascotaId,
+            medicamento_id: medId,
+            fecha: fechaRegistro,
+            dosis_num: siguienteDosis,
+          }
+        })
         const { error: errToma } = await supabase
           .from('medicamento_tomas')
-          .upsert(filas, { onConflict: 'medicamento_id,fecha' })
+          .upsert(filas, { onConflict: 'medicamento_id,fecha,dosis_num' })
         setMiniGuardando(false)
         if (errToma) {
           setMiniError('No se pudo registrar la toma. Intenta de nuevo.')
@@ -578,7 +604,8 @@ function RegistroContenido() {
         mascota_id: mascotaId,
         medicamento_id: nuevoMed.id,
         fecha: fechaRegistro,
-      }, { onConflict: 'medicamento_id,fecha' })
+        dosis_num: 1,
+      }, { onConflict: 'medicamento_id,fecha,dosis_num' })
       setMiniGuardando(false)
       setCuidados(prev => new Set(prev).add('medicamento_hoy'))
       setMiniModal(null)
@@ -996,32 +1023,55 @@ function RegistroContenido() {
                 <div className="space-y-1.5">
                   {medsActivos.map(md => {
                     const elegido = medsElegidosIds.has(md.id)
+                    const completado = md.tomasHoy >= md.dosisPorDia
+                    const siguienteDosis = Math.min(md.dosisPorDia, md.tomasHoy + 1)
                     return (
                       <button
                         key={md.id}
-                        onClick={() => setMedsElegidosIds(prev => {
-                          const next = new Set(prev)
-                          if (next.has(md.id)) next.delete(md.id); else next.add(md.id)
-                          return next
-                        })}
+                        onClick={() => {
+                          if (completado) return
+                          setMedsElegidosIds(prev => {
+                            const next = new Set(prev)
+                            if (next.has(md.id)) next.delete(md.id); else next.add(md.id)
+                            return next
+                          })
+                        }}
+                        disabled={completado}
                         className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
-                        style={elegido
-                          ? { borderColor: '#4AABDB', background: '#4AABDB14', borderWidth: '1.5px' }
-                          : { borderColor: '#EEE2D4', background: '#FBEAD9', borderWidth: '1.5px' }}
+                        style={completado
+                          ? { borderColor: '#4CAF7D', background: '#4CAF7D14', borderWidth: '1.5px', opacity: 0.85 }
+                          : elegido
+                            ? { borderColor: '#4AABDB', background: '#4AABDB14', borderWidth: '1.5px' }
+                            : { borderColor: '#EEE2D4', background: '#FBEAD9', borderWidth: '1.5px' }}
                       >
-                        {/* Checkbox cuadrado — comunica "puedes elegir
-                            varios", distinto del radio (elige uno). */}
+                        {/* Checkbox: 'check' cuando completado (verde),
+                            cuadrado cuando disponible. */}
                         <span
                           className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
-                          style={elegido
-                            ? { background: '#4AABDB', color: 'white' }
-                            : { border: '1.5px solid #C7B8A5', background: '#FFFCF8' }}
+                          style={completado
+                            ? { background: '#4CAF7D', color: 'white' }
+                            : elegido
+                              ? { background: '#4AABDB', color: 'white' }
+                              : { border: '1.5px solid #C7B8A5', background: '#FFFCF8' }}
                         >
-                          {elegido && <span className="text-[11px] font-bold leading-none">✓</span>}
+                          {(elegido || completado) && <span className="text-[11px] font-bold leading-none">✓</span>}
                         </span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-[#3D2B1F]">{md.nombre}</p>
-                          {md.frecuencia && <p className="text-[10px] text-[#8A7560]">{md.frecuencia}</p>}
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {/* Contador visual de dosis del día */}
+                            {md.dosisPorDia > 1 && (
+                              <span className="text-[10px] font-bold" style={{ color: completado ? '#2E7D52' : '#4AABDB' }}>
+                                {completado
+                                  ? `✓ ${md.dosisPorDia} de ${md.dosisPorDia} hoy`
+                                  : `Dosis ${siguienteDosis} de ${md.dosisPorDia}`}
+                              </span>
+                            )}
+                            {md.dosisPorDia === 1 && completado && (
+                              <span className="text-[10px] font-bold text-[#2E7D52]">✓ Ya registrada hoy</span>
+                            )}
+                            {md.frecuencia && !completado && <span className="text-[10px] text-[#8A7560]">{md.frecuencia}</span>}
+                          </div>
                         </div>
                       </button>
                     )

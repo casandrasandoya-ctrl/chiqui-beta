@@ -132,27 +132,43 @@ export default async function Dashboard({ searchParams }: Props) {
   // tratamiento terminó aunque el campo no se haya actualizado.
   const { data: medsActivosRaw } = await supabase
     .from('medicamentos')
-    .select('id,nombre,frecuencia,fecha_fin')
+    .select('id,nombre,frecuencia,fecha_fin,dosis_por_dia')
     .eq('mascota_id', m.id)
     .eq('estado', 'activo')
   const medsActivos = (medsActivosRaw || []).filter((med: any) =>
     !med.fecha_fin || med.fecha_fin >= hoy
   )
-  // Tomas de HOY por cada medicamento activo. Solo los que NO tienen
-  // toma hoy generan novedad.
+  // Tomas de HOY por cada medicamento activo. Ahora que un
+  // medicamento puede tener varias dosis por día, un medicamento se
+  // considera "completo" solo cuando cumplió TODAS sus dosis del día.
   const idsActivos = medsActivos.map((m: any) => m.id as string)
-  let idsConTomaHoy: Set<string> = new Set()
+  let tomasHoyPorMed: Record<string, number> = {}
   if (idsActivos.length > 0) {
     const { data: tomasHoy } = await supabase
       .from('medicamento_tomas')
       .select('medicamento_id')
       .eq('mascota_id', m.id)
       .eq('fecha', hoy)
-    idsConTomaHoy = new Set(((tomasHoy || []) as { medicamento_id: string }[]).map(t => t.medicamento_id))
+    for (const t of ((tomasHoy || []) as { medicamento_id: string }[])) {
+      tomasHoyPorMed[t.medicamento_id] = (tomasHoyPorMed[t.medicamento_id] || 0) + 1
+    }
   }
   const medicamentosPendientesHoy = medsActivos
-    .filter((md: any) => !idsConTomaHoy.has(md.id))
-    .map((md: any) => ({ nombre: md.nombre as string, frecuencia: (md.frecuencia || null) as string | null }))
+    .filter((md: any) => {
+      const esperadas = Math.max(1, Number(md.dosis_por_dia) || 1)
+      const dadas = tomasHoyPorMed[md.id] || 0
+      return dadas < esperadas
+    })
+    .map((md: any) => {
+      const esperadas = Math.max(1, Number(md.dosis_por_dia) || 1)
+      const dadas = tomasHoyPorMed[md.id] || 0
+      // Si son varias dosis, cuéntalo en el nombre para que la novedad
+      // le muestre al tutor cuánto falta.
+      const nombreConProgreso = esperadas > 1
+        ? `${md.nombre} (${dadas}/${esperadas} hoy)`
+        : md.nombre
+      return { nombre: nombreConProgreso as string, frecuencia: (md.frecuencia || null) as string | null }
+    })
 
   // Definición de los cuidados posibles, organizados por grupo (mismo
   // orden que en el registro diario: Veterinario y salud → Prevención →
@@ -393,7 +409,10 @@ export default async function Dashboard({ searchParams }: Props) {
       label: 'Medicamentos', sub: proximoMed.nombre, dias: diasR(proximoMed.proximo_control), color: '#4AABDB',
     },
     proximaRevisionEnf && {
-      label: 'Enfermedades', sub: proximaRevisionEnf.diagnostico, dias: diasR(proximaRevisionEnf.proxima_revision), color: '#E05252',
+      // "Control veterinario" en vez de "Enfermedades": lo que ocurre
+      // próximamente es el CONTROL, no la enfermedad. El subtítulo
+      // sigue mostrando el nombre de la enfermedad para el contexto.
+      label: 'Control veterinario', sub: proximaRevisionEnf.diagnostico, dias: diasR(proximaRevisionEnf.proxima_revision), color: '#E05252',
     },
     // Proximo celo estimado (solo hembras con 2+ celos registrados)
     proximoCeloFecha && {

@@ -131,7 +131,7 @@ export default function PrevencionPage() {
       supabase.from('vacunas').select('*').eq('mascota_id', id).order('fecha_aplicacion', { ascending: false }),
       supabase.from('antiparasitarios').select('*').eq('mascota_id', id).order('fecha_aplicacion', { ascending: false }),
       supabase.from('observaciones').select('*').eq('mascota_id', id).order('created_at', { ascending: false }),
-      supabase.from('medicamentos').select('*, medicamento_tomas(fecha)').eq('mascota_id', id).order('fecha_inicio', { ascending: false }),
+      supabase.from('medicamentos').select('*, medicamento_tomas(fecha,dosis_num)').eq('mascota_id', id).order('fecha_inicio', { ascending: false }),
       supabase.from('enfermedades').select('*').eq('mascota_id', id).order('fecha_diagnostico', { ascending: false }),
       supabase.from('examenes').select('*').eq('mascota_id', id).order('fecha', { ascending: false }),
       supabase.from('revisiones_corporales').select('*').eq('mascota_id', id).order('fecha', { ascending: false }),
@@ -197,11 +197,11 @@ export default function PrevencionPage() {
       if (editandoId) {
         // Al editar, no se pisan campos que el usuario no tocó, y se
         // limpia fecha_fin si quedó vacía (para volver a activo).
-        const payload: Record<string, unknown> = { ...form, indicado_por_vet: !!form.indicado_por_vet }
+        const payload: Record<string, unknown> = { ...form, indicado_por_vet: !!form.indicado_por_vet, dosis_por_dia: Number(form.dosis_por_dia) || 1 }
         if (!payload.fecha_fin) payload.fecha_fin = null
         await supabase.from('medicamentos').update(payload).eq('id', editandoId)
       } else {
-        await supabase.from('medicamentos').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0], indicado_por_vet: !!form.indicado_por_vet })
+        await supabase.from('medicamentos').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0], indicado_por_vet: !!form.indicado_por_vet, dosis_por_dia: Number(form.dosis_por_dia) || 1 })
       }
     } else if (modal === 'enfermedad') {
       const { data: nuevaEnf } = await supabase.from('enfermedades').insert({ ...base, ...form, fecha_diagnostico: form.fecha_diagnostico || new Date().toISOString().split('T')[0] }).select('id').single()
@@ -422,6 +422,7 @@ export default function PrevencionPage() {
       indicado_por_vet: !!med.indicado_por_vet,
       estado: med.estado || 'activo',
       nota: med.nota || '',
+      dosis_por_dia: med.dosis_por_dia || 1,
     })
     setModal('medicamento'); setMenuAbierto(null)
   }
@@ -797,34 +798,57 @@ export default function PrevencionPage() {
                         select. Mostramos conteo + últimas 3, con
                         opción de expandir todas. */}
                     {(() => {
-                      const tomas = (med.medicamento_tomas || []) as { fecha: string }[]
-                      if (tomas.length === 0) return null
-                      const tomasOrdenadas = [...tomas].sort((a, b) => b.fecha.localeCompare(a.fecha))
+                      const tomas = (med.medicamento_tomas || []) as { fecha: string; dosis_num?: number }[]
+                      const dosisPorDia = Math.max(1, Number(med.dosis_por_dia) || 1)
+                      // Progreso de HOY: cuántas tomas ya registradas
+                      // sobre las esperadas. Se muestra siempre que el
+                      // medicamento esté activo, incluso sin tomas.
+                      const hoyMedStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+                      const tomasHoy = tomas.filter(t => t.fecha === hoyMedStr).length
+                      const mostrarProgreso = estaActivo
                       const expandido = tomasExpandidas.has(med.id)
-                      const visibles = expandido ? tomasOrdenadas : tomasOrdenadas.slice(0, 3)
+                      const tomasOrdenadas = [...tomas].sort((a, b) => b.fecha.localeCompare(a.fecha))
                       return (
                         <div className="mt-3 pt-2.5 border-t border-[#EEE2D4]">
-                          <p className="text-[10px] font-bold text-[#8A7560] uppercase tracking-wider mb-1.5">
-                            {tomas.length} {tomas.length === 1 ? 'toma registrada' : 'tomas registradas'}
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {visibles.map((t, i) => (
-                              <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-[#4AABDB]/15 text-[#3D2B1F] font-medium">
-                                {fmt(t.fecha)}
+                          {mostrarProgreso && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="flex gap-1">
+                                {Array.from({ length: dosisPorDia }).map((_, i) => (
+                                  <div
+                                    key={i}
+                                    className="w-2.5 h-2.5 rounded-full"
+                                    style={{ background: i < tomasHoy ? '#4AABDB' : '#EEE2D4' }}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-[10px] font-bold text-[#3D2B1F]">
+                                {tomasHoy} de {dosisPorDia} hoy
                               </span>
-                            ))}
-                          </div>
-                          {tomasOrdenadas.length > 3 && (
-                            <button
-                              onClick={() => setTomasExpandidas(prev => {
-                                const next = new Set(prev)
-                                if (next.has(med.id)) next.delete(med.id); else next.add(med.id)
-                                return next
-                              })}
-                              className="text-[10px] font-bold text-[#CD7421] mt-1.5"
-                            >
-                              {expandido ? 'Ver menos' : `Ver todas (${tomasOrdenadas.length})`}
-                            </button>
+                            </div>
+                          )}
+                          {tomas.length > 0 && (
+                            <>
+                              <button
+                                onClick={() => setTomasExpandidas(prev => {
+                                  const next = new Set(prev)
+                                  if (next.has(med.id)) next.delete(med.id); else next.add(med.id)
+                                  return next
+                                })}
+                                className="flex items-center justify-between w-full text-[10px] font-bold text-[#8A7560] uppercase tracking-wider"
+                              >
+                                <span>Historial · {tomas.length} {tomas.length === 1 ? 'toma' : 'tomas'}</span>
+                                <span className="text-[#CD7421] text-xs">{expandido ? '⌃' : '⌄'}</span>
+                              </button>
+                              {expandido && (
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                  {tomasOrdenadas.map((t, i) => (
+                                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-[#4AABDB]/15 text-[#3D2B1F] font-medium">
+                                      {fmt(t.fecha)}{dosisPorDia > 1 && t.dosis_num ? ` (${t.dosis_num}/${dosisPorDia})` : ''}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       )
@@ -1263,6 +1287,27 @@ export default function PrevencionPage() {
                 <input className={IC} placeholder="ej. 250mg, media pastilla" value={form.dosis || ''} onChange={e => u('dosis', e.target.value)} /></div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Frecuencia</label>
                 <input className={IC} placeholder="ej. cada 12 horas" value={form.frecuencia || ''} onChange={e => u('frecuencia', e.target.value)} /></div>
+              <div>
+                <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Tomas por día</label>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {[1,2,3,4,5,6].map(n => {
+                    const activo = (Number(form.dosis_por_dia) || 1) === n
+                    return (
+                      <button
+                        key={n} type="button"
+                        onClick={() => u('dosis_por_dia', String(n))}
+                        className="py-2 rounded-xl text-sm font-bold border transition-all"
+                        style={activo
+                          ? { background: '#4AABDB', borderColor: '#4AABDB', color: 'white', borderWidth: '1.5px' }
+                          : { background: '#FBEAD9', borderColor: '#EEE2D4', color: '#8A7560', borderWidth: '1.5px' }}
+                      >
+                        {n}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[10px] text-[#8A7560] mt-1.5">Ej. "cada 12 horas" → 2 tomas al día.</p>
+              </div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Motivo</label>
                 <input className={IC} placeholder="ej. Infección de oído" value={form.motivo || ''} onChange={e => u('motivo', e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
