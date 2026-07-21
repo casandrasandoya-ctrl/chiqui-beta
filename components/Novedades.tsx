@@ -203,6 +203,7 @@ function calcularNovedades(
   const FECHAS_ESPECIALES: { mesDia: string; img: string; mensaje: string; especie?: string }[] = [
     { mesDia: '12-25', img: '/chiqui/chiqui_navidad.png', mensaje: `🎄 ¡Feliz Navidad! Chiqui y ${m.nombre} te desean unas fiestas llenas de cariño.` },
     { mesDia: '10-31', img: '/chiqui/chiqui_halloween.png', mensaje: `🎃 ¡Feliz Halloween! Cuida que ${m.nombre} no llegue a los dulces 😉` },
+    { mesDia: '07-21', img: '/chiqui/dia_del_perro.png', mensaje: '🐶 ¡Hoy es el Día Mundial del Perro! Celebra a tu compañero.', especie: 'Perro' },
     { mesDia: '08-26', img: '/chiqui/dia_del_perro.png', mensaje: '🐶 ¡Hoy es el Día Internacional del Perro! Celebra a tu compañero.', especie: 'Perro' },
     { mesDia: '08-08', img: '/chiqui/dia_del_gato.png', mensaje: '🐱 ¡Hoy es el Día Internacional del Gato! Celebra a tu compañero.', especie: 'Gato' },
   ]
