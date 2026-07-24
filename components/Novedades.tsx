@@ -398,6 +398,32 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
   // Sin esto, el reload en seco dejaba al usuario sin feedback de que
   // su acción funcionó.
   const [toast, setToast] = useState<string | null>(null)
+  // Falta el nombre del tutor: los usuarios que entraron con Google
+  // antes del arreglo del callback pueden no tener nombre en su perfil.
+  // Se verifica al montar; si falta, se muestra una novedad que invita
+  // a completarlo (aparece sin nombre en rankings, cotutores y /vet).
+  const [faltaNombre, setFaltaNombre] = useState(false)
+  useEffect(() => {
+    let activo = true
+    ;(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const meta = (user.user_metadata || {}) as Record<string, unknown>
+      const nombreMeta = (meta.nombre || meta.full_name || meta.name || '') as string
+      if (nombreMeta && String(nombreMeta).trim()) return
+      // Sin nombre en metadata: confirmar contra perfil_usuario antes
+      // de molestar (por si lo tiene ahí y no en metadata).
+      const { data: perfil } = await supabase
+        .from('perfil_usuario')
+        .select('nombre')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (activo && !(perfil?.nombre && String(perfil.nombre).trim())) {
+        setFaltaNombre(true)
+      }
+    })()
+    return () => { activo = false }
+  }, [supabase])
   // Registrar dosis rápida desde el dashboard, sin ir al registro
   // diario. Marca la toma con el dosis_num que corresponde (calculado
   // por el server), muestra confirmación y refresca para re-consultar.
@@ -459,7 +485,20 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
   // Enlazar onAccion de las novedades de medicamento con el callback
   // real. Se hace acá (no en calcularNovedades) para que la función
   // pura no dependa de supabase.
-  const pendientes = pendientesRaw
+  // Novedad de "completa tu nombre": prioridad alta (se antepone a
+  // casi todo) porque sin nombre se degradan rankings, cotutores y la
+  // vista del veterinario. Se cierra como cualquier otra.
+  const pendientesConNombre = faltaNombre
+    ? [{
+        key: 'completa_nombre',
+        img: '/chiqui/chiqui_hola.png',
+        destacada: true,
+        mensaje: 'Aún no conozco tu nombre 🐾 Complétalo en tu perfil para que aparezca en tu cuenta y lo vean tu veterinario y co-tutores.',
+        accion: 'Completar mi nombre',
+        href: '/perfil',
+      } as any, ...pendientesRaw]
+    : pendientesRaw
+  const pendientes = pendientesConNombre
     .map(n => {
       const medId = (n as any).medicamentoId as string | undefined
       const dosisNum = (n as any).dosisNum as number | undefined
