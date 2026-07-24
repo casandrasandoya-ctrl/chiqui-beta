@@ -596,7 +596,7 @@ function RegistroContenido() {
       .eq('mascota_id', idMascota)
       .eq('fecha', fecha)
     if (!enr || enr.length === 0) { setEnriqDatos({}); return }
-    const datos: Record<string, { duracion: number | null; nota: string }> = {}
+    const datos: Record<string, { duracion: number | null; nota: string; trucos?: string[] }> = {}
     const claves: string[] = []
     for (const e of enr) {
       const clave = 'enr_' + e.actividad
