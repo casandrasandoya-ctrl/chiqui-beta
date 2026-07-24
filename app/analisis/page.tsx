@@ -119,18 +119,6 @@ function calcularRutina(fechas: string[]): { ocurrencias: number; promedioDias: 
   return { ocurrencias: ordenadas.length, promedioDias, ultimaFecha, proximaEstimadaDias }
 }
 
-// Primer día del mes de hace 5 meses: la consulta de paseos cubre 6
-// meses calendario (los 5 anteriores más el actual) para la
-// comparación mensual.
-function inicioHistorialPaseos(): string {
-  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
-  const [a, m] = hoy.split('-').map(Number)
-  const total = a * 12 + (m - 1) - 5
-  const anio = Math.floor(total / 12)
-  const mes = (total % 12) + 1
-  return `${anio}-${String(mes).padStart(2, '0')}-01`
-}
-
 export default function AnalisisPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -178,14 +166,15 @@ export default function AnalisisPage() {
         .select('fecha, actividad, duracion_min, detalle')
         .eq('mascota_id', mascotaId)
         .gte('fecha', fechaChile(desde)),
-      // Paseos de los últimos 6 meses calendario, liviano: solo los
-      // campos necesarios para los totales y la comparación mensual.
+      // Historial COMPLETO de paseos (solo tres columnas, sale barato).
+      // Se usa para el total del mes, la comparación mensual y la
+      // racha — que así deja de tener techo.
       supabase
         .from('registros_diarios')
         .select('fecha, paseo, paseo_minutos_exactos')
         .eq('mascota_id', mascotaId)
-        .gte('fecha', inicioHistorialPaseos())
-        .order('fecha', { ascending: true }),
+        .order('fecha', { ascending: true })
+        .limit(2000),
     ])
     setRegistros(r || [])
     setEnriqRegistros(enr || [])
@@ -586,30 +575,31 @@ export default function AnalisisPage() {
   const minutosMesAnterior = mesesComparacion[4]?.minutos || 0
   const difMesAnterior = minutosMesAnterior > 0 ? minutosPaseoMes - minutosMesAnterior : null
 
-  // La racha NO depende del mes: son días consecutivos con al menos un
-  // paseo, y sigue corriendo aunque cambie el calendario. Se calcula
-  // sobre paseoHistorial (6 meses) en vez de los 30 días de
-  // `registros`, para que una racha larga no quede topada en 30.
+  // Día anterior a una fecha YYYY-MM-DD. Se construye a MEDIODÍA para
+  // que los cambios de horario de verano no desplacen el día.
+  function diaAnteriorStr(f: string): string {
+    const d = new Date(f + 'T12:00:00')
+    d.setDate(d.getDate() - 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
+  // La racha NO depende del mes ni tiene tope: son días consecutivos
+  // con paseo efectivo y el recorrido termina solo al encontrar un
+  // hueco. Un registro diario SIN paseo (o con 'no_paseo') no la
+  // mantiene: solo cuentan los días en que efectivamente salieron.
   function calcularRachaPaseo(): { racha: number; enRiesgo: boolean } {
-    const hoy = new Date()
-    const hoyStr = fechaChile(hoy)
-    const porFecha = new Map<string, any>()
-    for (const r of paseoHistorial) porFecha.set(r.fecha, r)
-    const regHoy = porFecha.get(hoyStr)
-    // Cualquier valor de paseo distinto de no_paseo cuenta para la
-    // racha (incluye tiempo_exacto).
-    const tieneHoy = regHoy && regHoy.paseo && regHoy.paseo !== 'no_paseo'
-    const inicio = tieneHoy ? 0 : 1
+    const hoyStr = fechaChile(new Date())
+    const fechasConPaseo = new Set(
+      paseoHistorial
+        .filter((r: any) => r.paseo && r.paseo !== 'no_paseo')
+        .map((r: any) => r.fecha as string)
+    )
+    const tieneHoy = fechasConPaseo.has(hoyStr)
+    let cursor = tieneHoy ? hoyStr : diaAnteriorStr(hoyStr)
     let racha = 0
-    for (let i = inicio; i < 200; i++) {
-      const fecha = new Date(hoy)
-      fecha.setDate(fecha.getDate() - i)
-      const reg = porFecha.get(fechaChile(fecha))
-      if (reg && reg.paseo && reg.paseo !== 'no_paseo') {
-        racha++
-      } else {
-        break
-      }
+    while (fechasConPaseo.has(cursor)) {
+      racha++
+      cursor = diaAnteriorStr(cursor)
     }
     return { racha, enRiesgo: !tieneHoy && racha > 0 }
   }

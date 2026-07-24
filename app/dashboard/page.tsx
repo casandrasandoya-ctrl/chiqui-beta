@@ -67,6 +67,30 @@ export default async function Dashboard({ searchParams }: Props) {
 
   const hoy = fechaChile()
 
+  // Dia anterior a una fecha YYYY-MM-DD. Se construye a MEDIODIA para
+  // que los cambios de horario de verano (Chile los tiene dos veces al
+  // ano) no desplacen el dia al restar 24 horas.
+  function diaAnteriorStr(f: string): string {
+    const d = new Date(f + 'T12:00:00')
+    d.setDate(d.getDate() - 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
+  // Cuenta dias consecutivos hacia atras desde `desde`, SIN TOPE: el
+  // recorrido termina solo cuando encuentra un hueco. Antes cada racha
+  // tenia su propio limite artificial (30, 60, 200 dias segun donde se
+  // calculara), asi que una racha larga se veia truncada y ademas
+  // distinta en cada pantalla.
+  function contarRachaConsecutiva(fechasValidas: Set<string>, desde: string): number {
+    let racha = 0
+    let cursor = desde
+    while (fechasValidas.has(cursor)) {
+      racha++
+      cursor = diaAnteriorStr(cursor)
+    }
+    return racha
+  }
+
   const [{ data: regHoy }, { data: vacunas }, { data: antis }, { data: obs }, { data: medsConControl }, { data: enfsConRevision }] = await Promise.all([
     supabase.from('registros_diarios').select('estado_dia').eq('mascota_id', m.id).eq('fecha', hoy).single(),
     supabase.from('vacunas').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
@@ -224,36 +248,31 @@ export default async function Dashboard({ searchParams }: Props) {
   let rachaPaseo: number | null = null
   let rachaEnRiesgo = false // true = no registrado hoy, racha en peligro
   if (m.especie === 'Perro') {
-    const hace30 = new Date()
-    hace30.setDate(hace30.getDate() - 30)
+    // Historial completo de paseos: solo dos columnas, asi que traer
+    // todo sale barato y la racha deja de tener techo.
     const { data: registrosPaseo } = await supabase
       .from('registros_diarios')
       .select('fecha, paseo')
       .eq('mascota_id', m.id)
-      .gte('fecha', fechaChile(hace30))
+      .order('fecha', { ascending: false })
+      .limit(2000)
 
-    const hoyDate = new Date()
-    const hoyStr = fechaChile(hoyDate)
-    const regHoyPaseo = registrosPaseo?.find(r => r.fecha === hoyStr)
-    const tieneRegistroHoyPaseo = !!regHoyPaseo
+    // Solo cuentan los dias con paseo efectivo: un registro diario sin
+    // paseo (o con 'no_paseo') NO mantiene la racha.
+    const fechasConPaseo = new Set(
+      (registrosPaseo || [])
+        .filter((r: any) => r.paseo && r.paseo !== 'no_paseo')
+        .map((r: any) => r.fecha as string)
+    )
 
-    // Si no hay registro hoy, empezar desde ayer para no romper la racha
-    const inicioLoop = tieneRegistroHoyPaseo ? 0 : 1
-    if (!tieneRegistroHoyPaseo) rachaEnRiesgo = true
-
-    let racha = 0
-    for (let i = inicioLoop; i < 30; i++) {
-      const fecha = new Date(hoyDate)
-      fecha.setDate(fecha.getDate() - i)
-      const fechaStr = fechaChile(fecha)
-      const reg = registrosPaseo?.find(r => r.fecha === fechaStr)
-      if (reg && reg.paseo && reg.paseo !== 'no_paseo') {
-        racha++
-      } else {
-        break
-      }
-    }
-    rachaPaseo = racha
+    // Si todavia no se registra el paseo de hoy, la racha no se rompe:
+    // se cuenta desde ayer y se marca en riesgo. Este es el mismo
+    // criterio que usa Analisis (antes el dashboard usaba otro y las
+    // dos pantallas podian mostrar numeros distintos).
+    const tienePaseoHoy = fechasConPaseo.has(hoy)
+    if (!tienePaseoHoy) rachaEnRiesgo = true
+    const desde = tienePaseoHoy ? hoy : diaAnteriorStr(hoy)
+    rachaPaseo = contarRachaConsecutiva(fechasConPaseo, desde)
   }
 
   // Racha de REGISTROS DIARIOS consecutivos (cualquier registro, no solo paseos)
@@ -265,16 +284,13 @@ export default async function Dashboard({ searchParams }: Props) {
       .select('fecha')
       .eq('mascota_id', m.id)
       .order('fecha', { ascending: false })
-      .limit(60)
-    const fechasRegistro = new Set((ultimosRegistros || []).map((r: any) => r.fecha))
+      .limit(2000)
+    const fechasRegistro = new Set((ultimosRegistros || []).map((r: any) => r.fecha as string))
+    // Igual que la de paseos: si hoy aun no registra, se cuenta desde
+    // ayer y la racha no se pierde hasta que pase el dia.
     const tieneHoy = fechasRegistro.has(hoy)
-    const inicio = tieneHoy ? 0 : 1
-    for (let i = inicio; i < 60; i++) {
-      const d = new Date(new Date(hoy + 'T00:00:00').getTime() - i * 86400000)
-      const f = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d)
-      if (fechasRegistro.has(f)) rachaRegistros++
-      else break
-    }
+    const desdeReg = tieneHoy ? hoy : diaAnteriorStr(hoy)
+    rachaRegistros = contarRachaConsecutiva(fechasRegistro, desdeReg)
   }
 
   // Detectar si la mascota está en celo hoy
