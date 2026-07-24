@@ -21,6 +21,61 @@ const ESTADO_BG: Record<string, string> = {
   rojo: 'rgba(226,93,93,0.18)',
 }
 
+// Cuidados del día para el modal del calendario: columna booleana →
+// chip con emoji y etiqueta. bano y limpieza_dental agregan su tipo
+// como detalle si existe (columnas bano_tipo / dental_tipo).
+const CUIDADOS_DIA: { col: string; emoji: string; label: string }[] = [
+  { col: 'fue_al_vet', emoji: '🩺', label: 'Fue al veterinario' },
+  { col: 'control_peso', emoji: '⚖️', label: 'Control de peso' },
+  { col: 'procedimiento_cirugia', emoji: '🏥', label: 'Procedimiento o cirugía' },
+  { col: 'seguimiento_lesion', emoji: '📸', label: 'Seguimiento de lesión' },
+  { col: 'medicamento_hoy', emoji: '💊', label: 'Recibió medicamento' },
+  { col: 'vacuna_hoy', emoji: '💉', label: 'Vacuna aplicada' },
+  { col: 'anti_hoy', emoji: '🪱', label: 'Antiparasitario' },
+  { col: 'suplemento_hoy', emoji: '🌿', label: 'Suplemento' },
+  { col: 'alimente_hoy', emoji: '🥘', label: 'Lo alimentó' },
+  { col: 'compro_alimento', emoji: '🍖', label: 'Compró alimento' },
+  { col: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
+  { col: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó alimento nuevo' },
+  { col: 'cargo_dispensador', emoji: '🤖', label: 'Cargó el dispensador' },
+  { col: 'se_bano', emoji: '🛁', label: 'Baño' },
+  { col: 'shampoo_seco', emoji: '🧼', label: 'Baño en seco' },
+  { col: 'peino', emoji: '💇', label: 'Cepillado' },
+  { col: 'corte_unas', emoji: '✂️', label: 'Corte de uñas' },
+  { col: 'limpieza_dental', emoji: '🦷', label: 'Limpieza dental' },
+  { col: 'limpieza_oidos', emoji: '👂', label: 'Limpieza de oídos' },
+  { col: 'tratamiento_dermatologico', emoji: '🧴', label: 'Trat. dermatológico' },
+  { col: 'limpie_arenero', emoji: '🧹', label: 'Limpió el arenero' },
+  { col: 'cambie_arena', emoji: '🔄', label: 'Cambió la arena' },
+  { col: 'compre_arena', emoji: '🛒', label: 'Compró arena' },
+]
+
+// Detalle textual de un cuidado según las columnas de tipo.
+function detalleCuidado(col: string, reg: any): string {
+  if (col === 'se_bano' && reg.bano_tipo === 'dermatologico') return ' (dermatológico)'
+  if (col === 'limpieza_dental' && reg.dental_tipo === 'destartraje') return ' (destartraje)'
+  if (col === 'limpieza_dental' && reg.dental_tipo === 'cepillado') return ' (cepillado)'
+  return ''
+}
+
+// Actividades de enriquecimiento (solo perros las registran).
+const ACTIVIDADES_ENR: Record<string, { emoji: string; label: string }> = {
+  juguete_interactivo: { emoji: '🧩', label: 'Juguete interactivo' },
+  juego_olfato: { emoji: '👃', label: 'Juegos de olfato' },
+  juego_activo: { emoji: '🎾', label: 'Juego activo' },
+  entrenamiento: { emoji: '🎓', label: 'Entrenamiento' },
+  social_animales: { emoji: '🐶', label: 'Socialización con animales' },
+  social_personas: { emoji: '👨‍👩‍👧‍👦', label: 'Socialización con personas' },
+  lugar_nuevo: { emoji: '🌳', label: 'Exploró un lugar nuevo' },
+}
+
+function textoDuracion(min: number | null): string {
+  if (!min) return ''
+  if (min >= 90) return ' · más de 1h'
+  if (min >= 60) return ' · 1h'
+  return ` · ${min} min`
+}
+
 // Calcula los puntos de cuidados para mostrar en el calendario.
 // Cada grupo de cuidados tiene un color distinto — maximo 5 puntos
 // (uno por grupo), para no saturar la celda del dia.
@@ -50,6 +105,7 @@ export default function CalendarioPage() {
   const [mascota, setMascota] = useState<any>(null)
   const [registros, setRegistros] = useState<Record<string, any>>({})
   const [pesos, setPesos] = useState<Record<string, number>>({})
+  const [enriqMes, setEnriqMes] = useState<Record<string, any[]>>({})
   const [mes, setMes] = useState(new Date().getMonth())
   const [año, setAño] = useState(new Date().getFullYear())
   const [diaSeleccionado, setDiaSeleccionado] = useState<number | null>(null)
@@ -82,7 +138,7 @@ export default function CalendarioPage() {
     const ultimoDia = new Date(a, m + 1, 0).getDate()
     const inicio = `${a}-${String(m + 1).padStart(2, '0')}-01`
     const fin = `${a}-${String(m + 1).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`
-    const [{ data }, { data: pesoData }] = await Promise.all([
+    const [{ data }, { data: pesoData }, { data: enrData }] = await Promise.all([
       supabase
         .from('registros_diarios')
         .select('*')
@@ -95,6 +151,12 @@ export default function CalendarioPage() {
         .eq('mascota_id', mascotaId)
         .gte('fecha', inicio)
         .lte('fecha', fin),
+      supabase
+        .from('enriquecimientos')
+        .select('fecha, actividad, duracion_min, detalle')
+        .eq('mascota_id', mascotaId)
+        .gte('fecha', inicio)
+        .lte('fecha', fin),
     ])
     const map: Record<string, any> = {}
     data?.forEach(r => { map[r.fecha] = r })
@@ -102,6 +164,9 @@ export default function CalendarioPage() {
     const mapPeso: Record<string, number> = {}
     pesoData?.forEach(p => { mapPeso[p.fecha] = p.peso })
     setPesos(mapPeso)
+    const mapEnr: Record<string, any[]> = {}
+    enrData?.forEach(e => { (mapEnr[e.fecha] = mapEnr[e.fecha] || []).push(e) })
+    setEnriqMes(mapEnr)
   }
 
   async function cambiarMes(dir: number) {
@@ -281,6 +346,48 @@ export default function CalendarioPage() {
                   📝 {regDia.nota}
                 </div>
               )}
+              {/* Cuidados del día: chips con los booleanos marcados en
+                  el registro, con detalle de tipo cuando existe. */}
+              {(() => {
+                const marcados = CUIDADOS_DIA.filter(c => regDia[c.col])
+                if (marcados.length === 0) return null
+                return (
+                  <div className="mb-3">
+                    <p className="text-[10px] font-bold text-[#8A7560] uppercase tracking-wider mb-1.5">Cuidados del día</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {marcados.map(c => (
+                        <span key={c.col} className="text-[10px] px-2 py-1 rounded-full bg-[#FFBD59]/20 text-[#3D2B1F] font-medium">
+                          {c.emoji} {c.label}{detalleCuidado(c.col, regDia)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+              {/* Enriquecimiento del día (perros): actividad, duración
+                  y trucos practicados en entrenamiento. */}
+              {(() => {
+                const enrDia = enriqMes[fechaKey(diaSeleccionado)] || []
+                if (enrDia.length === 0) return null
+                return (
+                  <div className="mb-3">
+                    <p className="text-[10px] font-bold text-[#8A7560] uppercase tracking-wider mb-1.5">🧠 Enriquecimiento</p>
+                    <div className="space-y-1">
+                      {enrDia.map((e: any, i: number) => {
+                        const info = ACTIVIDADES_ENR[e.actividad] || { emoji: '🧠', label: e.actividad }
+                        return (
+                          <div key={i} className="bg-[#FBEAD9] rounded-xl px-3 py-1.5">
+                            <p className="text-[11px] text-[#3D2B1F] font-medium">
+                              {info.emoji} {info.label}{textoDuracion(e.duracion_min)}
+                            </p>
+                            {e.detalle && <p className="text-[10px] text-[#8A7560] mt-0.5">Practicaron: {e.detalle}</p>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })()}
               <Link href={`/registro-diario?fecha=${fechaKey(diaSeleccionado)}`} className="bg-[#FFFCF8] border border-[#EEE2D4] text-[#8C572F] font-bold px-6 py-2.5 rounded-xl text-sm inline-block">
                 ✏️ Editar este día
               </Link>

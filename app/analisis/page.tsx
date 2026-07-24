@@ -135,6 +135,7 @@ export default function AnalisisPage() {
   const [rutinas, setRutinas] = useState<RutinaCalculada[]>([])
   const [abiertaRutinas, setAbiertaRutinas] = useState(false)
   const [signosHistorial, setSignosHistorial] = useState<SignoEvento[]>([])
+  const [enriqRegistros, setEnriqRegistros] = useState<any[]>([])
   const [abiertaSignos, setAbiertaSignos] = useState(false)
 
   // Misma función que en el dashboard: devuelve la fecha en zona horaria
@@ -146,12 +147,22 @@ export default function AnalisisPage() {
   async function cargarRegistros(mascotaId: string) {
     const desde = new Date()
     desde.setDate(desde.getDate() - 30)
-    const { data: r } = await supabase
-      .from('registros_diarios').select('*')
-      .eq('mascota_id', mascotaId)
-      .gte('fecha', fechaChile(desde))
-      .order('fecha', { ascending: false })
+    const [{ data: r }, { data: enr }] = await Promise.all([
+      supabase
+        .from('registros_diarios').select('*')
+        .eq('mascota_id', mascotaId)
+        .gte('fecha', fechaChile(desde))
+        .order('fecha', { ascending: false }),
+      // Enriquecimiento del mismo período (solo perros tienen filas;
+      // la consulta es inocua para gatos).
+      supabase
+        .from('enriquecimientos')
+        .select('fecha, actividad, duracion_min, detalle')
+        .eq('mascota_id', mascotaId)
+        .gte('fecha', fechaChile(desde)),
+    ])
     setRegistros(r || [])
+    setEnriqRegistros(enr || [])
   }
 
   // Signos de alerta: trae TODO el historial de la mascota (no solo 30
@@ -869,6 +880,77 @@ export default function AnalisisPage() {
                 })}
               </div>
             </div>
+            {/* Enriquecimiento y entrenamiento — resumen del período.
+                Solo si hay actividades registradas (perros). Muestra
+                frecuencia, tiempo por actividad y trucos practicados.
+                No inventamos "% de aprendizaje": las sesiones por
+                truco son el dato real; el dominio no es medible aún. */}
+            {enriqRegistros.length > 0 && (() => {
+              const ACT_ENR: Record<string, { emoji: string; label: string }> = {
+                juguete_interactivo: { emoji: '🧩', label: 'Juguete interactivo' },
+                juego_olfato: { emoji: '👃', label: 'Juegos de olfato' },
+                juego_activo: { emoji: '🎾', label: 'Juego activo' },
+                entrenamiento: { emoji: '🎓', label: 'Entrenamiento' },
+                social_animales: { emoji: '🐶', label: 'Social. con animales' },
+                social_personas: { emoji: '👨‍👩‍👧‍👦', label: 'Social. con personas' },
+                lugar_nuevo: { emoji: '🌳', label: 'Lugar nuevo' },
+              }
+              const diasConEnr = new Set(enriqRegistros.map(e => e.fecha)).size
+              // Sesiones y minutos por actividad, ordenado por sesiones.
+              const porActividad: Record<string, { sesiones: number; minutos: number }> = {}
+              for (const e of enriqRegistros) {
+                const a = (porActividad[e.actividad] = porActividad[e.actividad] || { sesiones: 0, minutos: 0 })
+                a.sesiones++
+                a.minutos += e.duracion_min || 0
+              }
+              const actividadesOrdenadas = Object.entries(porActividad).sort((x, y) => y[1].sesiones - x[1].sesiones)
+              // Trucos practicados en las sesiones de entrenamiento.
+              const trucos: Record<string, number> = {}
+              for (const e of enriqRegistros) {
+                if (e.actividad !== 'entrenamiento' || !e.detalle) continue
+                for (const t of String(e.detalle).split(', ').filter(Boolean)) {
+                  trucos[t] = (trucos[t] || 0) + 1
+                }
+              }
+              const trucosOrdenados = Object.entries(trucos).sort((x, y) => y[1] - x[1])
+              const fmtMin = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h ${m % 60 > 0 ? (m % 60) + 'm' : ''}`.trim() : `${m} min`
+              return (
+                <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] px-4 py-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-sm">🧠</span>
+                    <p className="text-[11px] font-bold text-[#8C572F]">Enriquecimiento y entrenamiento</p>
+                  </div>
+                  <p className="text-[11px] text-[#3D2B1F] mb-2">
+                    Actividades de estimulación en <span className="font-bold">{diasConEnr} de los últimos 30 días</span>.
+                  </p>
+                  <div className="space-y-1">
+                    {actividadesOrdenadas.map(([act, datos]) => {
+                      const info = ACT_ENR[act] || { emoji: '🧠', label: act }
+                      return (
+                        <div key={act} className="flex items-center justify-between text-[11px]">
+                          <span className="text-[#3D2B1F]">{info.emoji} {info.label}</span>
+                          <span className="text-[#8A7560]">
+                            {datos.sesiones} {datos.sesiones === 1 ? 'vez' : 'veces'}{datos.minutos > 0 ? ` · ${fmtMin(datos.minutos)}` : ''}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {trucosOrdenados.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-[#EEE2D4]">
+                      <p className="text-[10px] font-semibold text-[#8A7560] mb-1">🎓 Trucos practicados</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {trucosOrdenados.map(([t, n]) => (
+                          <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-[#FFBD59]/20 text-[#3D2B1F] font-medium">
+                            {t} ×{n}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </>
         )}
       </>}
