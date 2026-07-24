@@ -382,6 +382,7 @@ function RegistroContenido() {
   // Hitos ya logrados: hito → fecha en que se registró.
   const [hitosLogrados, setHitosLogrados] = useState<Record<string, string>>({})
   const [hitosAbierto, setHitosAbierto] = useState(false)
+  const [hitoError, setHitoError] = useState('')
   const [sel, setSel] = useState<Record<string,string>>({})
   const [det, setDet] = useState<Record<string,string[]>>({})
   // Minutos exactos de paseo cuando el usuario elige "⏱️ Registrar
@@ -538,11 +539,29 @@ function RegistroContenido() {
   // Guardar): un hito es un momento — merece quedar grabado al tiro.
   // Desmarcar existe solo para corregir errores.
   async function toggleHito(hito: string) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || !mascotaId) return
-    if (hitosLogrados[hito]) {
-      await supabase.from('hitos_cachorro').delete().eq('mascota_id', mascotaId).eq('hito', hito)
+    setHitoError('')
+    // UI OPTIMISTA: el chip responde al instante; si la base rechaza,
+    // se revierte y se muestra el error. Nunca un toque mudo — la
+    // versión anterior fallaba en silencio si la escritura no pasaba
+    // (por ejemplo, si faltaba correr el SQL de la tabla).
+    const estabaLogrado = !!hitosLogrados[hito]
+    if (estabaLogrado) {
       setHitosLogrados(prev => { const n = { ...prev }; delete n[hito]; return n })
+    } else {
+      setHitosLogrados(prev => ({ ...prev, [hito]: fechaRegistro }))
+    }
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || !mascotaId) {
+      setHitoError('No se pudo verificar tu sesión. Recarga la página.')
+      return
+    }
+    if (estabaLogrado) {
+      const { error: errD } = await supabase.from('hitos_cachorro').delete().eq('mascota_id', mascotaId).eq('hito', hito)
+      if (errD) {
+        console.error('Error eliminando hito:', errD)
+        setHitosLogrados(prev => ({ ...prev, [hito]: fechaRegistro }))
+        setHitoError('No se pudo desmarcar el hito. Intenta de nuevo.')
+      }
     } else {
       const { error: errH } = await supabase.from('hitos_cachorro').upsert({
         user_id: user.id,
@@ -550,7 +569,11 @@ function RegistroContenido() {
         hito,
         fecha: fechaRegistro,
       }, { onConflict: 'mascota_id,hito' })
-      if (!errH) setHitosLogrados(prev => ({ ...prev, [hito]: fechaRegistro }))
+      if (errH) {
+        console.error('Error guardando hito:', errH)
+        setHitosLogrados(prev => { const n = { ...prev }; delete n[hito]; return n })
+        setHitoError('No se pudo guardar el hito. Revisa tu conexión e intenta de nuevo.')
+      }
     }
   }
 
@@ -1236,6 +1259,7 @@ function RegistroContenido() {
               {hitosAbierto && (
                 <div className="px-3 pb-3 pt-1 space-y-2">
                   <p className="text-[10px] text-[#8A7560]">Momentos únicos de su primer año — quedan guardados con la fecha para siempre 💛</p>
+                  {hitoError && <p className="text-[10px] font-semibold text-[#E05252]">{hitoError}</p>}
                   {hitos.map(h => {
                     const fechaLograda = hitosLogrados[h.value]
                     return (
