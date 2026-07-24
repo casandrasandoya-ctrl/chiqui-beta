@@ -136,6 +136,7 @@ export default function AnalisisPage() {
   const [abiertaRutinas, setAbiertaRutinas] = useState(false)
   const [signosHistorial, setSignosHistorial] = useState<SignoEvento[]>([])
   const [enriqRegistros, setEnriqRegistros] = useState<any[]>([])
+  const [abiertaEnriq, setAbiertaEnriq] = useState(false)
   const [abiertaSignos, setAbiertaSignos] = useState(false)
 
   // Misma función que en el dashboard: devuelve la fecha en zona horaria
@@ -915,11 +916,19 @@ export default function AnalisisPage() {
               const trucosOrdenados = Object.entries(trucos).sort((x, y) => y[1] - x[1])
               const fmtMin = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h ${m % 60 > 0 ? (m % 60) + 'm' : ''}`.trim() : `${m} min`
               return (
-                <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] px-4 py-3">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-sm">🧠</span>
-                    <p className="text-[11px] font-bold text-[#8C572F]">Enriquecimiento y entrenamiento</p>
-                  </div>
+                <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setAbiertaEnriq(v => !v)}
+                    className="w-full flex items-center gap-2 px-4 py-3 text-left"
+                  >
+                    <img src="/chiqui/chiqui_juguetes.png" alt="" className="w-6 h-6 object-contain flex-shrink-0" />
+                    <p className="flex-1 text-[11px] font-bold text-[#8C572F]">Enriquecimiento y entrenamiento</p>
+                    <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">{diasConEnr}</span>
+                    <span className="text-[#8A7560] text-sm">{abiertaEnriq ? '▾' : '›'}</span>
+                  </button>
+                  {abiertaEnriq && (
+                  <div className="px-4 pb-3">
                   <p className="text-[11px] text-[#3D2B1F] mb-2">
                     Actividades de estimulación en <span className="font-bold">{diasConEnr} de los últimos 30 días</span>.
                   </p>
@@ -947,6 +956,8 @@ export default function AnalisisPage() {
                         ))}
                       </div>
                     </div>
+                  )}
+                  </div>
                   )}
                 </div>
               )

@@ -69,6 +69,23 @@ const ACTIVIDADES_ENR: Record<string, { emoji: string; label: string }> = {
   lugar_nuevo: { emoji: '🌳', label: 'Exploró un lugar nuevo' },
 }
 
+// Etiquetas de los hitos de cachorro/gatito, espejo del catálogo del
+// registro diario. Se muestran en el día del calendario en que
+// quedaron registrados — son los recuerdos del primer año.
+const HITOS_LABEL: Record<string, { emoji: string; label: string }> = {
+  primer_diente_leche: { emoji: '🦷', label: 'Se le cayó su primer diente de leche' },
+  primer_diente_definitivo: { emoji: '😁', label: 'Le salió su primer diente definitivo' },
+  primeras_vacunas: { emoji: '💉', label: 'Completó sus primeras vacunas' },
+  responde_nombre: { emoji: '📛', label: 'Responde a su nombre' },
+  primera_noche_completa: { emoji: '🌙', label: 'Primera noche durmiendo completa' },
+  primer_paseo: { emoji: '🦮', label: 'Su primer paseo en la calle' },
+  necesidades_lugar: { emoji: '✅', label: 'Aprendió a hacer sus necesidades donde corresponde' },
+  conocio_otro_perro: { emoji: '🐶', label: 'Conoció a otro perro por primera vez' },
+  primer_arenero: { emoji: '🧹', label: 'Usó el arenero solo por primera vez' },
+  primer_ronroneo: { emoji: '😺', label: 'Su primer ronroneo contigo' },
+  exploro_casa: { emoji: '🪟', label: 'Exploró toda la casa por primera vez' },
+}
+
 function textoDuracion(min: number | null): string {
   if (!min) return ''
   if (min >= 90) return ' · más de 1h'
@@ -106,6 +123,7 @@ export default function CalendarioPage() {
   const [registros, setRegistros] = useState<Record<string, any>>({})
   const [pesos, setPesos] = useState<Record<string, number>>({})
   const [enriqMes, setEnriqMes] = useState<Record<string, any[]>>({})
+  const [hitosMes, setHitosMes] = useState<Record<string, string[]>>({})
   const [mes, setMes] = useState(new Date().getMonth())
   const [año, setAño] = useState(new Date().getFullYear())
   const [diaSeleccionado, setDiaSeleccionado] = useState<number | null>(null)
@@ -138,7 +156,7 @@ export default function CalendarioPage() {
     const ultimoDia = new Date(a, m + 1, 0).getDate()
     const inicio = `${a}-${String(m + 1).padStart(2, '0')}-01`
     const fin = `${a}-${String(m + 1).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`
-    const [{ data }, { data: pesoData }, { data: enrData }] = await Promise.all([
+    const [{ data }, { data: pesoData }, { data: enrData }, { data: hitosData }] = await Promise.all([
       supabase
         .from('registros_diarios')
         .select('*')
@@ -157,6 +175,12 @@ export default function CalendarioPage() {
         .eq('mascota_id', mascotaId)
         .gte('fecha', inicio)
         .lte('fecha', fin),
+      supabase
+        .from('hitos_cachorro')
+        .select('fecha, hito')
+        .eq('mascota_id', mascotaId)
+        .gte('fecha', inicio)
+        .lte('fecha', fin),
     ])
     const map: Record<string, any> = {}
     data?.forEach(r => { map[r.fecha] = r })
@@ -167,6 +191,9 @@ export default function CalendarioPage() {
     const mapEnr: Record<string, any[]> = {}
     enrData?.forEach(e => { (mapEnr[e.fecha] = mapEnr[e.fecha] || []).push(e) })
     setEnriqMes(mapEnr)
+    const mapHitos: Record<string, string[]> = {}
+    hitosData?.forEach(h => { (mapHitos[h.fecha] = mapHitos[h.fecha] || []).push(h.hito) })
+    setHitosMes(mapHitos)
   }
 
   async function cambiarMes(dir: number) {
@@ -289,7 +316,13 @@ export default function CalendarioPage() {
                   </div>
                 )
               })()}
-              {reg?.nota && !puntosDelDia(reg).length && <div className="w-1 h-1 rounded-full bg-[#FFBD59] mt-0.5"/>}
+              {reg?.nota && !puntosDelDia(reg).length && !hitosMes[key] && <div className="w-1 h-1 rounded-full bg-[#FFBD59] mt-0.5"/>}
+              {/* Huella dorada en la esquina: ese día se logró un hito
+                  del primer año. Se distingue de los puntos de cuidados
+                  porque un hito es un momento único, no una rutina. */}
+              {hitosMes[key] && hitosMes[key].length > 0 && (
+                <span className="absolute top-0.5 right-0.5 text-[9px] leading-none">🐾</span>
+              )}
             </button>
           )
         })}
@@ -318,6 +351,24 @@ export default function CalendarioPage() {
             </div>
             <button onClick={() => setDiaSeleccionado(null)} className="text-[#8A7560] text-lg w-7 h-7 flex items-center justify-center">✕</button>
           </div>
+
+          {/* Hitos logrados ese día — se muestran SIEMPRE, aunque no
+              haya registro diario (un hito puede registrarse solo). */}
+          {(hitosMes[fechaKey(diaSeleccionado)] || []).length > 0 && (
+            <div className="px-4 pt-3">
+              <div className="rounded-xl border border-[#FFBD59] p-3" style={{ background: 'linear-gradient(135deg, #FFBD5918, #FFFCF8)' }}>
+                <p className="text-[10px] font-bold text-[#CD7421] uppercase tracking-wider mb-1.5">🐾 Hito de este día</p>
+                <div className="space-y-1">
+                  {(hitosMes[fechaKey(diaSeleccionado)] || []).map(h => {
+                    const info = HITOS_LABEL[h] || { emoji: '🐾', label: h }
+                    return (
+                      <p key={h} className="text-[11px] text-[#3D2B1F] font-medium">{info.emoji} {info.label}</p>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {regDia ? (
             <div className="p-4">

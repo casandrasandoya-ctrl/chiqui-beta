@@ -383,6 +383,11 @@ function RegistroContenido() {
   const [hitosLogrados, setHitosLogrados] = useState<Record<string, string>>({})
   const [hitosAbierto, setHitosAbierto] = useState(false)
   const [hitoError, setHitoError] = useState('')
+  // Hito abierto en el modal de detalle (ya logrado). Tocar un hito
+  // logrado NO lo borra: abre esta tarjeta con su fecha y la opción
+  // de corregir, para que un toque accidental no elimine un recuerdo.
+  const [hitoDetalle, setHitoDetalle] = useState<string | null>(null)
+  const [confirmarBorrarHito, setConfirmarBorrarHito] = useState(false)
   const [sel, setSel] = useState<Record<string,string>>({})
   const [det, setDet] = useState<Record<string,string[]>>({})
   // Minutos exactos de paseo cuando el usuario elige "⏱️ Registrar
@@ -538,42 +543,53 @@ function RegistroContenido() {
   // Marca o desmarca un hito. Escritura inmediata (no espera al botón
   // Guardar): un hito es un momento — merece quedar grabado al tiro.
   // Desmarcar existe solo para corregir errores.
+  // Tocar un hito: si NO está logrado, lo registra al instante. Si YA
+  // está logrado, NO lo borra — abre el detalle con su fecha. Un hito
+  // es un recuerdo permanente: un roce accidental no debe eliminarlo.
   async function toggleHito(hito: string) {
     setHitoError('')
-    // UI OPTIMISTA: el chip responde al instante; si la base rechaza,
-    // se revierte y se muestra el error. Nunca un toque mudo — la
-    // versión anterior fallaba en silencio si la escritura no pasaba
-    // (por ejemplo, si faltaba correr el SQL de la tabla).
-    const estabaLogrado = !!hitosLogrados[hito]
-    if (estabaLogrado) {
-      setHitosLogrados(prev => { const n = { ...prev }; delete n[hito]; return n })
-    } else {
-      setHitosLogrados(prev => ({ ...prev, [hito]: fechaRegistro }))
+    if (hitosLogrados[hito]) {
+      setConfirmarBorrarHito(false)
+      setHitoDetalle(hito)
+      return
     }
+    // UI OPTIMISTA: el chip responde al instante; si la base rechaza,
+    // se revierte y se muestra el error (nunca un toque mudo).
+    setHitosLogrados(prev => ({ ...prev, [hito]: fechaRegistro }))
     const { data: { user } } = await supabase.auth.getUser()
     if (!user || !mascotaId) {
+      setHitosLogrados(prev => { const n = { ...prev }; delete n[hito]; return n })
       setHitoError('No se pudo verificar tu sesión. Recarga la página.')
       return
     }
-    if (estabaLogrado) {
-      const { error: errD } = await supabase.from('hitos_cachorro').delete().eq('mascota_id', mascotaId).eq('hito', hito)
-      if (errD) {
-        console.error('Error eliminando hito:', errD)
-        setHitosLogrados(prev => ({ ...prev, [hito]: fechaRegistro }))
-        setHitoError('No se pudo desmarcar el hito. Intenta de nuevo.')
-      }
-    } else {
-      const { error: errH } = await supabase.from('hitos_cachorro').upsert({
-        user_id: user.id,
-        mascota_id: mascotaId,
-        hito,
-        fecha: fechaRegistro,
-      }, { onConflict: 'mascota_id,hito' })
-      if (errH) {
-        console.error('Error guardando hito:', errH)
-        setHitosLogrados(prev => { const n = { ...prev }; delete n[hito]; return n })
-        setHitoError('No se pudo guardar el hito. Revisa tu conexión e intenta de nuevo.')
-      }
+    const { error: errH } = await supabase.from('hitos_cachorro').upsert({
+      user_id: user.id,
+      mascota_id: mascotaId,
+      hito,
+      fecha: fechaRegistro,
+    }, { onConflict: 'mascota_id,hito' })
+    if (errH) {
+      console.error('Error guardando hito:', errH)
+      setHitosLogrados(prev => { const n = { ...prev }; delete n[hito]; return n })
+      setHitoError('No se pudo guardar el hito. Revisa tu conexión e intenta de nuevo.')
+    }
+  }
+
+  // Eliminar un hito ya registrado — solo desde el modal de detalle y
+  // con confirmación explícita. Existe para corregir errores (hito
+  // equivocado o fecha equivocada), no para desmarcar por accidente.
+  async function eliminarHito(hito: string) {
+    setHitoError('')
+    const fechaPrevia = hitosLogrados[hito]
+    setHitosLogrados(prev => { const n = { ...prev }; delete n[hito]; return n })
+    setHitoDetalle(null)
+    setConfirmarBorrarHito(false)
+    if (!mascotaId) return
+    const { error: errD } = await supabase.from('hitos_cachorro').delete().eq('mascota_id', mascotaId).eq('hito', hito)
+    if (errD) {
+      console.error('Error eliminando hito:', errD)
+      setHitosLogrados(prev => ({ ...prev, [hito]: fechaPrevia }))
+      setHitoError('No se pudo eliminar el hito. Intenta de nuevo.')
     }
   }
 
@@ -1433,6 +1449,67 @@ function RegistroContenido() {
           </div>
         </div>
       )}
+
+      {/* Detalle de un hito ya logrado: muestra la fecha y permite
+          corregirlo con confirmación. Sustituye al borrado directo. */}
+      {hitoDetalle && (() => {
+        const info = getHitosCachorro(especie).find(h => h.value === hitoDetalle)
+        const fechaH = hitosLogrados[hitoDetalle]
+        const fechaTexto = fechaH ? (() => {
+          const d = new Date(fechaH + 'T00:00:00')
+          const ms = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+          return `${d.getDate()} de ${ms[d.getMonth()]} de ${d.getFullYear()}`
+        })() : ''
+        return (
+          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setHitoDetalle(null)}>
+            <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="font-bold text-base">{info?.emoji} Hito registrado</h2>
+                <button onClick={() => setHitoDetalle(null)} className="text-[#8A7560] text-xl">✕</button>
+              </div>
+              <div className="rounded-xl border border-[#FFBD59] p-3.5" style={{ background: 'linear-gradient(135deg, #FFBD5918, #FFFCF8)' }}>
+                <p className="text-sm font-semibold text-[#3D2B1F]">{info?.label}</p>
+                <p className="text-xs text-[#8C572F] font-bold mt-1.5">✓ {fechaTexto}</p>
+                <p className="text-[10px] text-[#8A7560] mt-1">Este momento queda guardado para siempre 💛</p>
+              </div>
+              {!confirmarBorrarHito ? (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setHitoDetalle(null)}
+                    className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm"
+                  >
+                    Entendido
+                  </button>
+                  <button
+                    onClick={() => setConfirmarBorrarHito(true)}
+                    className="w-full text-[11px] text-[#8A7560] font-semibold py-1"
+                  >
+                    ¿Lo registraste por error? Corregir
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-[#3D2B1F] text-center">
+                    Se eliminará este hito y su fecha. Podrás volver a registrarlo cuando quieras.
+                  </p>
+                  <button
+                    onClick={() => eliminarHito(hitoDetalle)}
+                    className="w-full bg-[#E05252] text-white font-bold py-3.5 rounded-xl text-sm"
+                  >
+                    Sí, eliminar este hito
+                  </button>
+                  <button
+                    onClick={() => setConfirmarBorrarHito(false)}
+                    className="w-full text-[11px] text-[#8A7560] font-semibold py-1"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Mini-modal ENRIQUECIMIENTO: duración y nota opcionales */}
       {modalEnriq && (() => {
