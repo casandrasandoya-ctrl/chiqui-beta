@@ -515,7 +515,11 @@ export default async function VetPage({ searchParams }: Props) {
                               </p>
                               {p.nota && <p className="text-xs text-[#3D2B1F] mt-0.5 leading-relaxed">{p.nota}</p>}
                               {p.foto_url && (
-                                <img src={p.foto_url} alt={o.titulo} className="w-full h-32 object-cover rounded-xl mt-1.5" />
+                                // Imagen COMPLETA (object-contain sobre fondo), no
+                                // recortada: en una observación clínica el recorte
+                                // puede ocultar justo la zona relevante. Mismo
+                                // tratamiento que la vista del tutor en Prevención.
+                                <img src={p.foto_url} alt={o.titulo} className="w-full max-h-64 object-contain bg-[#FBEAD9] rounded-xl mt-1.5" />
                               )}
                             </div>
                           ))}
