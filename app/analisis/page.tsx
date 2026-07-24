@@ -905,15 +905,60 @@ export default function AnalisisPage() {
                 a.minutos += e.duracion_min || 0
               }
               const actividadesOrdenadas = Object.entries(porActividad).sort((x, y) => y[1].sesiones - x[1].sesiones)
-              // Trucos practicados en las sesiones de entrenamiento.
-              const trucos: Record<string, number> = {}
+              // Detalles por actividad (qué hicieron, dónde, cómo les
+              // fue). Vienen de la columna detalle, separados por comas.
+              function detallesDe(actividad: string): [string, number][] {
+                const cuenta: Record<string, number> = {}
+                for (const e of enriqRegistros) {
+                  if (e.actividad !== actividad || !e.detalle) continue
+                  for (const d of String(e.detalle).split(', ').filter(Boolean)) {
+                    cuenta[d] = (cuenta[d] || 0) + 1
+                  }
+                }
+                return Object.entries(cuenta).sort((x, y) => y[1] - x[1])
+              }
+              const trucosOrdenados = detallesDe('entrenamiento')
+              const lugaresVisitados = detallesDe('lugar_nuevo')
+              // Lo que más disfruta: el detalle más repetido entre los
+              // juegos (olfato y activo), que son los que hablan de
+              // preferencia real y no de logística.
+              const juegosDetalle: Record<string, number> = {}
+              for (const [d, n] of [...detallesDe('juego_olfato'), ...detallesDe('juego_activo')]) {
+                if (d === 'Otro') continue
+                juegosDetalle[d] = (juegosDetalle[d] || 0) + n
+              }
+              const favoritoJuego = Object.entries(juegosDetalle).sort((x, y) => y[1] - x[1])[0]
+              // Socialización: cómo resultaron las experiencias.
+              const experiencias: Record<string, number> = { Positiva: 0, Neutral: 0, 'Difícil': 0 }
+              let totalSocial = 0
               for (const e of enriqRegistros) {
-                if (e.actividad !== 'entrenamiento' || !e.detalle) continue
-                for (const t of String(e.detalle).split(', ').filter(Boolean)) {
-                  trucos[t] = (trucos[t] || 0) + 1
+                if (e.actividad !== 'social_animales' && e.actividad !== 'social_personas') continue
+                totalSocial++
+                for (const d of String(e.detalle || '').split(', ').filter(Boolean)) {
+                  if (d in experiencias) experiencias[d]++
                 }
               }
-              const trucosOrdenados = Object.entries(trucos).sort((x, y) => y[1] - x[1])
+              // Días desde la última actividad registrada.
+              const fechasEnr = enriqRegistros.map(e => e.fecha).sort()
+              const ultimaEnr = fechasEnr[fechasEnr.length - 1]
+              const diasSinEnr = ultimaEnr
+                ? Math.floor((new Date(fechaChile(new Date()) + 'T00:00:00').getTime() - new Date(ultimaEnr + 'T00:00:00').getTime()) / 86400000)
+                : null
+              const variedad = actividadesOrdenadas.length
+              // Interpretación amable — NUNCA un reproche. Si hace días
+              // que no hay actividad, se sugiere algo concreto y fácil;
+              // si hay buena variedad, se reconoce. El tutor puede estar
+              // pasando un mes difícil y la app no está para juzgarlo.
+              let interpretacion = ''
+              if (diasSinEnr !== null && diasSinEnr >= 10) {
+                interpretacion = `Hace ${diasSinEnr} días que no registras actividades de estimulación. Un rato corto de juegos de olfato ya hace diferencia.`
+              } else if (variedad >= 4) {
+                interpretacion = 'Excelente variedad de actividades este mes — la estimulación mental se nutre justamente de eso.'
+              } else if (variedad > 0 && diasConEnr >= 15) {
+                interpretacion = 'Muy buena constancia. Sumar otro tipo de actividad puede enriquecer aún más la rutina.'
+              } else if (variedad > 0) {
+                interpretacion = 'Buen comienzo. La estimulación mental rinde más cuando es frecuente y variada.'
+              }
               const fmtMin = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h ${m % 60 > 0 ? (m % 60) + 'm' : ''}`.trim() : `${m} min`
               return (
                 <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
@@ -932,6 +977,13 @@ export default function AnalisisPage() {
                   <p className="text-[11px] text-[#3D2B1F] mb-2">
                     Actividades de estimulación en <span className="font-bold">{diasConEnr} de los últimos 30 días</span>.
                   </p>
+                  {/* Interpretación amable del período: reconoce o
+                      sugiere, nunca reprocha. */}
+                  {interpretacion && (
+                    <div className="rounded-xl bg-[#FBEAD9] px-3 py-2 mb-2.5">
+                      <p className="text-[11px] text-[#3D2B1F] leading-relaxed">{interpretacion}</p>
+                    </div>
+                  )}
                   <div className="space-y-1">
                     {actividadesOrdenadas.map(([act, datos]) => {
                       const info = ACT_ENR[act] || { emoji: '🧠', label: act }
@@ -945,6 +997,58 @@ export default function AnalisisPage() {
                       )
                     })}
                   </div>
+                  {/* Lo que más disfruta: el juego más repetido entre
+                      olfato y juego activo. */}
+                  {favoritoJuego && favoritoJuego[1] >= 2 && (
+                    <div className="mt-2 pt-2 border-t border-[#EEE2D4]">
+                      <p className="text-[11px] text-[#3D2B1F]">
+                        🥇 <span className="font-semibold">Lo que más disfruta:</span> {favoritoJuego[0]} ({favoritoJuego[1]} {favoritoJuego[1] === 1 ? 'vez' : 'veces'})
+                      </p>
+                    </div>
+                  )}
+                  {lugaresVisitados.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-[#EEE2D4]">
+                      <p className="text-[10px] font-semibold text-[#8A7560] mb-1">
+                        🌳 Lugares nuevos ({lugaresVisitados.length} {lugaresVisitados.length === 1 ? 'tipo' : 'tipos'})
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {lugaresVisitados.map(([l, n]) => (
+                          <span key={l} className="text-[10px] px-2 py-0.5 rounded-full bg-[#FFBD59]/20 text-[#3D2B1F] font-medium">
+                            {l}{n > 1 ? ` ×${n}` : ''}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Socialización con semáforo: cómo le fue importa
+                      tanto como cuántas veces salió. */}
+                  {totalSocial > 0 && (experiencias.Positiva + experiencias.Neutral + experiencias['Difícil']) > 0 && (
+                    <div className="mt-2 pt-2 border-t border-[#EEE2D4]">
+                      <p className="text-[10px] font-semibold text-[#8A7560] mb-1">🐶 Cómo resultaron las socializaciones</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {experiencias.Positiva > 0 && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#4CAF7D20', color: '#3D2B1F' }}>
+                            🟢 {experiencias.Positiva} {experiencias.Positiva === 1 ? 'positiva' : 'positivas'}
+                          </span>
+                        )}
+                        {experiencias.Neutral > 0 && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#F5C84220', color: '#3D2B1F' }}>
+                            🟡 {experiencias.Neutral} {experiencias.Neutral === 1 ? 'neutral' : 'neutrales'}
+                          </span>
+                        )}
+                        {experiencias['Difícil'] > 0 && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#E0525220', color: '#3D2B1F' }}>
+                            🔴 {experiencias['Difícil']} {experiencias['Difícil'] === 1 ? 'difícil' : 'difíciles'}
+                          </span>
+                        )}
+                      </div>
+                      {experiencias['Difícil'] >= 2 && (
+                        <p className="text-[10px] text-[#8A7560] mt-1.5 leading-relaxed">
+                          Varias experiencias difíciles seguidas pueden valer una conversación con tu veterinario o un etólogo.
+                        </p>
+                      )}
+                    </div>
+                  )}
                   {trucosOrdenados.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-[#EEE2D4]">
                       <p className="text-[10px] font-semibold text-[#8A7560] mb-1">🎓 Trucos practicados</p>

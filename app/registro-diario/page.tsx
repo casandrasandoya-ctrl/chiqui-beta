@@ -348,11 +348,57 @@ function getHitosCachorro(especie: string): HitoCatalogo[] {
 // en cada sesión permite ver el progreso: cuándo apareció cada truco
 // por primera vez (= cuándo empezó a aprenderlo) y cuál se practica
 // más. Para agregar uno nuevo, basta con sumar una línea.
+// Detalle por actividad de enriquecimiento. Cada actividad puede
+// preguntar QUÉ se hizo, no solo si se hizo — así el análisis pasa de
+// "jugó 10 veces" a "buscar premios es lo que más disfruta".
+// Todo se guarda en la columna detalle de enriquecimientos (texto
+// separado por comas), que ya existe desde el 262.
+interface DetalleEnrConfig {
+  pregunta: string
+  opciones: string[]
+  multi: boolean
+  // 'experiencia' colorea las opciones con el semáforo de la app —
+  // cómo le fue socializando es tan relevante como que lo hiciera.
+  estilo?: 'experiencia'
+}
+const DETALLE_ENR: Record<string, DetalleEnrConfig> = {
+  enr_juego_olfato: {
+    pregunta: '¿Qué hicieron?', multi: true,
+    opciones: ['Buscar premios', 'Alfombra olfativa', 'Kong', 'Caja sorpresa', 'Rastro de olores', 'Otro'],
+  },
+  enr_juego_activo: {
+    pregunta: '¿A qué jugaron?', multi: true,
+    opciones: ['Pelota', 'Frisbee', 'Tira y afloja', 'Perseguir juguete', 'Correr', 'Otro'],
+  },
+  enr_lugar_nuevo: {
+    pregunta: '¿Dónde?', multi: false,
+    opciones: ['Parque', 'Playa', 'Cerro o sendero', 'Ciudad', 'Casa de otra persona', 'Veterinario', 'Otro'],
+  },
+  enr_social_animales: {
+    pregunta: '¿Cómo fue la experiencia?', multi: false, estilo: 'experiencia',
+    opciones: ['Positiva', 'Neutral', 'Difícil'],
+  },
+  enr_social_personas: {
+    pregunta: '¿Cómo fue la experiencia?', multi: false, estilo: 'experiencia',
+    opciones: ['Positiva', 'Neutral', 'Difícil'],
+  },
+}
+
+// Color del semáforo para las experiencias de socialización.
+function colorExperiencia(op: string): string {
+  if (op === 'Positiva') return '#4CAF7D'
+  if (op === 'Neutral') return '#F5C842'
+  return '#E05252'
+}
+
 const TRUCOS_ENTRENAMIENTO = [
   'Sentarse', 'Dar la pata', 'Acostarse', 'Hacerse el muerto',
   'Dar un beso', 'Quedarse quieto', 'No morder', 'Traer objetos',
   'No tirar la correa',
 ]
+DETALLE_ENR.enr_entrenamiento = {
+  pregunta: '¿Qué practicaron?', opciones: TRUCOS_ENTRENAMIENTO, multi: true,
+}
 
 // --- Momentos de vida ---
 // A diferencia de los hitos de cachorro (únicos, del primer año),
@@ -1889,31 +1935,43 @@ function RegistroContenido() {
                   ))}
                 </div>
               </div>
-              {modalEnriq === 'enr_entrenamiento' && (
-                <div>
-                  <p className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5">¿Qué practicaron? · opcional</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {TRUCOS_ENTRENAMIENTO.map(t => {
-                      const marcado = (enriqForm.trucos || []).includes(t)
-                      return (
-                        <button
-                          key={t}
-                          onClick={() => setEnriqForm(f => ({
-                            ...f,
-                            trucos: marcado ? (f.trucos || []).filter(x => x !== t) : [...(f.trucos || []), t],
-                          }))}
-                          className="px-3 py-2 rounded-xl text-xs font-semibold border transition-all"
-                          style={marcado
-                            ? { borderColor: '#FFBD59', background: '#FFBD5920', color: '#1A1200', borderWidth: '1.5px' }
-                            : { borderColor: '#EEE2D4', background: '#FBEAD9', color: '#8A7560', borderWidth: '1.5px' }}
-                        >
-                          {t}
-                        </button>
-                      )
-                    })}
+              {/* Detalle según la actividad: qué practicaron, a qué
+                  jugaron, dónde fue, cómo resultó. Multi-selección o
+                  selección única según la naturaleza de la pregunta. */}
+              {DETALLE_ENR[modalEnriq] && (() => {
+                const cfg = DETALLE_ENR[modalEnriq]
+                return (
+                  <div>
+                    <p className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5">{cfg.pregunta} · opcional</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {cfg.opciones.map(op => {
+                        const marcado = (enriqForm.trucos || []).includes(op)
+                        const colorOp = cfg.estilo === 'experiencia' ? colorExperiencia(op) : '#FFBD59'
+                        return (
+                          <button
+                            key={op}
+                            onClick={() => setEnriqForm(f => {
+                              const actuales = f.trucos || []
+                              if (!cfg.multi) {
+                                // Selección única: volver a tocar la
+                                // misma opción la desmarca.
+                                return { ...f, trucos: marcado ? [] : [op] }
+                              }
+                              return { ...f, trucos: marcado ? actuales.filter(x => x !== op) : [...actuales, op] }
+                            })}
+                            className="px-3 py-2 rounded-xl text-xs font-semibold border transition-all"
+                            style={marcado
+                              ? { borderColor: colorOp, background: colorOp + '20', color: '#1A1200', borderWidth: '1.5px' }
+                              : { borderColor: '#EEE2D4', background: '#FBEAD9', color: '#8A7560', borderWidth: '1.5px' }}
+                          >
+                            {cfg.estilo === 'experiencia' && (op === 'Positiva' ? '🟢 ' : op === 'Neutral' ? '🟡 ' : '🔴 ')}{op}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
               <div>
                 <p className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5">Observaciones · opcional</p>
                 <textarea
