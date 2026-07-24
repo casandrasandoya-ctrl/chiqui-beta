@@ -102,6 +102,34 @@ const MOMENTOS_LABEL: Record<string, { emoji: string; label: string }> = {
   ojos_opacos: { emoji: '👀', label: 'Ojos más opacos o azulados' },
 }
 
+// Texto legible del paseo. La base guarda claves ('10_30min',
+// 'tiempo_exacto'...) y el modal solo cambiaba los guiones bajos por
+// espacios, así que se leía "10 30min", "30min 1h" o "tiempo exacto" —
+// confuso justo en el dato que más se consulta. Cuando el paseo se
+// registró con tiempo exacto, se muestra la duración real.
+const PASEO_LABEL: Record<string, string> = {
+  no_paseo: 'No paseó',
+  '10_30min': '10-30 min',
+  '30min_1h': '30 min a 1 h',
+  '1_2h': '1 a 2 h',
+  '2_4h': '2 a 4 h',
+}
+function textoPaseo(reg: any): string | null {
+  if (!reg?.paseo) return null
+  if (reg.paseo === 'tiempo_exacto') {
+    const m = reg.paseo_minutos_exactos
+    if (typeof m === 'number' && m > 0) {
+      if (m < 60) return `${m} min`
+      const h = Math.floor(m / 60)
+      const resto = m % 60
+      return resto > 0 ? `${h}h ${resto}m` : `${h}h`
+    }
+    // Se eligió "tiempo exacto" pero no se marcó la duración.
+    return 'Sin duración'
+  }
+  return PASEO_LABEL[reg.paseo] || String(reg.paseo).replace(/_/g, ' ')
+}
+
 function textoDuracion(min: number | null): string {
   if (!min) return ''
   if (min >= 90) return ' · más de 1h'
@@ -443,7 +471,7 @@ export default function CalendarioPage() {
                   ['✨','Pelaje',regDia.pelaje],
                   ['🧠','Conducta',regDia.conducta],
                   ['🦴','Movilidad',regDia.movilidad],
-                  ['🐕‍🦺','Paseo',regDia.paseo],
+                  ['🐕‍🦺','Paseo',textoPaseo(regDia)],
                 ].map(([icon, label, val]) => val && (
                   <div key={label as string} className="bg-[#FBEAD9] rounded-xl p-2 text-center">
                     <div className="text-lg">{icon}</div>
