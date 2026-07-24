@@ -1252,6 +1252,16 @@ function RegistroContenido() {
                           </p>
                         </div>
                       </div>
+                      {/* Los selectores parten en 0h 0min y solo guardan
+                          al tocarlos: si se elige "tiempo exacto" y no
+                          se marca la duración, el paseo queda sin
+                          minutos y no suma al total del mes. Antes eso
+                          pasaba en silencio; ahora se avisa aquí. */}
+                      {!paseoMinutos && (
+                        <p className="text-[10px] text-[#F07A30] font-semibold mt-2">
+                          Elige la duración para que este paseo sume al total del mes. Si no la sabes, puedes usar uno de los rangos de arriba.
+                        </p>
+                      )}
                     </div>
                   )}
                   {selVal && opSel?.detalle && (

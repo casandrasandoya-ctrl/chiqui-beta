@@ -550,8 +550,20 @@ export default function AnalisisPage() {
   // diario guarda UN paseo por día, así que lo que se cuenta son
   // DÍAS con paseo (no salidas individuales) y el promedio es por día
   // con paseo. Se etiqueta así para no prometer un dato que no existe.
-  const diasConPaseoMes = registrosMesActual.filter(r => minutosDePaseo(r) > 0).length
-  const promedioPorDiaConPaseo = diasConPaseoMes > 0 ? Math.round(minutosPaseoMes / diasConPaseoMes) : 0
+  // Un día cuenta como "con paseo" si tiene paseo registrado distinto
+  // de 'no_paseo' — MISMO criterio que la racha. Antes se exigía que
+  // los minutos fueran > 0, y eso descartaba los días marcados con
+  // "tiempo exacto" en los que no se alcanzó a elegir la duración
+  // (se guardan con paseo_minutos_exactos en null): el paseo ocurrió,
+  // pero no sabemos cuánto duró. Con la regla vieja, racha y contador
+  // se contradecían.
+  const diasConPaseoMes = registrosMesActual.filter(r => r.paseo && r.paseo !== 'no_paseo').length
+  // Días en que además SÍ sabemos la duración. El promedio se calcula
+  // solo sobre estos: dividir por días de duración desconocida
+  // hundiría el promedio con ceros que no son ceros reales.
+  const diasConDuracionMes = registrosMesActual.filter(r => minutosDePaseo(r) > 0).length
+  const diasSinDuracionMes = diasConPaseoMes - diasConDuracionMes
+  const promedioPorDiaConPaseo = diasConDuracionMes > 0 ? Math.round(minutosPaseoMes / diasConDuracionMes) : 0
   const promedioDiarioMes = diaActualP > 0 ? Math.round(minutosPaseoMes / diaActualP) : 0
   let diaMayorPaseo: { fecha: string; minutos: number } | null = null
   for (const r of registrosMesActual) {
@@ -999,6 +1011,17 @@ export default function AnalisisPage() {
                     </div>
                   )}
                 </div>
+                {/* Aviso honesto: si hay salidas sin duración, el total
+                    del mes las cuenta como cero minutos. Mejor decirlo
+                    que dejar que el número parezca más bajo sin razón. */}
+                {diasSinDuracionMes > 0 && (
+                  <p className="text-[9px] text-[#8A7560] mt-2 leading-relaxed">
+                    {diasSinDuracionMes === 1
+                      ? 'Hay 1 día con paseo sin duración registrada, así que no suma minutos al total.'
+                      : `Hay ${diasSinDuracionMes} días con paseo sin duración registrada, así que no suman minutos al total.`}
+                    {' '}Puedes completarla editando esos días.
+                  </p>
+                )}
               </div>
             )}
             {/* Enriquecimiento y entrenamiento — resumen del período.
