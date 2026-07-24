@@ -264,24 +264,43 @@ function getGruposCuidados(especie: string): GrupoCuidados[] {
       { value: 'medicamento_hoy', emoji: '💊', label: 'Recibió medicamento' },
       { value: 'vacuna_hoy', emoji: '💉', label: 'Vacuna aplicada' },
       { value: 'anti_hoy', emoji: '🪱', label: 'Antiparasitario aplicado' },
+      { value: 'suplemento_hoy', emoji: '🌿', label: 'Suplemento' },
     ]},
     { titulo: 'Alimentación', img: '/chiqui/chiqui_chef.png', items: [
       { value: 'alimente_hoy', emoji: '🥘', label: 'Alimenté a mi mascota' },
       { value: 'alimento', emoji: '🍖', label: 'Compré alimento' },
-      { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
-      { value: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó un alimento nuevo' },
+      // Fusión: "Cambio de alimento" + "Probó alimento nuevo" son un
+      // solo botón; el mini-modal pregunta si fue definitivo o prueba
+      // y guarda en la columna que corresponda (las dos existen).
+      { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio o prueba de alimento' },
       { value: 'cargo_dispensador', emoji: '🤖', label: 'Cargué el dispensador de comida/agua' },
     ]},
     { titulo: 'Higiene y bienestar', img: '/chiqui/chiqui_grooming.png', items: [
-      { value: 'bano', emoji: '🛁', label: 'Se bañó' },
+      // Baño absorbe "Shampoo en seco" (tipo de baño) y el cepillado
+      // (pregunta del mini-modal). Por eso esos botones ya no existen.
+      { value: 'bano', emoji: '🛁', label: 'Baño' },
       { value: 'unas', emoji: '✂️', label: 'Corte de uñas' },
       { value: 'limpieza_dental', emoji: '🦷', label: 'Limpieza dental' },
       { value: 'limpieza_oidos', emoji: '👂', label: 'Limpieza de oídos' },
       { value: 'tratamiento_dermatologico', emoji: '🧴', label: 'Tratamiento dermatológico' },
-      { value: 'peino', emoji: '💇', label: 'Lo peiné' },
-      { value: 'shampoo_seco', emoji: '🧼', label: 'Shampoo en seco' },
     ]},
   ]
+  if (!esGato) {
+    // Enriquecimiento y entrenamiento — SOLO PERROS por ahora (se
+    // evaluará la versión felina más adelante). Actividades de
+    // bienestar mental/conductual; cada una permite duración y nota
+    // opcionales, guardadas en la tabla enriquecimientos (una fila
+    // por actividad por día) para estadísticas futuras.
+    grupos.push({ titulo: 'Enriquecimiento y entrenamiento', img: '/chiqui/chiqui_juguetes.png', items: [
+      { value: 'enr_juguete_interactivo', emoji: '🧩', label: 'Juguete interactivo' },
+      { value: 'enr_juego_olfato', emoji: '👃', label: 'Juegos de olfato' },
+      { value: 'enr_juego_activo', emoji: '🎾', label: 'Juego activo' },
+      { value: 'enr_entrenamiento', emoji: '🎓', label: 'Entrenamiento' },
+      { value: 'enr_social_animales', emoji: '🐶', label: 'Socializó con otros animales' },
+      { value: 'enr_social_personas', emoji: '👨‍👩‍👧‍👦', label: 'Socializó con personas nuevas' },
+      { value: 'enr_lugar_nuevo', emoji: '🌳', label: 'Exploró un lugar nuevo' },
+    ]})
+  }
   if (esGato) {
     grupos.push({ titulo: 'Arenero', img: '/chiqui/chiqui_caca.png', items: [
       { value: 'limpie_arenero', emoji: '🧹', label: 'Limpié el arenero' },
@@ -322,6 +341,25 @@ function RegistroContenido() {
   const [fechaRegistro, setFechaRegistro] = useState('')
   const [nota, setNota] = useState('')
   const [cuidados, setCuidados] = useState<Set<string>>(new Set())
+  // --- Estados de los nuevos mini-modales de cuidados ---
+  // Alimento: el botón fusionado pregunta si fue cambio definitivo o
+  // solo una prueba; según eso el guardado llena cambio_alimento o
+  // probo_alimento_nuevo (columnas existentes, historial intacto).
+  const [modalAlimento, setModalAlimento] = useState(false)
+  const [alimentoEsPrueba, setAlimentoEsPrueba] = useState(false)
+  // Baño: tipo + ¿lo cepillaste? (el cepillado ya no tiene botón
+  // propio; se registra en la columna peino de siempre).
+  const [modalBano, setModalBano] = useState(false)
+  const [banoTipo, setBanoTipo] = useState<'regular' | 'dermatologico' | 'seco'>('regular')
+  const [banoCepillo, setBanoCepillo] = useState(false)
+  // Limpieza dental: cepillado en casa vs destartraje profesional.
+  const [modalDental, setModalDental] = useState(false)
+  const [dentalTipo, setDentalTipo] = useState<'cepillado' | 'destartraje'>('cepillado')
+  // Enriquecimiento: actividad en edición + datos por actividad
+  // (duración en minutos y nota, ambos opcionales).
+  const [modalEnriq, setModalEnriq] = useState<string | null>(null)
+  const [enriqDatos, setEnriqDatos] = useState<Record<string, { duracion: number | null; nota: string }>>({})
+  const [enriqForm, setEnriqForm] = useState<{ duracion: number | null; nota: string }>({ duracion: null, nota: '' })
   const [signos, setSignos] = useState<Set<string>>(new Set())
   const [signoOtroTexto, setSignoOtroTexto] = useState('')
   const [signosAbierto, setSignosAbierto] = useState(false)
@@ -364,6 +402,7 @@ function RegistroContenido() {
         setYaRegistro(true)
         cargarRegistroExistente(r)
       }
+      await cargarEnriquecimientos(m.id, hoy)
       setCargando(false)
     }
     init()
@@ -396,21 +435,60 @@ function RegistroContenido() {
     setSignoOtroTexto(r.signos_alerta_otro || '')
     const cuidadosExistentes = new Set<string>()
     const mapaCuidados: Record<string, string> = {
-      fue_al_vet: 'vet', se_bano: 'bano', corte_unas: 'unas', compro_alimento: 'alimento',
+      fue_al_vet: 'vet', corte_unas: 'unas', compro_alimento: 'alimento',
       vacuna_hoy: 'vacuna_hoy', anti_hoy: 'anti_hoy', medicamento_hoy: 'medicamento_hoy',
+      suplemento_hoy: 'suplemento_hoy',
       limpieza_dental: 'limpieza_dental', limpieza_oidos: 'limpieza_oidos',
       tratamiento_dermatologico: 'tratamiento_dermatologico',
-      cambio_alimento: 'cambio_alimento', probo_alimento_nuevo: 'probo_alimento_nuevo', cargo_dispensador: 'cargo_dispensador',
+      cargo_dispensador: 'cargo_dispensador',
       alimente_hoy: 'alimente_hoy',
       control_peso: 'control_peso', procedimiento_cirugia: 'procedimiento_cirugia',
       seguimiento_lesion: 'seguimiento_lesion',
-      peino: 'peino', shampoo_seco: 'shampoo_seco',
       limpie_arenero: 'limpie_arenero', cambie_arena: 'cambie_arena', compre_arena: 'compre_arena',
     }
     Object.entries(mapaCuidados).forEach(([columna, valor]) => {
       if (r[columna]) cuidadosExistentes.add(valor)
     })
+    // Botón fusionado de alimento: marcado si cualquiera de las dos
+    // columnas viene en true; recordar cuál era para el mini-modal.
+    if (r.cambio_alimento || r.probo_alimento_nuevo) {
+      cuidadosExistentes.add('cambio_alimento')
+      setAlimentoEsPrueba(!!r.probo_alimento_nuevo)
+    } else {
+      setAlimentoEsPrueba(false)
+    }
+    // Baño: marcado si hubo baño de cualquier tipo (incluye registros
+    // antiguos con solo shampoo_seco). El tipo se reconstruye desde
+    // bano_tipo o se infiere; el cepillado desde peino.
+    if (r.se_bano || r.shampoo_seco) {
+      cuidadosExistentes.add('bano')
+      setBanoTipo((r.bano_tipo as any) || (r.shampoo_seco ? 'seco' : 'regular'))
+      setBanoCepillo(!!r.peino)
+    } else {
+      setBanoTipo('regular'); setBanoCepillo(false)
+    }
+    setDentalTipo((r.dental_tipo as any) || 'cepillado')
     setCuidados(cuidadosExistentes)
+  }
+
+  // Carga las actividades de enriquecimiento guardadas para la fecha
+  // (solo perros las tienen, pero la consulta es inocua para gatos).
+  async function cargarEnriquecimientos(idMascota: string, fecha: string) {
+    const { data: enr } = await supabase
+      .from('enriquecimientos')
+      .select('actividad,duracion_min,nota')
+      .eq('mascota_id', idMascota)
+      .eq('fecha', fecha)
+    if (!enr || enr.length === 0) { setEnriqDatos({}); return }
+    const datos: Record<string, { duracion: number | null; nota: string }> = {}
+    const claves: string[] = []
+    for (const e of enr) {
+      const clave = 'enr_' + e.actividad
+      claves.push(clave)
+      datos[clave] = { duracion: e.duracion_min ?? null, nota: e.nota || '' }
+    }
+    setEnriqDatos(datos)
+    setCuidados(prev => { const n = new Set(prev); for (const c of claves) n.add(c); return n })
   }
 
   async function cambiarMascota(nueva: any) {
@@ -439,6 +517,8 @@ function RegistroContenido() {
     } else {
       setYaRegistro(false)
     }
+    setEnriqDatos({})
+    await cargarEnriquecimientos(nueva.id, hoy)
     setCargando(false)
   }
 
@@ -483,6 +563,26 @@ function RegistroContenido() {
     // directo, abren un mini-formulario. Si ya estaban marcados,
     // desmarcar es directo (no hay necesidad de pedir nada para quitar
     // la marca).
+    // Botones con mini-modal propio (nuevos): alimento fusionado,
+    // baño con tipo, dental con tipo y actividades de enriquecimiento.
+    if (valor === 'cambio_alimento' && !cuidados.has(valor)) {
+      setAlimentoEsPrueba(false); setModalAlimento(true); return
+    }
+    if (valor === 'bano' && !cuidados.has(valor)) {
+      setBanoTipo('regular'); setBanoCepillo(false); setModalBano(true); return
+    }
+    if (valor === 'limpieza_dental' && !cuidados.has(valor)) {
+      setDentalTipo('cepillado'); setModalDental(true); return
+    }
+    if (valor.startsWith('enr_') && !cuidados.has(valor)) {
+      setEnriqForm(enriqDatos[valor] || { duracion: null, nota: '' })
+      setModalEnriq(valor); return
+    }
+    // Al desmarcar una actividad de enriquecimiento, olvidar también
+    // su duración/nota guardadas en memoria.
+    if (valor.startsWith('enr_') && cuidados.has(valor)) {
+      setEnriqDatos(prev => { const n = { ...prev }; delete n[valor]; return n })
+    }
     const necesitaMiniModal = valor === 'vacuna_hoy' || valor === 'anti_hoy' || valor === 'medicamento_hoy'
     if (necesitaMiniModal && !cuidados.has(valor)) {
       // Al abrir el mini-modal de medicamento, cargar los activos de
@@ -663,17 +763,30 @@ function RegistroContenido() {
       paseo_minutos_exactos: sel.paseo === 'tiempo_exacto' ? paseoMinutos : null,
       signos_alerta: signos.size > 0 ? Array.from(signos).join(', ') : null,
       signos_alerta_otro: signos.has('otro_signo') && signoOtroTexto.trim() ? signoOtroTexto.trim() : null,
-      fue_al_vet: cuidados.has('vet'), se_bano: cuidados.has('bano'),
+      fue_al_vet: cuidados.has('vet'),
+      // Baño: los booleanos históricos se llenan según el tipo (así
+      // las Rutinas de Análisis siguen calculando igual). El detalle
+      // queda en bano_tipo. El cepillado alimenta peino como siempre.
+      se_bano: cuidados.has('bano') && banoTipo !== 'seco',
+      shampoo_seco: cuidados.has('bano') && banoTipo === 'seco',
+      bano_tipo: cuidados.has('bano') ? banoTipo : null,
+      peino: cuidados.has('bano') && banoCepillo,
       corte_unas: cuidados.has('unas'), compro_alimento: cuidados.has('alimento'),
       vacuna_hoy: cuidados.has('vacuna_hoy'), anti_hoy: cuidados.has('anti_hoy'),
       medicamento_hoy: cuidados.has('medicamento_hoy'),
+      suplemento_hoy: cuidados.has('suplemento_hoy'),
       limpieza_dental: cuidados.has('limpieza_dental'), limpieza_oidos: cuidados.has('limpieza_oidos'),
-      tratamiento_dermatologico: cuidados.has('tratamiento_dermatologico'),
-      cambio_alimento: cuidados.has('cambio_alimento'), probo_alimento_nuevo: cuidados.has('probo_alimento_nuevo'), cargo_dispensador: cuidados.has('cargo_dispensador'),
+      dental_tipo: cuidados.has('limpieza_dental') ? dentalTipo : null,
+      // El baño con shampoo dermatológico también cuenta como
+      // tratamiento dermatológico para las rutinas.
+      tratamiento_dermatologico: cuidados.has('tratamiento_dermatologico') || (cuidados.has('bano') && banoTipo === 'dermatologico'),
+      // Botón fusionado: una sola marca, columna según la respuesta.
+      cambio_alimento: cuidados.has('cambio_alimento') && !alimentoEsPrueba,
+      probo_alimento_nuevo: cuidados.has('cambio_alimento') && alimentoEsPrueba,
+      cargo_dispensador: cuidados.has('cargo_dispensador'),
       alimente_hoy: cuidados.has('alimente_hoy'),
       control_peso: cuidados.has('control_peso'), procedimiento_cirugia: cuidados.has('procedimiento_cirugia'),
       seguimiento_lesion: cuidados.has('seguimiento_lesion'),
-      peino: cuidados.has('peino'), shampoo_seco: cuidados.has('shampoo_seco'),
       limpie_arenero: cuidados.has('limpie_arenero'), cambie_arena: cuidados.has('cambie_arena'), compre_arena: cuidados.has('compre_arena'),
     }, { onConflict: 'mascota_id,fecha' })
     if (error) {
@@ -681,6 +794,22 @@ function RegistroContenido() {
       setErrorGuardado('No se pudo guardar. Revisa tu conexión e intenta de nuevo.')
       setLoading(false)
       return
+    }
+    // Enriquecimiento (solo perros): reemplaza las filas del día por
+    // el estado actual — más simple y confiable que diffear una a una.
+    const actividadesElegidas = Array.from(cuidados).filter(v => v.startsWith('enr_'))
+    if (especie === 'Perro') {
+      await supabase.from('enriquecimientos').delete().eq('mascota_id', mascotaId).eq('fecha', fechaRegistro)
+      if (actividadesElegidas.length > 0) {
+        await supabase.from('enriquecimientos').insert(actividadesElegidas.map(v => ({
+          user_id: user.id,
+          mascota_id: mascotaId,
+          fecha: fechaRegistro,
+          actividad: v.replace('enr_', ''),
+          duracion_min: enriqDatos[v]?.duracion ?? null,
+          nota: enriqDatos[v]?.nota?.trim() || null,
+        })))
+      }
     }
     router.push('/dashboard')
     router.refresh()
@@ -1003,6 +1132,192 @@ function RegistroContenido() {
         {!puedeGuardar && <p className="text-center text-xs text-[#8A7560] mt-2">Selecciona al menos una categoría para guardar</p>}
       </div>
       {/* Mini-modal para vacuna/antiparasitario aplicado hoy */}
+      {/* Mini-modal ALIMENTO fusionado: ¿cambio definitivo o prueba? */}
+      {modalAlimento && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setModalAlimento(false)}>
+          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-bold text-base">🥣 Cambio o prueba de alimento</h2>
+              <button onClick={() => setModalAlimento(false)} className="text-[#8A7560] text-xl">✕</button>
+            </div>
+            <p className="text-xs text-[#8A7560] -mt-2">¿Fue un cambio definitivo o solo una prueba?</p>
+            <div className="space-y-1.5">
+              {[
+                { v: false, emoji: '🥣', label: 'Cambio definitivo de alimento' },
+                { v: true, emoji: '🎁', label: 'Solo probó algo nuevo' },
+              ].map(op => (
+                <button
+                  key={String(op.v)}
+                  onClick={() => setAlimentoEsPrueba(op.v)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
+                  style={alimentoEsPrueba === op.v
+                    ? { borderColor: '#FFBD59', background: '#FFBD5920', borderWidth: '1.5px' }
+                    : { borderColor: '#EEE2D4', background: '#FBEAD9', borderWidth: '1.5px' }}
+                >
+                  <span className="text-base">{op.emoji}</span>
+                  <span className="text-sm font-medium text-[#3D2B1F]">{op.label}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { setCuidados(prev => new Set(prev).add('cambio_alimento')); setModalAlimento(false) }}
+              className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm"
+            >
+              Marcar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mini-modal BAÑO: tipo + ¿lo cepillaste? */}
+      {modalBano && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setModalBano(false)}>
+          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-bold text-base">🛁 Baño</h2>
+              <button onClick={() => setModalBano(false)} className="text-[#8A7560] text-xl">✕</button>
+            </div>
+            <p className="text-xs text-[#8A7560] uppercase tracking-wider -mt-1">Tipo de baño</p>
+            <div className="space-y-1.5">
+              {[
+                { v: 'regular', emoji: '🛁', label: 'Baño regular / estético' },
+                { v: 'dermatologico', emoji: '🧴', label: 'Shampoo dermatológico' },
+                { v: 'seco', emoji: '🧼', label: 'Shampoo en seco' },
+              ].map(op => (
+                <button
+                  key={op.v}
+                  onClick={() => setBanoTipo(op.v as any)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
+                  style={banoTipo === op.v
+                    ? { borderColor: '#FFBD59', background: '#FFBD5920', borderWidth: '1.5px' }
+                    : { borderColor: '#EEE2D4', background: '#FBEAD9', borderWidth: '1.5px' }}
+                >
+                  <span className="text-base">{op.emoji}</span>
+                  <span className="text-sm font-medium text-[#3D2B1F]">{op.label}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setBanoCepillo(v => !v)}
+              className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
+              style={banoCepillo
+                ? { borderColor: '#FFBD59', background: '#FFBD5920', borderWidth: '1.5px' }
+                : { borderColor: '#EEE2D4', background: '#FFFCF8', borderWidth: '1.5px' }}
+            >
+              <span
+                className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+                style={banoCepillo ? { background: '#FFBD59', color: '#1A1200' } : { border: '1.5px solid #C7B8A5', background: '#FFFCF8' }}
+              >
+                {banoCepillo && <span className="text-[11px] font-bold leading-none">✓</span>}
+              </span>
+              <span className="text-sm font-medium text-[#3D2B1F]">💇 ¿También lo cepillaste?</span>
+            </button>
+            <button
+              onClick={() => { setCuidados(prev => new Set(prev).add('bano')); setModalBano(false) }}
+              className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm"
+            >
+              Marcar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mini-modal LIMPIEZA DENTAL: cepillado vs destartraje */}
+      {modalDental && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setModalDental(false)}>
+          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-bold text-base">🦷 Limpieza dental</h2>
+              <button onClick={() => setModalDental(false)} className="text-[#8A7560] text-xl">✕</button>
+            </div>
+            <div className="space-y-1.5">
+              {[
+                { v: 'cepillado', emoji: '🪥', label: 'Cepillado dental' },
+                { v: 'destartraje', emoji: '🏥', label: 'Destartraje profesional' },
+              ].map(op => (
+                <button
+                  key={op.v}
+                  onClick={() => setDentalTipo(op.v as any)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
+                  style={dentalTipo === op.v
+                    ? { borderColor: '#FFBD59', background: '#FFBD5920', borderWidth: '1.5px' }
+                    : { borderColor: '#EEE2D4', background: '#FBEAD9', borderWidth: '1.5px' }}
+                >
+                  <span className="text-base">{op.emoji}</span>
+                  <span className="text-sm font-medium text-[#3D2B1F]">{op.label}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { setCuidados(prev => new Set(prev).add('limpieza_dental')); setModalDental(false) }}
+              className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm"
+            >
+              Marcar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mini-modal ENRIQUECIMIENTO: duración y nota opcionales */}
+      {modalEnriq && (() => {
+        const items = getGruposCuidados(especie).find(g => g.titulo === 'Enriquecimiento y entrenamiento')?.items || []
+        const item = items.find(i => i.value === modalEnriq)
+        const DURACIONES = [
+          { min: 5, label: '5 min' },
+          { min: 15, label: '15 min' },
+          { min: 30, label: '30 min' },
+          { min: 60, label: '1 hora' },
+          { min: 90, label: 'Más de 1 hora' },
+        ]
+        return (
+          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setModalEnriq(null)}>
+            <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="font-bold text-base">{item?.emoji} {item?.label}</h2>
+                <button onClick={() => setModalEnriq(null)} className="text-[#8A7560] text-xl">✕</button>
+              </div>
+              <div>
+                <p className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5">¿Cuánto tiempo? · opcional</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {DURACIONES.map(d => (
+                    <button
+                      key={d.min}
+                      onClick={() => setEnriqForm(f => ({ ...f, duracion: f.duracion === d.min ? null : d.min }))}
+                      className="px-3 py-2 rounded-xl text-xs font-semibold border transition-all"
+                      style={enriqForm.duracion === d.min
+                        ? { borderColor: '#FFBD59', background: '#FFBD5920', color: '#1A1200', borderWidth: '1.5px' }
+                        : { borderColor: '#EEE2D4', background: '#FBEAD9', color: '#8A7560', borderWidth: '1.5px' }}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5">Observaciones · opcional</p>
+                <textarea
+                  className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none resize-none"
+                  rows={2}
+                  placeholder="ej. le encantó, se cansó rápido..."
+                  value={enriqForm.nota}
+                  onChange={e => setEnriqForm(f => ({ ...f, nota: e.target.value }))}
+                />
+              </div>
+              <button
+                onClick={() => {
+                  setEnriqDatos(prev => ({ ...prev, [modalEnriq]: enriqForm }))
+                  setCuidados(prev => new Set(prev).add(modalEnriq))
+                  setModalEnriq(null)
+                }}
+                className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm"
+              >
+                Marcar
+              </button>
+            </div>
+          </div>
+        )
+      })()}
+
       {miniModal && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={cancelarMiniModal}>
           <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
