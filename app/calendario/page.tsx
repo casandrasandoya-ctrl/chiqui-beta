@@ -86,6 +86,22 @@ const HITOS_LABEL: Record<string, { emoji: string; label: string }> = {
   exploro_casa: { emoji: '🪟', label: 'Exploró toda la casa por primera vez' },
 }
 
+// Etiquetas de los momentos de vida, espejo del catálogo del registro
+// diario. Se muestran en el día del calendario en que ocurrieron.
+const MOMENTOS_LABEL: Record<string, { emoji: string; label: string }> = {
+  llego_a_casa: { emoji: '🏡', label: 'El día que llegó a casa' },
+  mudanza: { emoji: '🏠', label: 'Se mudó de casa' },
+  nuevo_integrante: { emoji: '👶', label: 'Llegó un nuevo integrante a la familia' },
+  nuevo_companero: { emoji: '🐾', label: 'Conoció a un nuevo compañero peludo' },
+  esterilizacion: { emoji: '✂️', label: 'Esterilización' },
+  primer_viaje: { emoji: '✈️', label: 'Su primer viaje' },
+  conocio_mar: { emoji: '🌊', label: 'Conoció el mar' },
+  supero_enfermedad: { emoji: '💪', label: 'Superó una enfermedad' },
+  despedida_companero: { emoji: '🕊️', label: 'Se despidió de un compañero' },
+  otro: { emoji: '💛', label: 'Momento importante' },
+  ojos_opacos: { emoji: '👀', label: 'Ojos más opacos o azulados' },
+}
+
 function textoDuracion(min: number | null): string {
   if (!min) return ''
   if (min >= 90) return ' · más de 1h'
@@ -124,6 +140,7 @@ export default function CalendarioPage() {
   const [pesos, setPesos] = useState<Record<string, number>>({})
   const [enriqMes, setEnriqMes] = useState<Record<string, any[]>>({})
   const [hitosMes, setHitosMes] = useState<Record<string, string[]>>({})
+  const [momentosMes, setMomentosMes] = useState<Record<string, any[]>>({})
   const [mes, setMes] = useState(new Date().getMonth())
   const [año, setAño] = useState(new Date().getFullYear())
   const [diaSeleccionado, setDiaSeleccionado] = useState<number | null>(null)
@@ -156,7 +173,7 @@ export default function CalendarioPage() {
     const ultimoDia = new Date(a, m + 1, 0).getDate()
     const inicio = `${a}-${String(m + 1).padStart(2, '0')}-01`
     const fin = `${a}-${String(m + 1).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`
-    const [{ data }, { data: pesoData }, { data: enrData }, { data: hitosData }] = await Promise.all([
+    const [{ data }, { data: pesoData }, { data: enrData }, { data: hitosData }, { data: momData }] = await Promise.all([
       supabase
         .from('registros_diarios')
         .select('*')
@@ -181,6 +198,12 @@ export default function CalendarioPage() {
         .eq('mascota_id', mascotaId)
         .gte('fecha', inicio)
         .lte('fecha', fin),
+      supabase
+        .from('momentos')
+        .select('fecha, tipo, categoria, nota')
+        .eq('mascota_id', mascotaId)
+        .gte('fecha', inicio)
+        .lte('fecha', fin),
     ])
     const map: Record<string, any> = {}
     data?.forEach(r => { map[r.fecha] = r })
@@ -194,6 +217,9 @@ export default function CalendarioPage() {
     const mapHitos: Record<string, string[]> = {}
     hitosData?.forEach(h => { (mapHitos[h.fecha] = mapHitos[h.fecha] || []).push(h.hito) })
     setHitosMes(mapHitos)
+    const mapMom: Record<string, any[]> = {}
+    momData?.forEach(m => { (mapMom[m.fecha] = mapMom[m.fecha] || []).push(m) })
+    setMomentosMes(mapMom)
   }
 
   async function cambiarMes(dir: number) {
@@ -316,13 +342,16 @@ export default function CalendarioPage() {
                   </div>
                 )
               })()}
-              {reg?.nota && !puntosDelDia(reg).length && !hitosMes[key] && <div className="w-1 h-1 rounded-full bg-[#FFBD59] mt-0.5"/>}
-              {/* Huella dorada en la esquina: ese día se logró un hito
-                  del primer año. Se distingue de los puntos de cuidados
-                  porque un hito es un momento único, no una rutina. */}
-              {hitosMes[key] && hitosMes[key].length > 0 && (
+              {reg?.nota && !puntosDelDia(reg).length && !hitosMes[key] && !momentosMes[key] && <div className="w-1 h-1 rounded-full bg-[#FFBD59] mt-0.5"/>}
+              {/* Marca en la esquina: 🐾 si ese día se logró un hito
+                  del primer año, 💛 si ocurrió un momento de vida. Se
+                  distinguen de los puntos de cuidados porque son
+                  eventos únicos, no rutinas. */}
+              {hitosMes[key] && hitosMes[key].length > 0 ? (
                 <span className="absolute top-0.5 right-0.5 text-[9px] leading-none">🐾</span>
-              )}
+              ) : momentosMes[key] && momentosMes[key].some((m: any) => m.categoria !== 'cambio_edad') ? (
+                <span className="absolute top-0.5 right-0.5 text-[9px] leading-none">💛</span>
+              ) : null}
             </button>
           )
         })}
@@ -367,6 +396,37 @@ export default function CalendarioPage() {
                   })}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Momentos de vida ocurridos ese día — también fuera del
+              registro diario. Los cambios de la edad se muestran con
+              tono neutro (no son celebraciones). */}
+          {(momentosMes[fechaKey(diaSeleccionado)] || []).length > 0 && (
+            <div className="px-4 pt-3">
+              {(momentosMes[fechaKey(diaSeleccionado)] || []).map((m: any, i: number) => {
+                const info = MOMENTOS_LABEL[m.tipo] || { emoji: '💛', label: m.tipo }
+                const esCambio = m.categoria === 'cambio_edad'
+                return (
+                  <div
+                    key={i}
+                    className="rounded-xl p-3 mb-2"
+                    style={esCambio
+                      ? { background: '#FBEAD9', border: '1px solid #EEE2D4' }
+                      : { background: 'linear-gradient(135deg, #FFBD5918, #FFFCF8)', border: '1px solid #FFBD59' }}
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: esCambio ? '#8A7560' : '#CD7421' }}>
+                      {esCambio ? '👀 Cambio de la edad' : '💛 Momento de su vida'}
+                    </p>
+                    <p className="text-[11px] text-[#3D2B1F] font-medium">
+                      {info.emoji} {m.tipo === 'otro' && m.nota ? m.nota : info.label}
+                    </p>
+                    {m.tipo !== 'otro' && m.nota && (
+                      <p className="text-[10px] text-[#8A7560] italic mt-0.5">📝 {m.nota}</p>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
 

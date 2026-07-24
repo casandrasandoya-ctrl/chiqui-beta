@@ -354,6 +354,37 @@ const TRUCOS_ENTRENAMIENTO = [
   'No tirar la correa',
 ]
 
+// --- Momentos de vida ---
+// A diferencia de los hitos de cachorro (únicos, del primer año),
+// los momentos ocurren a CUALQUIER edad y algunos se repiten (una
+// segunda mudanza, otro integrante en la familia). Por eso no hay
+// contador de "completados": no es un álbum que se llena, es una
+// línea de tiempo que crece.
+//
+// Valor clínico: los cambios de entorno explican muchos cambios de
+// conducta, apetito o sueño. Tener la fecha ayuda al veterinario a
+// interpretar lo que el tutor observa después.
+interface MomentoCatalogo { value: string; emoji: string; label: string }
+const MOMENTOS_CATALOGO: MomentoCatalogo[] = [
+  { value: 'llego_a_casa', emoji: '🏡', label: 'El día que llegó a casa' },
+  { value: 'mudanza', emoji: '🏠', label: 'Se mudó de casa' },
+  { value: 'nuevo_integrante', emoji: '👶', label: 'Llegó un nuevo integrante a la familia' },
+  { value: 'nuevo_companero', emoji: '🐾', label: 'Conoció a un nuevo compañero peludo' },
+  { value: 'esterilizacion', emoji: '✂️', label: 'Esterilización' },
+  { value: 'primer_viaje', emoji: '✈️', label: 'Su primer viaje' },
+  { value: 'conocio_mar', emoji: '🌊', label: 'Conoció el mar' },
+  { value: 'supero_enfermedad', emoji: '💪', label: 'Superó una enfermedad' },
+  { value: 'despedida_companero', emoji: '🕊️', label: 'Se despidió de un compañero' },
+  { value: 'otro', emoji: '💛', label: 'Otro momento importante' },
+]
+
+function etiquetaMomento(tipo: string): { emoji: string; label: string } {
+  const enCatalogo = MOMENTOS_CATALOGO.find(m => m.value === tipo)
+  if (enCatalogo) return { emoji: enCatalogo.emoji, label: enCatalogo.label }
+  if (tipo === 'ojos_opacos') return { emoji: '👀', label: 'Ojos más opacos o azulados' }
+  return { emoji: '💛', label: tipo }
+}
+
 // Calcula el color del día para el calendario. Si hay al menos un signo
 // de alerta registrado, el día es ROJO automáticamente (evento grave),
 // por encima de cualquier otra señal del día.
@@ -388,6 +419,16 @@ function RegistroContenido() {
   // de corregir, para que un toque accidental no elimine un recuerdo.
   const [hitoDetalle, setHitoDetalle] = useState<string | null>(null)
   const [confirmarBorrarHito, setConfirmarBorrarHito] = useState(false)
+  // Momentos de vida: lista completa de la mascota (no por fecha, son
+  // eventos con su propia fecha cada uno).
+  const [momentos, setMomentos] = useState<any[]>([])
+  const [momentosAbierto, setMomentosAbierto] = useState(false)
+  const [modalMomento, setModalMomento] = useState<string | null>(null)
+  const [momentoNota, setMomentoNota] = useState('')
+  const [momentoOtroTexto, setMomentoOtroTexto] = useState('')
+  const [momentoDetalle, setMomentoDetalle] = useState<any>(null)
+  const [confirmarBorrarMomento, setConfirmarBorrarMomento] = useState(false)
+  const [momentoError, setMomentoError] = useState('')
   const [sel, setSel] = useState<Record<string,string>>({})
   const [det, setDet] = useState<Record<string,string[]>>({})
   // Minutos exactos de paseo cuando el usuario elige "⏱️ Registrar
@@ -452,6 +493,7 @@ function RegistroContenido() {
       setEspecie(m.especie || '')
       setMascotaNacimiento(m.fecha_nacimiento || null)
       await cargarHitos(m.id)
+      await cargarMomentos(m.id)
       const hoy = fechaUrl || new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
       setFechaRegistro(hoy)
       const { data: r } = await supabase.from('registros_diarios').select('*').eq('mascota_id', m.id).eq('fecha', hoy).maybeSingle()
@@ -593,6 +635,66 @@ function RegistroContenido() {
     }
   }
 
+  // Carga los momentos de vida de la mascota (todos, ordenados del
+  // más reciente al más antiguo).
+  async function cargarMomentos(idMascota: string) {
+    const { data: ms } = await supabase
+      .from('momentos')
+      .select('id,tipo,categoria,fecha,nota')
+      .eq('mascota_id', idMascota)
+      .order('fecha', { ascending: false })
+    setMomentos(ms || [])
+  }
+
+  // Registra un momento con la fecha del registro actual. A diferencia
+  // de los hitos, un mismo tipo puede repetirse (otra mudanza, otro
+  // integrante), así que siempre es un insert nuevo.
+  async function registrarMomento(tipo: string, nota: string, categoria = 'momento') {
+    setMomentoError('')
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || !mascotaId) {
+      setMomentoError('No se pudo verificar tu sesión. Recarga la página.')
+      return
+    }
+    const { data: nuevo, error: errM } = await supabase.from('momentos').insert({
+      user_id: user.id,
+      mascota_id: mascotaId,
+      tipo,
+      categoria,
+      fecha: fechaRegistro,
+      nota: nota.trim() || null,
+    }).select().single()
+    if (errM) {
+      console.error('Error guardando momento:', errM)
+      setMomentoError('No se pudo guardar. Revisa tu conexión e intenta de nuevo.')
+      return
+    }
+    if (nuevo) setMomentos(prev => [nuevo, ...prev])
+  }
+
+  // Eliminar un momento — solo desde su detalle y con confirmación.
+  async function eliminarMomento(id: string) {
+    setMomentoError('')
+    const previos = momentos
+    setMomentos(prev => prev.filter(m => m.id !== id))
+    setMomentoDetalle(null)
+    setConfirmarBorrarMomento(false)
+    const { error: errD } = await supabase.from('momentos').delete().eq('id', id)
+    if (errD) {
+      console.error('Error eliminando momento:', errD)
+      setMomentos(previos)
+      setMomentoError('No se pudo eliminar. Intenta de nuevo.')
+    }
+  }
+
+  // Edad en años de la mascota activa (null si no hay nacimiento).
+  function edadAnios(): number | null {
+    if (!mascotaNacimiento) return null
+    const nac = new Date(mascotaNacimiento + 'T00:00:00')
+    const a = (Date.now() - nac.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+    return a >= 0 ? a : null
+  }
+
   // ¿La mascota activa es cachorro/gatito? Mismo umbral (< 1 año) que
   // calcularEtapaVida. Sin fecha de nacimiento no se puede saber, así
   // que la sección no aparece.
@@ -631,7 +733,9 @@ function RegistroContenido() {
     setEspecie(nueva.especie || '')
     setMascotaNacimiento(nueva.fecha_nacimiento || null)
     setHitosAbierto(false)
+    setMomentosAbierto(false)
     await cargarHitos(nueva.id)
+    await cargarMomentos(nueva.id)
     // Limpiamos el progreso del formulario para no mezclar sintomas de
     // una mascota con el envio hacia otra.
     setSel({})
@@ -1304,6 +1408,122 @@ function RegistroContenido() {
             </div>
           )
         })()}
+
+        {/* Momentos de vida — visibles a CUALQUIER edad. No hay
+            contador de "completados": un momento puede repetirse y la
+            lista es una línea de tiempo, no un álbum que se llena. */}
+        <div className="mb-2 rounded-xl border border-[#EEE2D4] overflow-hidden bg-[#FFFCF8]">
+          <button
+            type="button"
+            onClick={() => setMomentosAbierto(v => !v)}
+            className="w-full flex items-center gap-1.5 px-3 py-2.5 text-left"
+          >
+            <span className="text-base">💛</span>
+            <p className="flex-1 text-[11px] font-semibold text-[#CD7421]">Momentos de su vida</p>
+            {momentos.filter(m => m.categoria !== 'cambio_edad').length > 0 && (
+              <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">
+                {momentos.filter(m => m.categoria !== 'cambio_edad').length}
+              </span>
+            )}
+            <span className="text-[#8A7560] text-sm">{momentosAbierto ? '▾' : '›'}</span>
+          </button>
+          {momentosAbierto && (
+            <div className="px-3 pb-3 pt-1">
+              <p className="text-[10px] text-[#8A7560] mb-2">Eventos que marcan su historia. Quedan guardados con la fecha — y ayudan a entender después cambios de conducta o apetito.</p>
+              {momentoError && <p className="text-[10px] font-semibold text-[#E05252] mb-2">{momentoError}</p>}
+              <div className="grid grid-cols-2 gap-2">
+                {MOMENTOS_CATALOGO.map(m => (
+                  <button
+                    key={m.value}
+                    onClick={() => { setMomentoNota(''); setMomentoOtroTexto(''); setModalMomento(m.value) }}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
+                    style={{ background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
+                  >
+                    <span className="text-base flex-shrink-0">{m.emoji}</span>
+                    <span className="text-xs font-medium text-[#3D2B1F]">{m.label}</span>
+                  </button>
+                ))}
+              </div>
+              {/* Línea de tiempo de lo ya registrado */}
+              {momentos.filter(m => m.categoria !== 'cambio_edad').length > 0 && (
+                <div className="mt-3 pt-2.5 border-t border-[#EEE2D4]">
+                  <p className="text-[10px] font-bold text-[#8A7560] uppercase tracking-wider mb-1.5">Ya registrados</p>
+                  <div className="space-y-1">
+                    {momentos.filter(m => m.categoria !== 'cambio_edad').map(m => {
+                      const info = etiquetaMomento(m.tipo)
+                      const d = new Date(m.fecha + 'T00:00:00')
+                      const ms = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => { setConfirmarBorrarMomento(false); setMomentoDetalle(m) }}
+                          className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-left"
+                          style={{ background: '#FFBD5915', border: '1.5px solid #FFBD59' }}
+                        >
+                          <span className="text-sm flex-shrink-0">{info.emoji}</span>
+                          <span className="flex-1 min-w-0">
+                            <span className="text-[11px] font-medium text-[#3D2B1F] block">{m.tipo === 'otro' && m.nota ? m.nota : info.label}</span>
+                            <span className="text-[10px] font-semibold text-[#8C572F]">{d.getDate()} {ms[d.getMonth()]} {d.getFullYear()}</span>
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Cambios propios de la edad — desde los 7 años (umbral de
+            "Adulto Maduro" en calcularEtapaVida). NO es un logro y no
+            se celebra: es un cambio esperable que conviene comentar en
+            el control, sobre todo porque la esclerosis nuclear se
+            confunde con cataratas, que sí requieren revisión. */}
+        {(() => {
+          const edad = edadAnios()
+          if (edad === null || edad < 7) return null
+          const yaRegistrado = momentos.find(m => m.categoria === 'cambio_edad' && m.tipo === 'ojos_opacos')
+          return (
+            <div className="mb-2 rounded-xl border border-[#EEE2D4] overflow-hidden bg-[#FFFCF8]">
+              <div className="px-3 py-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <span className="text-base">👀</span>
+                  <p className="text-[11px] font-semibold text-[#8A7560]">Cambios propios de la edad</p>
+                </div>
+                <p className="text-[10px] text-[#8A7560] leading-relaxed mb-2">
+                  Con los años es común que el interior del ojo se vea más azulado o brumoso. Suele ser un cambio normal del cristalino que no afecta mayormente la visión — pero se parece mucho a las cataratas, que sí necesitan revisión. Solo tu veterinario puede distinguirlas.
+                </p>
+                {yaRegistrado ? (
+                  <div className="rounded-xl bg-[#FBEAD9] px-3 py-2.5">
+                    <p className="text-[11px] text-[#3D2B1F] font-medium">
+                      👀 Notaste este cambio el {(() => {
+                        const d = new Date(yaRegistrado.fecha + 'T00:00:00')
+                        const ms = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+                        return `${d.getDate()} de ${ms[d.getMonth()]} de ${d.getFullYear()}`
+                      })()}
+                    </p>
+                    <p className="text-[10px] text-[#8A7560] mt-1">🩺 Coméntalo en el próximo control veterinario.</p>
+                    <button
+                      onClick={() => { setConfirmarBorrarMomento(false); setMomentoDetalle(yaRegistrado) }}
+                      className="text-[10px] text-[#8A7560] font-semibold mt-1.5"
+                    >
+                      Corregir
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => registrarMomento('ojos_opacos', '', 'cambio_edad')}
+                    className="w-full rounded-xl px-3 py-2.5 text-[11px] font-semibold text-[#8C572F]"
+                    style={{ background: '#FBEAD9', border: '1.5px solid #EEE2D4' }}
+                  >
+                    He notado este cambio en sus ojos
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })()}
       </div>
       <div className="mx-4 mt-4">
         <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
@@ -1449,6 +1669,129 @@ function RegistroContenido() {
           </div>
         </div>
       )}
+
+      {/* Registrar un momento: nota opcional y, si es "otro", su
+          nombre. Se guarda con la fecha del registro actual. */}
+      {modalMomento && (() => {
+        const info = MOMENTOS_CATALOGO.find(m => m.value === modalMomento)
+        const esOtro = modalMomento === 'otro'
+        const puedeGuardarMomento = !esOtro || momentoOtroTexto.trim().length > 0
+        return (
+          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setModalMomento(null)}>
+            <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="font-bold text-base">{info?.emoji} {info?.label}</h2>
+                <button onClick={() => setModalMomento(null)} className="text-[#8A7560] text-xl">✕</button>
+              </div>
+              {esOtro && (
+                <div>
+                  <p className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5">¿Qué momento fue?</p>
+                  <input
+                    className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none"
+                    placeholder="ej. su primera nevada"
+                    value={momentoOtroTexto}
+                    onChange={e => setMomentoOtroTexto(e.target.value)}
+                  />
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5">Un recuerdo · opcional</p>
+                <textarea
+                  className="w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none resize-none"
+                  rows={2}
+                  placeholder="ej. no quería salir del agua"
+                  value={momentoNota}
+                  onChange={e => setMomentoNota(e.target.value)}
+                />
+              </div>
+              <p className="text-[10px] text-[#8A7560]">Se guardará con la fecha de este registro.</p>
+              <button
+                disabled={!puedeGuardarMomento}
+                onClick={async () => {
+                  const nota = esOtro
+                    ? (momentoOtroTexto.trim() + (momentoNota.trim() ? ' — ' + momentoNota.trim() : ''))
+                    : momentoNota
+                  await registrarMomento(modalMomento, nota)
+                  setModalMomento(null)
+                }}
+                className="w-full font-bold py-3.5 rounded-xl text-sm"
+                style={puedeGuardarMomento
+                  ? { background: '#FFBD59', color: '#1A1200' }
+                  : { background: '#EEE2D4', color: '#8A7560' }}
+              >
+                Guardar este momento
+              </button>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Detalle de un momento registrado: fecha, recuerdo y opción de
+          corregir con confirmación (igual que los hitos). */}
+      {momentoDetalle && (() => {
+        const info = etiquetaMomento(momentoDetalle.tipo)
+        const esCambioEdad = momentoDetalle.categoria === 'cambio_edad'
+        const d = new Date(momentoDetalle.fecha + 'T00:00:00')
+        const ms = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+        const fechaTexto = `${d.getDate()} de ${ms[d.getMonth()]} de ${d.getFullYear()}`
+        return (
+          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setMomentoDetalle(null)}>
+            <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="font-bold text-base">{info.emoji} {esCambioEdad ? 'Cambio registrado' : 'Momento registrado'}</h2>
+                <button onClick={() => setMomentoDetalle(null)} className="text-[#8A7560] text-xl">✕</button>
+              </div>
+              <div
+                className="rounded-xl p-3.5"
+                style={esCambioEdad
+                  ? { background: '#FBEAD9', border: '1.5px solid #EEE2D4' }
+                  : { background: 'linear-gradient(135deg, #FFBD5918, #FFFCF8)', border: '1.5px solid #FFBD59' }}
+              >
+                <p className="text-sm font-semibold text-[#3D2B1F]">
+                  {momentoDetalle.tipo === 'otro' && momentoDetalle.nota ? momentoDetalle.nota : info.label}
+                </p>
+                <p className="text-xs text-[#8C572F] font-bold mt-1.5">✓ {fechaTexto}</p>
+                {momentoDetalle.tipo !== 'otro' && momentoDetalle.nota && (
+                  <p className="text-[11px] text-[#8A7560] italic mt-1.5">📝 {momentoDetalle.nota}</p>
+                )}
+                {esCambioEdad && <p className="text-[10px] text-[#8A7560] mt-1.5">🩺 Coméntalo en el próximo control veterinario.</p>}
+              </div>
+              {!confirmarBorrarMomento ? (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setMomentoDetalle(null)}
+                    className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm"
+                  >
+                    Entendido
+                  </button>
+                  <button
+                    onClick={() => setConfirmarBorrarMomento(true)}
+                    className="w-full text-[11px] text-[#8A7560] font-semibold py-1"
+                  >
+                    ¿Lo registraste por error? Corregir
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-[#3D2B1F] text-center">Se eliminará este registro y su fecha. Podrás volver a agregarlo cuando quieras.</p>
+                  <button
+                    onClick={() => eliminarMomento(momentoDetalle.id)}
+                    className="w-full bg-[#E05252] text-white font-bold py-3.5 rounded-xl text-sm"
+                  >
+                    Sí, eliminar
+                  </button>
+                  <button
+                    onClick={() => setConfirmarBorrarMomento(false)}
+                    className="w-full text-[11px] text-[#8A7560] font-semibold py-1"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Detalle de un hito ya logrado: muestra la fecha y permite
           corregirlo con confirmación. Sustituye al borrado directo. */}
