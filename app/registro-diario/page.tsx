@@ -343,6 +343,17 @@ function getHitosCachorro(especie: string): HitoCatalogo[] {
   ]
 }
 
+// Trucos y órdenes que se pueden marcar en la actividad de
+// Entrenamiento (grupo Enriquecimiento). Marcar cuáles se practicaron
+// en cada sesión permite ver el progreso: cuándo apareció cada truco
+// por primera vez (= cuándo empezó a aprenderlo) y cuál se practica
+// más. Para agregar uno nuevo, basta con sumar una línea.
+const TRUCOS_ENTRENAMIENTO = [
+  'Sentarse', 'Dar la pata', 'Acostarse', 'Hacerse el muerto',
+  'Dar un beso', 'Quedarse quieto', 'No morder', 'Traer objetos',
+  'No tirar la correa',
+]
+
 // Calcula el color del día para el calendario. Si hay al menos un signo
 // de alerta registrado, el día es ROJO automáticamente (evento grave),
 // por encima de cualquier otra señal del día.
@@ -396,8 +407,8 @@ function RegistroContenido() {
   // Enriquecimiento: actividad en edición + datos por actividad
   // (duración en minutos y nota, ambos opcionales).
   const [modalEnriq, setModalEnriq] = useState<string | null>(null)
-  const [enriqDatos, setEnriqDatos] = useState<Record<string, { duracion: number | null; nota: string }>>({})
-  const [enriqForm, setEnriqForm] = useState<{ duracion: number | null; nota: string }>({ duracion: null, nota: '' })
+  const [enriqDatos, setEnriqDatos] = useState<Record<string, { duracion: number | null; nota: string; trucos?: string[] }>>({})
+  const [enriqForm, setEnriqForm] = useState<{ duracion: number | null; nota: string; trucos?: string[] }>({ duracion: null, nota: '', trucos: [] })
   const [signos, setSignos] = useState<Set<string>>(new Set())
   const [signoOtroTexto, setSignoOtroTexto] = useState('')
   const [signosAbierto, setSignosAbierto] = useState(false)
@@ -558,7 +569,7 @@ function RegistroContenido() {
   async function cargarEnriquecimientos(idMascota: string, fecha: string) {
     const { data: enr } = await supabase
       .from('enriquecimientos')
-      .select('actividad,duracion_min,nota')
+      .select('actividad,duracion_min,nota,detalle')
       .eq('mascota_id', idMascota)
       .eq('fecha', fecha)
     if (!enr || enr.length === 0) { setEnriqDatos({}); return }
@@ -567,7 +578,7 @@ function RegistroContenido() {
     for (const e of enr) {
       const clave = 'enr_' + e.actividad
       claves.push(clave)
-      datos[clave] = { duracion: e.duracion_min ?? null, nota: e.nota || '' }
+      datos[clave] = { duracion: e.duracion_min ?? null, nota: e.nota || '', trucos: e.detalle ? String(e.detalle).split(', ').filter(Boolean) : [] }
     }
     setEnriqDatos(datos)
     setCuidados(prev => { const n = new Set(prev); for (const c of claves) n.add(c); return n })
@@ -660,7 +671,7 @@ function RegistroContenido() {
       setDentalTipo('cepillado'); setModalDental(true); return
     }
     if (valor.startsWith('enr_') && !cuidados.has(valor)) {
-      setEnriqForm(enriqDatos[valor] || { duracion: null, nota: '' })
+      setEnriqForm(enriqDatos[valor] || { duracion: null, nota: '', trucos: [] })
       setModalEnriq(valor); return
     }
     // Al desmarcar una actividad de enriquecimiento, olvidar también
@@ -893,6 +904,7 @@ function RegistroContenido() {
           actividad: v.replace('enr_', ''),
           duracion_min: enriqDatos[v]?.duracion ?? null,
           nota: enriqDatos[v]?.nota?.trim() || null,
+          detalle: (enriqDatos[v]?.trucos && enriqDatos[v].trucos!.length > 0) ? enriqDatos[v].trucos!.join(', ') : null,
         })))
       }
     }
@@ -1433,6 +1445,31 @@ function RegistroContenido() {
                   ))}
                 </div>
               </div>
+              {modalEnriq === 'enr_entrenamiento' && (
+                <div>
+                  <p className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5">¿Qué practicaron? · opcional</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TRUCOS_ENTRENAMIENTO.map(t => {
+                      const marcado = (enriqForm.trucos || []).includes(t)
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => setEnriqForm(f => ({
+                            ...f,
+                            trucos: marcado ? (f.trucos || []).filter(x => x !== t) : [...(f.trucos || []), t],
+                          }))}
+                          className="px-3 py-2 rounded-xl text-xs font-semibold border transition-all"
+                          style={marcado
+                            ? { borderColor: '#FFBD59', background: '#FFBD5920', color: '#1A1200', borderWidth: '1.5px' }
+                            : { borderColor: '#EEE2D4', background: '#FBEAD9', color: '#8A7560', borderWidth: '1.5px' }}
+                        >
+                          {t}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
               <div>
                 <p className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5">Observaciones · opcional</p>
                 <textarea
