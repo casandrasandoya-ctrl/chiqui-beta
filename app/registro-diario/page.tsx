@@ -311,6 +311,38 @@ function getGruposCuidados(especie: string): GrupoCuidados[] {
   return grupos
 }
 
+// --- Hitos de cachorro/gatito ---
+// Eventos únicos en la vida de un cachorro (< 1 año, mismo umbral que
+// calcularEtapaVida validado con veterinario). Se logran UNA sola vez
+// y quedan grabados con fecha en la tabla hitos_cachorro. La sección
+// solo aparece para mascotas jóvenes con fecha de nacimiento conocida
+// — incentiva el registro temprano y guarda recuerdos que después
+// nadie retiene de memoria.
+interface HitoCatalogo { value: string; emoji: string; label: string }
+function getHitosCachorro(especie: string): HitoCatalogo[] {
+  const comunes: HitoCatalogo[] = [
+    { value: 'primer_diente_leche', emoji: '🦷', label: 'Se le cayó su primer diente de leche' },
+    { value: 'primer_diente_definitivo', emoji: '😁', label: 'Le salió su primer diente definitivo' },
+    { value: 'primeras_vacunas', emoji: '💉', label: 'Completó sus primeras vacunas' },
+    { value: 'responde_nombre', emoji: '📛', label: 'Responde a su nombre' },
+    { value: 'primera_noche_completa', emoji: '🌙', label: 'Primera noche durmiendo completa' },
+  ]
+  if (especie === 'Gato') {
+    return [
+      ...comunes,
+      { value: 'primer_arenero', emoji: '🧹', label: 'Usó el arenero solo por primera vez' },
+      { value: 'primer_ronroneo', emoji: '😺', label: 'Su primer ronroneo contigo' },
+      { value: 'exploro_casa', emoji: '🪟', label: 'Exploró toda la casa por primera vez' },
+    ]
+  }
+  return [
+    ...comunes,
+    { value: 'primer_paseo', emoji: '🦮', label: 'Su primer paseo en la calle' },
+    { value: 'necesidades_lugar', emoji: '✅', label: 'Aprendió a hacer sus necesidades donde corresponde' },
+    { value: 'conocio_otro_perro', emoji: '🐶', label: 'Conoció a otro perro por primera vez' },
+  ]
+}
+
 // Calcula el color del día para el calendario. Si hay al menos un signo
 // de alerta registrado, el día es ROJO automáticamente (evento grave),
 // por encima de cualquier otra señal del día.
@@ -333,6 +365,12 @@ function RegistroContenido() {
   const [mascotaId, setMascotaId] = useState('')
   const [mascotaNombre, setMascotaNombre] = useState('')
   const [especie, setEspecie] = useState('')
+  // Fecha de nacimiento de la mascota activa: determina si la sección
+  // de hitos de cachorro/gatito se muestra (< 1 año).
+  const [mascotaNacimiento, setMascotaNacimiento] = useState<string | null>(null)
+  // Hitos ya logrados: hito → fecha en que se registró.
+  const [hitosLogrados, setHitosLogrados] = useState<Record<string, string>>({})
+  const [hitosAbierto, setHitosAbierto] = useState(false)
   const [sel, setSel] = useState<Record<string,string>>({})
   const [det, setDet] = useState<Record<string,string[]>>({})
   // Minutos exactos de paseo cuando el usuario elige "⏱️ Registrar
@@ -388,13 +426,15 @@ function RegistroContenido() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: todasMascotas } = await supabase.from('mascotas').select('id,nombre,especie,raza,foto_url,sexo,castrado,seguimiento_reproductivo').order('created_at', { ascending: true })
+      const { data: todasMascotas } = await supabase.from('mascotas').select('id,nombre,especie,raza,foto_url,sexo,castrado,seguimiento_reproductivo,fecha_nacimiento').order('created_at', { ascending: true })
       if (!todasMascotas || !todasMascotas.length) { router.push('/mascota/nueva'); return }
       setMascotas(todasMascotas)
       const m = determinarMascotaActiva(todasMascotas)!
       setMascotaId(m.id)
       setMascotaNombre(m.nombre)
       setEspecie(m.especie || '')
+      setMascotaNacimiento(m.fecha_nacimiento || null)
+      await cargarHitos(m.id)
       const hoy = fechaUrl || new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
       setFechaRegistro(hoy)
       const { data: r } = await supabase.from('registros_diarios').select('*').eq('mascota_id', m.id).eq('fecha', hoy).maybeSingle()
@@ -471,6 +511,48 @@ function RegistroContenido() {
     setCuidados(cuidadosExistentes)
   }
 
+  // Carga los hitos ya logrados de la mascota (todos, sin filtrar por
+  // fecha: son únicos en la vida).
+  async function cargarHitos(idMascota: string) {
+    const { data: hs } = await supabase
+      .from('hitos_cachorro')
+      .select('hito,fecha')
+      .eq('mascota_id', idMascota)
+    const mapa: Record<string, string> = {}
+    for (const h of (hs || [])) mapa[h.hito] = h.fecha
+    setHitosLogrados(mapa)
+  }
+
+  // Marca o desmarca un hito. Escritura inmediata (no espera al botón
+  // Guardar): un hito es un momento — merece quedar grabado al tiro.
+  // Desmarcar existe solo para corregir errores.
+  async function toggleHito(hito: string) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || !mascotaId) return
+    if (hitosLogrados[hito]) {
+      await supabase.from('hitos_cachorro').delete().eq('mascota_id', mascotaId).eq('hito', hito)
+      setHitosLogrados(prev => { const n = { ...prev }; delete n[hito]; return n })
+    } else {
+      const { error: errH } = await supabase.from('hitos_cachorro').upsert({
+        user_id: user.id,
+        mascota_id: mascotaId,
+        hito,
+        fecha: fechaRegistro,
+      }, { onConflict: 'mascota_id,hito' })
+      if (!errH) setHitosLogrados(prev => ({ ...prev, [hito]: fechaRegistro }))
+    }
+  }
+
+  // ¿La mascota activa es cachorro/gatito? Mismo umbral (< 1 año) que
+  // calcularEtapaVida. Sin fecha de nacimiento no se puede saber, así
+  // que la sección no aparece.
+  function esCachorro(): boolean {
+    if (!mascotaNacimiento) return false
+    const nac = new Date(mascotaNacimiento + 'T00:00:00')
+    const anos = (Date.now() - nac.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+    return anos >= 0 && anos < 1
+  }
+
   // Carga las actividades de enriquecimiento guardadas para la fecha
   // (solo perros las tienen, pero la consulta es inocua para gatos).
   async function cargarEnriquecimientos(idMascota: string, fecha: string) {
@@ -497,6 +579,9 @@ function RegistroContenido() {
     setMascotaId(nueva.id)
     setMascotaNombre(nueva.nombre)
     setEspecie(nueva.especie || '')
+    setMascotaNacimiento(nueva.fecha_nacimiento || null)
+    setHitosAbierto(false)
+    await cargarHitos(nueva.id)
     // Limpiamos el progreso del formulario para no mezclar sintomas de
     // una mascota con el envio hacia otra.
     setSel({})
@@ -1112,6 +1197,61 @@ function RegistroContenido() {
             </div>
           )
         })}
+
+        {/* Hitos de cachorro/gatito — solo mascotas menores de 1 año
+            con fecha de nacimiento conocida. Cada hito se registra UNA
+            vez con la fecha del registro actual y queda dorado con su
+            fecha visible. Escritura inmediata (no espera a Guardar). */}
+        {esCachorro() && (() => {
+          const hitos = getHitosCachorro(especie)
+          const logradosN = hitos.filter(h => hitosLogrados[h.value]).length
+          const tituloHitos = especie === 'Gato' ? 'Hitos de gatito' : 'Hitos de cachorro'
+          return (
+            <div className="mb-2 rounded-xl border border-[#FFBD59] overflow-hidden bg-[#FFFCF8]">
+              <button
+                type="button"
+                onClick={() => setHitosAbierto(v => !v)}
+                className="w-full flex items-center gap-1.5 px-3 py-2.5 text-left"
+                style={{ background: 'linear-gradient(135deg, #FFBD5918, #FFFCF8)' }}
+              >
+                <span className="text-base">🐾</span>
+                <p className="flex-1 text-[11px] font-semibold text-[#CD7421]">{tituloHitos}</p>
+                <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">
+                  {logradosN}/{hitos.length}
+                </span>
+                <span className="text-[#8A7560] text-sm">{hitosAbierto ? '▾' : '›'}</span>
+              </button>
+              {hitosAbierto && (
+                <div className="px-3 pb-3 pt-1 space-y-2">
+                  <p className="text-[10px] text-[#8A7560]">Momentos únicos de su primer año — quedan guardados con la fecha para siempre 💛</p>
+                  {hitos.map(h => {
+                    const fechaLograda = hitosLogrados[h.value]
+                    return (
+                      <button
+                        key={h.value}
+                        onClick={() => toggleHito(h.value)}
+                        className="w-full flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
+                        style={fechaLograda
+                          ? { background: '#FFBD5920', borderColor: '#FFBD59', borderWidth: '1.5px' }
+                          : { background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
+                      >
+                        <span className="text-base flex-shrink-0">{h.emoji}</span>
+                        <span className="flex-1 min-w-0">
+                          <span className="text-xs font-medium text-[#3D2B1F] block">{h.label}</span>
+                          {fechaLograda && (
+                            <span className="text-[10px] font-semibold text-[#8C572F]">
+                              ✓ {(() => { const d = new Date(fechaLograda + 'T00:00:00'); const ms = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; return `${d.getDate()} ${ms[d.getMonth()]} ${d.getFullYear()}` })()}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
       <div className="mx-4 mt-4">
         <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
