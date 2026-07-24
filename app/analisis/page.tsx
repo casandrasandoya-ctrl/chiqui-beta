@@ -119,6 +119,18 @@ function calcularRutina(fechas: string[]): { ocurrencias: number; promedioDias: 
   return { ocurrencias: ordenadas.length, promedioDias, ultimaFecha, proximaEstimadaDias }
 }
 
+// Primer día del mes de hace 5 meses: la consulta de paseos cubre 6
+// meses calendario (los 5 anteriores más el actual) para la
+// comparación mensual.
+function inicioHistorialPaseos(): string {
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+  const [a, m] = hoy.split('-').map(Number)
+  const total = a * 12 + (m - 1) - 5
+  const anio = Math.floor(total / 12)
+  const mes = (total % 12) + 1
+  return `${anio}-${String(mes).padStart(2, '0')}-01`
+}
+
 export default function AnalisisPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -136,6 +148,11 @@ export default function AnalisisPage() {
   const [abiertaRutinas, setAbiertaRutinas] = useState(false)
   const [signosHistorial, setSignosHistorial] = useState<SignoEvento[]>([])
   const [enriqRegistros, setEnriqRegistros] = useState<any[]>([])
+  // Historial de paseos de los últimos 6 meses CALENDARIO. Se carga
+  // aparte de `registros` (que son 30 días móviles) porque la tarjeta
+  // "este mes" y la comparación mensual necesitan meses completos, no
+  // una ventana deslizante.
+  const [paseoHistorial, setPaseoHistorial] = useState<any[]>([])
   const [abiertaEnriq, setAbiertaEnriq] = useState(false)
   const [abiertaSignos, setAbiertaSignos] = useState(false)
 
@@ -148,7 +165,7 @@ export default function AnalisisPage() {
   async function cargarRegistros(mascotaId: string) {
     const desde = new Date()
     desde.setDate(desde.getDate() - 30)
-    const [{ data: r }, { data: enr }] = await Promise.all([
+    const [{ data: r }, { data: enr }, { data: hist }] = await Promise.all([
       supabase
         .from('registros_diarios').select('*')
         .eq('mascota_id', mascotaId)
@@ -161,9 +178,18 @@ export default function AnalisisPage() {
         .select('fecha, actividad, duracion_min, detalle')
         .eq('mascota_id', mascotaId)
         .gte('fecha', fechaChile(desde)),
+      // Paseos de los últimos 6 meses calendario, liviano: solo los
+      // campos necesarios para los totales y la comparación mensual.
+      supabase
+        .from('registros_diarios')
+        .select('fecha, paseo, paseo_minutos_exactos')
+        .eq('mascota_id', mascotaId)
+        .gte('fecha', inicioHistorialPaseos())
+        .order('fecha', { ascending: true }),
     ])
     setRegistros(r || [])
     setEnriqRegistros(enr || [])
+    setPaseoHistorial(hist || [])
   }
 
   // Signos de alerta: trae TODO el historial de la mascota (no solo 30
@@ -489,6 +515,28 @@ export default function AnalisisPage() {
     // paseo_minutos_exactos del propio registro.
   }
   const esPerro = mascota?.especie === 'Perro'
+  // --- Utilidades de mes calendario (zona horaria de Chile) ---
+  // Todo lo que dice "este mes" debe ir del día 1 al día de hoy. Usar
+  // una ventana móvil de 30 días hacía que el total BAJARA al avanzar
+  // los días, porque iba soltando registros por atrás.
+  function primerDiaDelMes(anio: number, mes: number): string {
+    return `${anio}-${String(mes).padStart(2, '0')}-01`
+  }
+  // Desplaza un par (año, mes 1-12) por N meses, hacia atrás o adelante.
+  function desplazarMes(anio: number, mes: number, delta: number): { anio: number; mes: number } {
+    const total = anio * 12 + (mes - 1) + delta
+    return { anio: Math.floor(total / 12), mes: (total % 12) + 1 }
+  }
+  const NOMBRES_MES_CORTOS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+  const NOMBRES_MES_LARGOS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+  // Formato compacto de minutos: 95 → "1h 35m", 40 → "40 min".
+  function fmtDuracion(min: number): string {
+    if (min <= 0) return '0 min'
+    if (min < 60) return `${min} min`
+    const h = Math.floor(min / 60)
+    const m = min % 60
+    return m > 0 ? `${h}h ${m}m` : `${h}h`
+  }
   // Minutos de paseo de un registro: usa el valor EXACTO cuando el
   // usuario lo capturó; si no, cae al promedio del rango. Así el
   // promedio mensual y semanal ganan precisión sin obligar a nadie a
@@ -499,24 +547,64 @@ export default function AnalisisPage() {
     }
     return MINUTOS_POR_PASEO[r?.paseo] || 0
   }
-  const minutosPaseoMes = registros.reduce((acc, r) => acc + minutosDePaseo(r), 0)
+  // --- Paseos del MES CALENDARIO en curso (día 1 → hoy) ---
+  const hoyStrPaseo = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+  const [anioActualP, mesActualP, diaActualP] = hoyStrPaseo.split('-').map(Number)
+  const inicioMesActual = primerDiaDelMes(anioActualP, mesActualP)
+  const registrosMesActual = paseoHistorial.filter(r => r.fecha >= inicioMesActual && r.fecha <= hoyStrPaseo)
+  const minutosPaseoMes = registrosMesActual.reduce((acc, r) => acc + minutosDePaseo(r), 0)
   const horasPaseoMes = Math.floor(minutosPaseoMes / 60)
   const minRestantesPaseoMes = minutosPaseoMes % 60
+  const nombreMesActual = NOMBRES_MES_LARGOS[mesActualP - 1]
 
+  // Indicadores del mes. Nota sobre el modelo de datos: el registro
+  // diario guarda UN paseo por día, así que lo que se cuenta son
+  // DÍAS con paseo (no salidas individuales) y el promedio es por día
+  // con paseo. Se etiqueta así para no prometer un dato que no existe.
+  const diasConPaseoMes = registrosMesActual.filter(r => minutosDePaseo(r) > 0).length
+  const promedioPorDiaConPaseo = diasConPaseoMes > 0 ? Math.round(minutosPaseoMes / diasConPaseoMes) : 0
+  const promedioDiarioMes = diaActualP > 0 ? Math.round(minutosPaseoMes / diaActualP) : 0
+  let diaMayorPaseo: { fecha: string; minutos: number } | null = null
+  for (const r of registrosMesActual) {
+    const m = minutosDePaseo(r)
+    if (m > 0 && (!diaMayorPaseo || m > diaMayorPaseo.minutos)) diaMayorPaseo = { fecha: r.fecha, minutos: m }
+  }
+
+  // --- Comparación de los últimos 6 meses calendario ---
+  const mesesComparacion = Array.from({ length: 6 }, (_, i) => {
+    const { anio, mes } = desplazarMes(anioActualP, mesActualP, i - 5)
+    const prefijo = `${anio}-${String(mes).padStart(2, '0')}`
+    const minutos = paseoHistorial
+      .filter(r => String(r.fecha).startsWith(prefijo))
+      .reduce((acc, r) => acc + minutosDePaseo(r), 0)
+    return { label: NOMBRES_MES_CORTOS[mes - 1], minutos, esActual: i === 5 }
+  })
+  const maxMinutosMes = Math.max(...mesesComparacion.map(m => m.minutos), 1)
+  // Comparación con el mes anterior (solo si ese mes tuvo actividad,
+  // para no comparar contra un mes en que el usuario aún no usaba la
+  // app y sacar una conclusión falsa).
+  const minutosMesAnterior = mesesComparacion[4]?.minutos || 0
+  const difMesAnterior = minutosMesAnterior > 0 ? minutosPaseoMes - minutosMesAnterior : null
+
+  // La racha NO depende del mes: son días consecutivos con al menos un
+  // paseo, y sigue corriendo aunque cambie el calendario. Se calcula
+  // sobre paseoHistorial (6 meses) en vez de los 30 días de
+  // `registros`, para que una racha larga no quede topada en 30.
   function calcularRachaPaseo(): { racha: number; enRiesgo: boolean } {
     const hoy = new Date()
     const hoyStr = fechaChile(hoy)
-    const regHoy = registros.find(r => r.fecha === hoyStr)
+    const porFecha = new Map<string, any>()
+    for (const r of paseoHistorial) porFecha.set(r.fecha, r)
+    const regHoy = porFecha.get(hoyStr)
     // Cualquier valor de paseo distinto de no_paseo cuenta para la
     // racha (incluye tiempo_exacto).
     const tieneHoy = regHoy && regHoy.paseo && regHoy.paseo !== 'no_paseo'
     const inicio = tieneHoy ? 0 : 1
     let racha = 0
-    for (let i = inicio; i < 30; i++) {
+    for (let i = inicio; i < 200; i++) {
       const fecha = new Date(hoy)
       fecha.setDate(fecha.getDate() - i)
-      const fechaStr = fechaChile(fecha)
-      const reg = registros.find(r => r.fecha === fechaStr)
+      const reg = porFecha.get(fechaChile(fecha))
       if (reg && reg.paseo && reg.paseo !== 'no_paseo') {
         racha++
       } else {
@@ -526,14 +614,6 @@ export default function AnalisisPage() {
     return { racha, enRiesgo: !tieneHoy && racha > 0 }
   }
   const { racha: rachaPaseo, enRiesgo: rachaEnRiesgo } = calcularRachaPaseo()
-
-  const paseoUltimos7 = Array(7).fill(null).map((_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i))
-    const fechaStr = fechaChile(d)
-    const reg = registros.find(r => r.fecha === fechaStr)
-    return { fecha: d, minutos: reg ? minutosDePaseo(reg) : 0 }
-  })
-  const maxMinutosSemana = Math.max(...paseoUltimos7.map(p => p.minutos), 1)
 
   // --- Normalidad por categoría (últimos 30 días) ---
   const CATEGORIAS_NORMALIDAD = [
@@ -850,37 +930,87 @@ export default function AnalisisPage() {
               <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="text-sm">🕒</span>
-                  <span className="text-[10px] text-[#8A7560]">Paseo este mes</span>
+                  <span className="text-[10px] text-[#8A7560] capitalize">Paseo en {nombreMesActual}</span>
                 </div>
                 <div className="font-bold text-lg text-[#3D2B1F]">{horasPaseoMes}h {minRestantesPaseoMes}m</div>
-                {/* Si al menos un registro del período tiene tiempo
-                    exacto, dejamos el título limpio; si todos son
-                    rangos, avisamos que el total es aproximado. */}
-                {!registros.some(r => typeof r.paseo_minutos_exactos === 'number' && r.paseo_minutos_exactos > 0) && (
+                {/* Comparación con el mes anterior, solo si ese mes
+                    tuvo registros (si no, no hay con qué comparar). */}
+                {difMesAnterior !== null && Math.abs(difMesAnterior) >= 15 && (
+                  <p className="text-[9px] mt-0.5 font-semibold" style={{ color: difMesAnterior > 0 ? '#4CAF7D' : '#8A7560' }}>
+                    {difMesAnterior > 0 ? '↑' : '↓'} {fmtDuracion(Math.abs(difMesAnterior))} vs. mes anterior
+                  </p>
+                )}
+                {/* Si al menos un registro del mes tiene tiempo exacto,
+                    dejamos el título limpio; si todos son rangos,
+                    avisamos que el total es aproximado. */}
+                {registrosMesActual.length > 0 && !registrosMesActual.some(r => typeof r.paseo_minutos_exactos === 'number' && r.paseo_minutos_exactos > 0) && (
                   <p className="text-[9px] text-[#8A7560] mt-0.5">≈ Basado en registros aproximados</p>
                 )}
               </div>
             </div>
-            <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] px-4 py-2.5">
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[10px] font-semibold text-[#8A7560]">Últimos 7 días</p>
-              </div>
-              <div className="flex items-end justify-between gap-1 h-8">
-                {paseoUltimos7.map((p, i) => {
-                  const diasSemana = ['D','L','M','M','J','V','S']
-                  const alturaPct = p.minutos > 0 ? Math.max((p.minutos / maxMinutosSemana) * 100, 12) : 6
+            {/* Comparación mensual: responde "¿estoy paseando más que
+                el mes pasado?" mucho mejor que 7 barras sueltas. El
+                mes en curso va en canela para distinguir que aún no
+                termina — comparar un mes a medias con meses completos
+                sería engañoso sin esa señal visual. */}
+            <div className="mx-4 mb-3 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] px-4 py-3">
+              <p className="text-[10px] font-semibold text-[#8A7560] mb-2">Tiempo de paseo por mes</p>
+              <div className="flex items-end justify-between gap-1.5" style={{ height: '84px' }}>
+                {mesesComparacion.map((m, i) => {
+                  const alturaPx = m.minutos > 0 ? Math.max(Math.round((m.minutos / maxMinutosMes) * 52), 5) : 3
                   return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                    <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
+                      <span className="text-[8px] font-semibold text-[#3D2B1F] leading-none h-3">
+                        {m.minutos > 0 ? fmtDuracion(m.minutos) : ''}
+                      </span>
                       <div
-                        className="w-full rounded transition-all"
-                        style={{ height: `${alturaPct}%`, background: p.minutos > 0 ? '#FFBD59' : 'rgba(140,87,47,0.08)', minHeight: '3px' }}
+                        className="w-full rounded-t transition-all"
+                        style={{
+                          height: `${alturaPx}px`,
+                          background: m.minutos > 0 ? (m.esActual ? '#CD7421' : '#FFBD59') : 'rgba(140,87,47,0.08)',
+                        }}
                       />
-                      <span className="text-[8px] text-[#8A7560]">{diasSemana[p.fecha.getDay()]}</span>
+                      <span className="text-[8px] leading-none" style={{ color: m.esActual ? '#CD7421' : '#8A7560', fontWeight: m.esActual ? 700 : 400 }}>
+                        {m.label}
+                      </span>
                     </div>
                   )
                 })}
               </div>
+              <p className="text-[9px] text-[#8A7560] mt-1.5">El mes en curso (destacado) todavía no termina.</p>
             </div>
+
+            {/* Detalle del mes en curso. Nota de honestidad: el
+                registro diario guarda UN paseo por día, así que se
+                cuentan días con paseo, no salidas individuales. */}
+            {diasConPaseoMes > 0 && (
+              <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] px-4 py-3">
+                <p className="text-[10px] font-semibold text-[#8A7560] mb-2 capitalize">Detalle de {nombreMesActual}</p>
+                <div className="grid grid-cols-2 gap-y-2 gap-x-3">
+                  <div>
+                    <p className="text-[9px] text-[#8A7560]">Días con paseo</p>
+                    <p className="text-[13px] font-bold text-[#3D2B1F]">{diasConPaseoMes} de {diaActualP}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-[#8A7560]">Promedio por salida</p>
+                    <p className="text-[13px] font-bold text-[#3D2B1F]">{fmtDuracion(promedioPorDiaConPaseo)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-[#8A7560]">Promedio diario</p>
+                    <p className="text-[13px] font-bold text-[#3D2B1F]">{fmtDuracion(promedioDiarioMes)}</p>
+                  </div>
+                  {diaMayorPaseo && (
+                    <div>
+                      <p className="text-[9px] text-[#8A7560]">Día más largo</p>
+                      <p className="text-[13px] font-bold text-[#3D2B1F]">
+                        {fmtDuracion(diaMayorPaseo.minutos)}
+                        <span className="text-[9px] font-normal text-[#8A7560]"> · {Number(diaMayorPaseo.fecha.split('-')[2])} {NOMBRES_MES_CORTOS[Number(diaMayorPaseo.fecha.split('-')[1]) - 1]}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {/* Enriquecimiento y entrenamiento — resumen del período.
                 Solo si hay actividades registradas (perros). Muestra
                 frecuencia, tiempo por actividad y trucos practicados.
