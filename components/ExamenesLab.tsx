@@ -18,22 +18,60 @@ interface ParametroPlantilla { nombre: string; tipo: 'numero' | 'texto' | 'lista
 const TIPOS_EXAMEN: { valor: string; label: string; emoji: string; parametros: ParametroPlantilla[] }[] = [
   {
     valor: 'bioquimico', label: 'Perfil bioquímico', emoji: '🧪',
+    // Organizado en 4 secciones clínicas, igual que los informes de
+    // laboratorio reales (y que orina/tiroides en esta misma pantalla):
+    // Proteínas · Función hepática · Función renal · Metabolismo y
+    // minerales. El orden de los parámetros se reagrupó para que cada
+    // sección quede contigua; los nombres NO cambian, así que los
+    // rangos por defecto y los exámenes ya guardados siguen calzando.
     parametros: [
-      'Proteínas Totales', 'Albúmina', 'Globulinas', 'Bilirrubina Total',
-      'Colesterol', 'Glucosa', 'Calcio', 'Fósforo', 'Urea', 'Nus (BUN)',
-      'Creatinina', 'Fosfatasa Alcalina', 'GPT/ALT', 'GOT/AST', 'GGT',
-    ].map(nombre => ({ nombre, tipo: 'numero' as const })),
+      { nombre: 'Proteínas Totales', seccion: 'Proteínas' },
+      { nombre: 'Albúmina', seccion: 'Proteínas' },
+      { nombre: 'Globulinas', seccion: 'Proteínas' },
+      { nombre: 'Bilirrubina Total', seccion: 'Función hepática' },
+      { nombre: 'Fosfatasa Alcalina', seccion: 'Función hepática' },
+      { nombre: 'GPT/ALT', seccion: 'Función hepática' },
+      { nombre: 'GOT/AST', seccion: 'Función hepática' },
+      { nombre: 'GGT', seccion: 'Función hepática' },
+      { nombre: 'Urea', seccion: 'Función renal' },
+      { nombre: 'Nus (BUN)', seccion: 'Función renal' },
+      { nombre: 'Creatinina', seccion: 'Función renal' },
+      { nombre: 'Fósforo', seccion: 'Función renal' },
+      { nombre: 'Glucosa', seccion: 'Metabolismo y minerales' },
+      { nombre: 'Colesterol', seccion: 'Metabolismo y minerales' },
+      { nombre: 'Calcio', seccion: 'Metabolismo y minerales' },
+    ].map(p => ({ ...p, tipo: 'numero' as const })),
   },
   {
     valor: 'hemograma', label: 'Hemograma', emoji: '🩸',
+    // 4 secciones siguiendo la lectura clínica del hemograma: Serie
+    // roja (anemia/policitemia) · Plaquetas · Serie blanca en % ·
+    // Serie blanca en valores absolutos. El orden original ya venía
+    // agrupado así, solo se etiqueta.
     parametros: [
-      'Eritrocitos', 'Hematocrito', 'Hemoglobina', 'VCM', 'HCM', 'CHCM',
-      'Plaquetas', 'Leucocitos', 'Eosinófilos', 'Basófilos', 'Juveniles',
-      'Baciliformes', 'Segmentados', 'Linfocitos', 'Monocitos',
-      'Eosinófilos Absolutos', 'Basófilos Absolutos', 'Juveniles Absolutos',
-      'Baciliformes Absolutos', 'Segmentados Absolutos',
-      'Linfocitos Absolutos', 'Monocitos Absolutos',
-    ].map(nombre => ({ nombre, tipo: 'numero' as const })),
+      { nombre: 'Eritrocitos', seccion: 'Serie roja' },
+      { nombre: 'Hematocrito', seccion: 'Serie roja' },
+      { nombre: 'Hemoglobina', seccion: 'Serie roja' },
+      { nombre: 'VCM', seccion: 'Serie roja' },
+      { nombre: 'HCM', seccion: 'Serie roja' },
+      { nombre: 'CHCM', seccion: 'Serie roja' },
+      { nombre: 'Plaquetas', seccion: 'Plaquetas' },
+      { nombre: 'Leucocitos', seccion: 'Serie blanca (%)' },
+      { nombre: 'Eosinófilos', seccion: 'Serie blanca (%)' },
+      { nombre: 'Basófilos', seccion: 'Serie blanca (%)' },
+      { nombre: 'Juveniles', seccion: 'Serie blanca (%)' },
+      { nombre: 'Baciliformes', seccion: 'Serie blanca (%)' },
+      { nombre: 'Segmentados', seccion: 'Serie blanca (%)' },
+      { nombre: 'Linfocitos', seccion: 'Serie blanca (%)' },
+      { nombre: 'Monocitos', seccion: 'Serie blanca (%)' },
+      { nombre: 'Eosinófilos Absolutos', seccion: 'Serie blanca (absolutos)' },
+      { nombre: 'Basófilos Absolutos', seccion: 'Serie blanca (absolutos)' },
+      { nombre: 'Juveniles Absolutos', seccion: 'Serie blanca (absolutos)' },
+      { nombre: 'Baciliformes Absolutos', seccion: 'Serie blanca (absolutos)' },
+      { nombre: 'Segmentados Absolutos', seccion: 'Serie blanca (absolutos)' },
+      { nombre: 'Linfocitos Absolutos', seccion: 'Serie blanca (absolutos)' },
+      { nombre: 'Monocitos Absolutos', seccion: 'Serie blanca (absolutos)' },
+    ].map(p => ({ ...p, tipo: 'numero' as const })),
   },
   {
     // Orina y Tiroides definen sus parámetros en

@@ -13,6 +13,32 @@ const TIPOS_EXAMEN_LAB: Record<string,{icon:string,label:string}> = {
   test_rapido: { icon:'🧪', label:'Test rápido' },
 }
 
+// Mapa parámetro → sección para mostrar subtítulos en las tablas,
+// espejo de las secciones que el tutor ve al cargar el examen. Se
+// mantiene aquí como constante liviana (la vista /vet no conoce las
+// plantillas del tutor, solo recibe resultados guardados).
+const MAPA_SECCIONES: Record<string, Record<string, string>> = {
+  bioquimico: {
+    'Proteínas Totales': 'Proteínas', 'Albúmina': 'Proteínas', 'Globulinas': 'Proteínas',
+    'Bilirrubina Total': 'Función hepática', 'Fosfatasa Alcalina': 'Función hepática',
+    'GPT/ALT': 'Función hepática', 'GOT/AST': 'Función hepática', 'GGT': 'Función hepática',
+    'Urea': 'Función renal', 'Nus (BUN)': 'Función renal', 'Creatinina': 'Función renal', 'Fósforo': 'Función renal',
+    'Glucosa': 'Metabolismo y minerales', 'Colesterol': 'Metabolismo y minerales', 'Calcio': 'Metabolismo y minerales',
+  },
+  hemograma: {
+    'Eritrocitos': 'Serie roja', 'Hematocrito': 'Serie roja', 'Hemoglobina': 'Serie roja',
+    'VCM': 'Serie roja', 'HCM': 'Serie roja', 'CHCM': 'Serie roja',
+    'Plaquetas': 'Plaquetas',
+    'Leucocitos': 'Serie blanca (%)', 'Eosinófilos': 'Serie blanca (%)', 'Basófilos': 'Serie blanca (%)',
+    'Juveniles': 'Serie blanca (%)', 'Baciliformes': 'Serie blanca (%)', 'Segmentados': 'Serie blanca (%)',
+    'Linfocitos': 'Serie blanca (%)', 'Monocitos': 'Serie blanca (%)',
+    'Eosinófilos Absolutos': 'Serie blanca (absolutos)', 'Basófilos Absolutos': 'Serie blanca (absolutos)',
+    'Juveniles Absolutos': 'Serie blanca (absolutos)', 'Baciliformes Absolutos': 'Serie blanca (absolutos)',
+    'Segmentados Absolutos': 'Serie blanca (absolutos)', 'Linfocitos Absolutos': 'Serie blanca (absolutos)',
+    'Monocitos Absolutos': 'Serie blanca (absolutos)',
+  },
+}
+
 // Color del resultado de un test rápido: rojo si Positivo, naranjo si
 // Indeterminado, verde si Negativo. Los tests rápidos no usan rangos
 // numéricos -- su "fuera de rango" es simplemente un resultado
@@ -49,25 +75,37 @@ function flechaDireccion(valor: string, rangoMin: number | null, rangoMax: numbe
   return ''
 }
 
-function TablaResultados({ resultados, testRapido = false }: { resultados: any[]; testRapido?: boolean }) {
+function TablaResultados({ resultados, testRapido = false, tipo }: { resultados: any[]; testRapido?: boolean; tipo?: string }) {
   const ordenados = resultados.slice().sort((a, b) => a.orden - b.orden)
+  // Subtítulos de sección (Serie roja, Función renal...) cuando el
+  // tipo de examen los define — misma lectura agrupada que ve el tutor.
+  const mapaSeccion = (tipo && MAPA_SECCIONES[tipo]) || {}
+  let seccionPrevia = ''
   return (
     <div className="bg-[#FBEAD9] rounded-xl p-2.5">
       {ordenados.map((r: any) => {
         const fuera = !testRapido && fueraDeRango(r.valor, r.rango_min, r.rango_max)
         const colorTR = testRapido ? colorResultadoTest(r.valor) : null
+        const seccionActual = mapaSeccion[r.parametro] || ''
+        const mostrarSeccion = seccionActual && seccionActual !== seccionPrevia
+        seccionPrevia = seccionActual || seccionPrevia
         return (
-          <div key={r.id} className="py-1 border-b border-[#F5EDE3] last:border-0">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
-              <span className="text-xs font-semibold" style={{ color: colorTR || (fuera ? '#993C1D' : '#3D2B1F') }}>
-                {testRapido && r.valor === 'Positivo' ? '⚠️ ' : ''}{r.valor} {r.unidad || ''}
-                {r.rango_min !== null && r.rango_max !== null && (
-                  <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
-                )}
-              </span>
+          <div key={r.id}>
+            {mostrarSeccion && (
+              <p className="text-[10px] font-bold text-[#8C572F] uppercase tracking-wider pt-2 pb-0.5">{seccionActual}</p>
+            )}
+            <div className="py-1 border-b border-[#F5EDE3] last:border-0">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[#3D2B1F]">{r.parametro}</span>
+                <span className="text-xs font-semibold" style={{ color: colorTR || (fuera ? '#993C1D' : '#3D2B1F') }}>
+                  {testRapido && r.valor === 'Positivo' ? '⚠️ ' : ''}{r.valor} {r.unidad || ''}
+                  {r.rango_min !== null && r.rango_max !== null && (
+                    <span className="text-[10px] text-[#8A7560] font-normal ml-1">({r.rango_min}-{r.rango_max})</span>
+                  )}
+                </span>
+              </div>
+              {r.observacion && <p className="text-[10px] text-[#8A7560] italic mt-0.5">{r.observacion}</p>}
             </div>
-            {r.observacion && <p className="text-[10px] text-[#8A7560] italic mt-0.5">{r.observacion}</p>}
           </div>
         )
       })}
@@ -212,7 +250,7 @@ function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
 
               {verCompleto && (
                 <div className="mt-2">
-                  <TablaResultados resultados={resultadosUltimo} />
+                  <TablaResultados resultados={resultadosUltimo} tipo={tipo} />
                   {ultimo.nota && <p className="text-xs text-[#8A7560] mt-2 italic">📝 {ultimo.nota}</p>}
                 </div>
               )}
@@ -246,7 +284,7 @@ function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
                         </button>
                         {abierto && (
                           <div className="p-2.5">
-                            <TablaResultados resultados={resultados} testRapido={esTR} />
+                            <TablaResultados resultados={resultados} testRapido={esTR} tipo={tipo} />
                             {ex.nota && <p className="text-xs text-[#8A7560] mt-2 italic">📝 {ex.nota}</p>}
                           </div>
                         )}
