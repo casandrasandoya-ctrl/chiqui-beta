@@ -66,58 +66,10 @@ const CATEGORIAS_EXAMEN: Record<string,{icon:string,label:string}> = {
   otro: { icon:'📄', label:'Otro examen' },
 }
 
-// SIGNOS DE ALERTA: eventos graves registrados por el tutor en el
-// Registro Diario. Aquí solo se resumen como hechos objetivos, sin
-// interpretación clínica: aparecen en "Posible motivo de consulta"
-// (si hubo alguno en los últimos 7 días) y en el "Resumen clínico"
-// (si un mismo signo se repitió más de una vez en el historial).
-const SIGNOS_VET: Record<string, string> = {
-  convulsiones: 'Convulsión',
-  dificultad_respiratoria: 'Dificultad respiratoria severa',
-  perdida_conciencia: 'Pérdida de conciencia',
-  sangrado_abundante: 'Sangrado abundante',
-  golpe_calor: 'Golpe de calor',
-  intoxicacion: 'Intoxicación',
-  trauma: 'Trauma / accidente importante',
-  paralisis: 'Parálisis o incapacidad para caminar',
-  otro_signo: 'Otro evento grave',
-}
-
-const SIGNOS_VET_PLURAL: Record<string, string> = {
-  convulsiones: 'convulsiones',
-  dificultad_respiratoria: 'dificultad respiratoria severa',
-  perdida_conciencia: 'pérdida de conciencia',
-  sangrado_abundante: 'sangrado abundante',
-  golpe_calor: 'golpe de calor',
-  intoxicacion: 'intoxicación',
-  trauma: 'trauma / accidente',
-  paralisis: 'parálisis',
-  otro_signo: 'otros eventos graves',
-}
-
-function parseSignos(r: any): string[] {
-  return r?.signos_alerta ? String(r.signos_alerta).split(', ').filter(Boolean) : []
-}
-
 function detectarMotivosConsulta(registros: any[]): string[] {
   const hace7 = new Date()
   hace7.setDate(hace7.getDate() - 7)
   const recientes = registros.filter(r => new Date(r.fecha + 'T00:00:00') >= hace7)
-  // Signos de alerta primero: son los eventos más relevantes para el
-  // veterinario. Se muestra la ocurrencia MÁS RECIENTE de cada signo
-  // con cuándo ocurrió (hoy / ayer / hace N días).
-  const ordenadosDesc = recientes.slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
-  const signosRecientes: string[] = []
-  const signosVistos = new Set<string>()
-  for (const r of ordenadosDesc) {
-    for (const s of parseSignos(r)) {
-      if (signosVistos.has(s)) continue
-      signosVistos.add(s)
-      const dias = diasDesde(r.fecha)
-      const cuando = dias <= 0 ? 'hoy' : dias === 1 ? 'ayer' : `hace ${dias} días`
-      signosRecientes.push(`🚨 ${SIGNOS_VET[s] || s} · ${cuando}`)
-    }
-  }
   const senales: Set<string> = new Set()
   const CAMPOS_LABEL: Record<string,Record<string,string>> = {
     energia: { baja:'Energía baja', muy_baja:'Energía muy baja' },
@@ -137,7 +89,7 @@ function detectarMotivosConsulta(registros: any[]): string[] {
     }
     if (r.estado_dia === 'rojo' || r.estado_dia === 'naranjo') senales.add('Días con estado de alerta reciente')
   }
-  return [...signosRecientes, ...Array.from(senales)].slice(0, 8)
+  return Array.from(senales).slice(0, 6)
 }
 
 // Construye el Resumen Clínico: resume información ya registrada, sin
@@ -150,27 +102,11 @@ function construirResumenClinico(params: {
   antis: any[]
   obs: any[]
   examenesLab: any[]
-  registros: any[]
 }): string[] {
-  const { historialPeso, vacunas, antis, obs, examenesLab, registros } = params
+  const { historialPeso, vacunas, antis, obs, examenesLab } = params
   const resumen: string[] = []
   const hoy = new Date()
-  // Signos de alerta históricos: si un mismo signo ocurrió MÁS DE UNA
-  // vez en el historial disponible, se destaca como antecedente
-  // relevante (ej. "5 episodios de convulsiones registrados"), sin
-  // interpretar clínicamente los eventos.
-  const conteoSignos: Record<string, number> = {}
-  for (const r of registros) {
-    for (const s of parseSignos(r)) {
-      conteoSignos[s] = (conteoSignos[s] || 0) + 1
-    }
-  }
-  const signosRepetidos = Object.entries(conteoSignos)
-    .filter(([, n]) => n >= 2)
-    .sort((a, b) => b[1] - a[1])
-  for (const [s, n] of signosRepetidos) {
-    resumen.push(`🚨 ${n} episodios de ${SIGNOS_VET_PLURAL[s] || s} registrados.`)
-  }
+
   // Peso: compara el registro más antiguo vs el más reciente dentro de
   // los últimos 6 meses. Si hay menos de 2 registros en ese período, no
   // hay nada confiable que decir, así que se omite la línea entera.
@@ -193,6 +129,7 @@ function construirResumenClinico(params: {
       }
     }
   }
+
   // Vacunas: solo se cuenta como "vencida" si la aplicación MÁS
   // RECIENTE de ese nombre de vacuna ya pasó su próxima fecha -- una
   // vacuna vieja reemplazada por una más nueva no cuenta.
@@ -203,6 +140,7 @@ function construirResumenClinico(params: {
       ? `💉 ${vencidas.length} vacuna${vencidas.length === 1 ? '' : 's'} vencida${vencidas.length === 1 ? '' : 's'}.`
       : '💉 Vacunas al día.')
   }
+
   // Antiparasitario: se mira la ÚLTIMA DOSIS APLICADA (por
   // fecha_aplicacion, no por proxima_fecha) -- una dosis vieja del
   // historial que ya fue reemplazada no debe seguir contando.
@@ -211,11 +149,13 @@ function construirResumenClinico(params: {
     const vigente = masReciente?.proxima_fecha && new Date(masReciente.proxima_fecha + 'T00:00:00') >= hoy
     resumen.push(vigente ? '🪱 Antiparasitario vigente.' : '🪱 Antiparasitario vencido o sin próxima fecha registrada.')
   }
+
   // Observaciones activas
   const obsActivas = obs.filter((o: any) => o.estado === 'activa').length
   if (obsActivas > 0) {
-    resumen.push(`👁 ${obsActivas} observación${obsActivas === 1 ? '' : 'es'} activa${obsActivas === 1 ? '' : 's'}.`)
+    resumen.push(`👁️ ${obsActivas} observación${obsActivas === 1 ? '' : 'es'} activa${obsActivas === 1 ? '' : 's'}.`)
   }
+
   // Último perfil bioquímico + parámetros fuera de rango
   const bioquimicos = examenesLab.filter((e: any) => e.tipo === 'bioquimico').sort((a: any, b: any) => b.fecha.localeCompare(a.fecha))
   if (bioquimicos.length > 0) {
@@ -225,6 +165,7 @@ function construirResumenClinico(params: {
     const fuera = (ultimo.resultados || []).filter((r: any) => fueraDeRango(r.valor, r.rango_min, r.rango_max)).length
     if (fuera > 0) resumen.push(`⚠️ ${fuera} parámetro${fuera === 1 ? '' : 's'} fuera de rango en el último bioquímico.`)
   }
+
   // Último hemograma
   const hemogramas = examenesLab.filter((e: any) => e.tipo === 'hemograma').sort((a: any, b: any) => b.fecha.localeCompare(a.fecha))
   if (hemogramas.length > 0) {
@@ -232,26 +173,7 @@ function construirResumenClinico(params: {
     const dias = diasDesde(ultimo.fecha)
     resumen.push(`🩸 Último hemograma hace ${dias} día${dias === 1 ? '' : 's'}.`)
   }
-  // Test rápidos: para cada test, el resultado MÁS RECIENTE determina
-  // su estado (un positivo antiguo que después salió negativo no debe
-  // seguir apareciendo como positivo). Los positivos vigentes se
-  // destacan como antecedente relevante, sin interpretar clínicamente.
-  const testsRapidos = examenesLab.filter((e: any) => e.tipo === 'test_rapido').sort((a: any, b: any) => b.fecha.localeCompare(a.fecha))
-  if (testsRapidos.length > 0) {
-    const porTest = new Map<string, { valor: string; fecha: string }>()
-    for (const ex of testsRapidos) {
-      for (const r of (ex.resultados || [])) {
-        if (!porTest.has(r.parametro)) porTest.set(r.parametro, { valor: r.valor, fecha: ex.fecha })
-      }
-    }
-    const positivosVigentes = Array.from(porTest.entries()).filter(([, v]) => v.valor === 'Positivo')
-    for (const [nombreTest, v] of positivosVigentes) {
-      const d = diasDesde(v.fecha)
-      resumen.push(`⚠️ Test rápido ${nombreTest}: Positivo (hace ${d} día${d === 1 ? '' : 's'}).`)
-    }
-    const diasTR = diasDesde(testsRapidos[0].fecha)
-    resumen.push(`🧪 Último test rápido hace ${diasTR} día${diasTR === 1 ? '' : 's'}.${positivosVigentes.length === 0 ? ' Sin resultados positivos.' : ''}`)
-  }
+
   return resumen
 }
 
@@ -270,7 +192,6 @@ function SeccionVet({ titulo, children, abiertaPorDefecto = false }: { titulo: s
 }
 
 function RegistroCard({ r }: { r: any }) {
-  const signosDia = parseSignos(r)
   return (
     <div className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
       <div className="flex items-center justify-between mb-1">
@@ -279,11 +200,6 @@ function RegistroCard({ r }: { r: any }) {
           {EL[r.estado_dia]}
         </span>
       </div>
-      {signosDia.length > 0 && (
-        <p className="text-xs font-bold text-[#E05252] mb-1">
-          🚨 {signosDia.map(s => SIGNOS_VET[s] || s).join(' · ')}{r.signos_alerta_otro ? ` (${r.signos_alerta_otro})` : ''}
-        </p>
-      )}
       <div className="flex flex-wrap gap-x-3 gap-y-0.5">
         {CAMPOS_SALUD.filter(([,k]) => r[k] && r[k] !== 'normal').map(([label, key]) => (
           <span key={key} className="text-xs text-[#8A7560]">
@@ -320,13 +236,24 @@ function AntiCard({ a }: { a: any }) {
   )
 }
 
+// Estado DERIVADO de un medicamento: no basta con estado='activo' en
+// la base (ese campo no se actualiza solo) — si fecha_fin ya pasó, el
+// tratamiento terminó. Misma regla que usan Prevención y el dashboard.
+function medicamentoEstaActivo(med: any): boolean {
+  if (med.estado !== 'activo') return false
+  if (!med.fecha_fin) return true
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+  return med.fecha_fin >= hoy
+}
+
 function MedicamentoCard({ med }: { med: any }) {
+  const activo = medicamentoEstaActivo(med)
   return (
     <div className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
       <div className="flex items-center justify-between">
         <p className="font-semibold text-sm">{med.nombre}</p>
-        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${med.estado === 'activo' ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
-          {med.estado === 'activo' ? 'Activo' : 'Finalizado'}
+        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${activo ? 'bg-[#4AABDB]/20 text-[#4AABDB]' : 'bg-[#EEE2D4] text-[#8A7560]'}`}>
+          {activo ? 'Activo' : 'Finalizado'}
         </span>
       </div>
       {med.dosis && <p className="text-xs text-[#8A7560] mt-0.5">{med.dosis}{med.frecuencia ? ` · ${med.frecuencia}` : ''}</p>}
@@ -338,6 +265,7 @@ function MedicamentoCard({ med }: { med: any }) {
 
 export default async function VetPage({ searchParams }: Props) {
   const token = searchParams?.token
+
   if (!token) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#F5EDE3]">
@@ -347,9 +275,11 @@ export default async function VetPage({ searchParams }: Props) {
       </div>
     )
   }
+
   const supabase = createVetClient()
   const { data: datos, error } = await supabase
     .rpc('obtener_datos_veterinario', { token_param: token })
+
   if (error || !datos) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-[#F5EDE3]">
@@ -359,36 +289,43 @@ export default async function VetPage({ searchParams }: Props) {
       </div>
     )
   }
+
   const mascota = datos.mascota
+
   const { data: historialPeso } = await supabase
     .from('historial_peso')
     .select('*')
     .eq('mascota_id', datos.mascota.id)
     .order('fecha', { ascending: false })
     .limit(20)
+
   const { data: respiracion } = await supabase
     .from('frecuencia_respiratoria')
     .select('*')
     .eq('mascota_id', datos.mascota.id)
     .order('fecha', { ascending: false })
     .limit(5)
+
   const { data: temperatura } = await supabase
     .from('temperatura_corporal')
     .select('*')
     .eq('mascota_id', datos.mascota.id)
     .order('fecha', { ascending: false })
     .limit(5)
+
   const { data: ciclos } = await supabase
     .from('ciclos_reproductivos')
     .select('*')
     .eq('mascota_id', datos.mascota.id)
     .order('fecha_inicio', { ascending: false })
     .limit(5)
+
   const { data: etapas } = await supabase
     .from('etapas_reproductivas')
     .select('*')
     .eq('mascota_id', datos.mascota.id)
     .order('fecha', { ascending: true })
+
   // Cargar evoluciones de cada observación
   const obsData = datos.observaciones || []
   const obsConEvoluciones = await Promise.all(
@@ -401,6 +338,7 @@ export default async function VetPage({ searchParams }: Props) {
       return { ...o, evoluciones: evos || [] }
     })
   )
+
   const registros = datos.registros || []
   const vacunas = datos.vacunas || []
   const antis = datos.antiparasitarios || []
@@ -409,10 +347,13 @@ export default async function VetPage({ searchParams }: Props) {
   const enfermedades = datos.enfermedades || []
   const medicamentos = datos.medicamentos || []
   const examenesLab = datos.examenes_lab || []
+
   const motivosConsulta = detectarMotivosConsulta(registros)
-  const resumenClinico = construirResumenClinico({ historialPeso: historialPeso || [], vacunas, antis, obs, examenesLab, registros })
-  const medicamentosActivos = medicamentos.filter((m: any) => m.estado === 'activo')
-  const medicamentosFinalizados = medicamentos.filter((m: any) => m.estado !== 'activo')
+  const resumenClinico = construirResumenClinico({ historialPeso: historialPeso || [], vacunas, antis, obs, examenesLab })
+
+  const medicamentosActivos = medicamentos.filter((m: any) => medicamentoEstaActivo(m))
+  const medicamentosFinalizados = medicamentos.filter((m: any) => !medicamentoEstaActivo(m))
+
   const examenesConUrl = await Promise.all(
     examenes.map(async (ex: any) => {
       const { data: signed } = await supabase.storage
@@ -421,8 +362,10 @@ export default async function VetPage({ searchParams }: Props) {
       return { ...ex, signedUrl: signed?.signedUrl || null }
     })
   )
+
   return (
     <div className="min-h-screen bg-[#F5EDE3] text-[#3D2B1F] pb-12 max-w-lg mx-auto">
+
       {/* Header */}
       <div className="bg-[#6B4423] text-white px-5 pt-8 pb-6">
         <div className="flex items-center gap-2 mb-4">
@@ -456,7 +399,9 @@ export default async function VetPage({ searchParams }: Props) {
           </div>
         )}
       </div>
+
       <div className="px-5 py-5 space-y-3">
+
         {/* 1. Ficha del paciente -- prácticamente igual, se agrega Estado
             reproductivo explícito (antes solo aparecía implícito como
             "Esterilizado/a" en el header). */}
@@ -481,7 +426,8 @@ export default async function VetPage({ searchParams }: Props) {
             ))}
           </div>
         </div>
-        {/* 2. Resumen clínico -- Resume el historial completo, sin
+
+        {/* 2. Resumen clínico -- NUEVO. Resume el historial completo, sin
             diagnosticar. No compite con "Posible motivo de consulta"
             (esa se basa solo en los últimos 7 días de registro diario). */}
         {resumenClinico.length > 0 && (
@@ -494,9 +440,9 @@ export default async function VetPage({ searchParams }: Props) {
             </ul>
           </div>
         )}
+
         {/* 3. Posible motivo de consulta -- se mantiene igual, función
-            distinta al Resumen clínico (esta mira solo los últimos 7
-            días). Los signos de alerta aparecen primero. */}
+            distinta al Resumen clínico (esta mira solo los últimos 7 días). */}
         <div className="bg-[#FBEAD9] rounded-2xl p-4 border border-[#CD7421]/30">
           <h2 className="font-bold text-xs text-[#CD7421] uppercase tracking-wider mb-2">
             🩺 Posible motivo de consulta
@@ -505,9 +451,7 @@ export default async function VetPage({ searchParams }: Props) {
           {motivosConsulta.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {motivosConsulta.map(m => (
-                <span key={m} className={m.startsWith('🚨')
-                  ? 'bg-[#E05252]/10 border border-[#E05252]/40 text-[#E05252] text-xs font-bold px-2.5 py-1 rounded-full'
-                  : 'bg-[#FFFCF8] border border-[#CD7421]/30 text-[#8C572F] text-xs font-semibold px-2.5 py-1 rounded-full'}>
+                <span key={m} className="bg-[#FFFCF8] border border-[#CD7421]/30 text-[#8C572F] text-xs font-semibold px-2.5 py-1 rounded-full">
                   {m}
                 </span>
               ))}
@@ -519,16 +463,18 @@ export default async function VetPage({ searchParams }: Props) {
             </div>
           )}
         </div>
+
         {/* ÁREA: Historial médico */}
         <div className="flex items-center gap-2 mb-1">
           <img src="/chiqui/chiqui_examen.png" alt="" className="w-6 h-6 object-contain" />
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
         </div>
+
         {/* 4. Observaciones -- tarjeta resumida por defecto (título,
             estado, cantidad de actualizaciones, última fecha). Solo al
             desplegar aparece la línea de tiempo completa con fotos. */}
         {obs.length > 0 && (
-          <SeccionVet titulo={`👁 Observaciones (${obs.length})`}>
+          <SeccionVet titulo={`👁️ Observaciones (${obs.length})`}>
             <div className="space-y-3">
               {obs.map((o: any) => {
                 const puntos = [
@@ -536,6 +482,7 @@ export default async function VetPage({ searchParams }: Props) {
                   ...((o.evoluciones || []).map((e: any) => ({ fecha: e.fecha, nota: e.nota, foto_url: e.foto_url, inicial: false }))),
                 ].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
                 const totalActualizaciones = puntos.length
+
                 return (
                   <details key={o.id} className="border border-[#EEE2D4] rounded-xl overflow-hidden">
                     <summary className="flex items-center justify-between px-3 py-2.5 cursor-pointer list-none bg-[#FBEAD9]">
@@ -552,6 +499,7 @@ export default async function VetPage({ searchParams }: Props) {
                       </div>
                       <span className="text-[11px] font-semibold text-[#4AABDB] flex-shrink-0 ml-2 select-none">▼ Ver evolución</span>
                     </summary>
+
                     <div className="p-3 border-t border-[#EEE2D4]">
                       {o.fecha_resolucion && (
                         <p className="text-xs text-[#4CAF7D] mb-2">✅ Resuelta el {fmt(o.fecha_resolucion)}</p>
@@ -580,6 +528,7 @@ export default async function VetPage({ searchParams }: Props) {
             </div>
           </SeccionVet>
         )}
+
         {/* 5. Registros diarios -- solo los 5 más recientes visibles de
             entrada; el resto queda detrás de "Ver registros anteriores". */}
         {registros.length > 0 && (
@@ -599,6 +548,7 @@ export default async function VetPage({ searchParams }: Props) {
             )}
           </SeccionVet>
         )}
+
         {/* Enfermedades */}
         {enfermedades.length > 0 && (
           <SeccionVet titulo={`🏥 Enfermedades (${enfermedades.length})`}>
@@ -625,6 +575,7 @@ export default async function VetPage({ searchParams }: Props) {
             </div>
           </SeccionVet>
         )}
+
         {/* Exámenes (PDF adjunto) */}
         {examenesConUrl.length > 0 && (
           <SeccionVet titulo={`📄 Exámenes (${examenesConUrl.length})`}>
@@ -653,6 +604,7 @@ export default async function VetPage({ searchParams }: Props) {
             </div>
           </SeccionVet>
         )}
+
         {/* 6. Exámenes de laboratorio -- resumido por defecto (fecha,
             peso, parámetros fuera de rango con flechas), tabla completa
             solo al desplegar. Ver ExamenesLabVet.tsx. */}
@@ -661,11 +613,13 @@ export default async function VetPage({ searchParams }: Props) {
             <ExamenesLabVet examenesLab={examenesLab} />
           </SeccionVet>
         )}
+
         {/* ÁREA: Prevención */}
         <div className="flex items-center gap-2 mb-1">
           <img src="/chiqui/chiqui_escudo.png" alt="" className="w-6 h-6 object-contain" />
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Prevención</p>
         </div>
+
         {/* 7. Vacunas -- estado + próxima primero, historial detrás de un
             desplegable. Solo se considera la aplicación más reciente
             de CADA nombre de vacuna (una vacuna vieja reemplazada por
@@ -695,6 +649,7 @@ export default async function VetPage({ searchParams }: Props) {
             </SeccionVet>
           )
         })()}
+
         {/* 8. Antiparasitarios -- a diferencia de Vacunas, aquí se mira
             SOLO la última dosis aplicada en general (por
             fecha_aplicacion), sin importar el nombre del producto --
@@ -724,6 +679,7 @@ export default async function VetPage({ searchParams }: Props) {
             </SeccionVet>
           )
         })()}
+
         {/* 9. Medicamentos -- activos primero (siempre visibles),
             finalizados detrás de un desplegable. */}
         {medicamentos.length > 0 && (
@@ -747,11 +703,13 @@ export default async function VetPage({ searchParams }: Props) {
             )}
           </SeccionVet>
         )}
+
         {/* ÁREA: Signos vitales */}
         <div className="flex items-center gap-2 mb-1 mt-2">
           <img src="/chiqui/chiqui_temperatura.png" alt="" className="w-6 h-6 object-contain" />
           <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Signos vitales</p>
         </div>
+
         {respiracion && respiracion.length > 0 && (
           <SeccionVet titulo={`🫁 Frecuencia respiratoria (${respiracion.length})`}>
             <div className="space-y-2">
@@ -771,8 +729,9 @@ export default async function VetPage({ searchParams }: Props) {
             </div>
           </SeccionVet>
         )}
+
         {temperatura && temperatura.length > 0 && (
-          <SeccionVet titulo={`🌡 Temperatura corporal (${temperatura.length})`}>
+          <SeccionVet titulo={`🌡️ Temperatura corporal (${temperatura.length})`}>
             <div className="space-y-2">
               {temperatura.map((t: any) => {
                 const temp = t.temperatura
@@ -791,6 +750,7 @@ export default async function VetPage({ searchParams }: Props) {
             </div>
           </SeccionVet>
         )}
+
         {ciclos && ciclos.length > 0 && (
           <SeccionVet titulo={`🌸 Ciclo reproductivo (${ciclos.length})`}>
             <div className="space-y-2">
@@ -808,11 +768,12 @@ export default async function VetPage({ searchParams }: Props) {
             </div>
           </SeccionVet>
         )}
+
         {etapas && etapas.length > 0 && (
           <SeccionVet titulo={`📍 Línea de vida reproductiva (${etapas.length})`}>
             <div className="space-y-2">
               {etapas.map((e: any) => {
-                const tipos: Record<string,string> = { primer_celo:'🌸 Primer celo', esterilizacion:'✂️ Esterilización', embarazo:'🤰 Embarazo', parto:'🐣 Parto', lactancia:'🍼 Lactancia', tumor_mamario:'🎗 Tumor mamario', otro:'📋 Otro' }
+                const tipos: Record<string,string> = { primer_celo:'🌸 Primer celo', esterilizacion:'✂️ Esterilización', embarazo:'🤰 Embarazo', parto:'🐣 Parto', lactancia:'🍼 Lactancia', tumor_mamario:'🎗️ Tumor mamario', otro:'📋 Otro' }
                 return (
                   <div key={e.id} className="flex items-center gap-2 pb-2 border-b border-[#EEE2D4] last:border-0">
                     <div>
@@ -825,6 +786,7 @@ export default async function VetPage({ searchParams }: Props) {
             </div>
           </SeccionVet>
         )}
+
         <div className="text-center pt-6 pb-2 border-t border-[#EEE2D4] mt-2">
           <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-12 h-12 object-contain mx-auto mb-2" />
           <p className="text-sm font-bold text-[#8C572F]">CHIQUI Entre Señales</p>
@@ -832,6 +794,7 @@ export default async function VetPage({ searchParams }: Props) {
             Información de observación del tutor.<br/>No reemplaza la evaluación clínica.
           </p>
         </div>
+
       </div>
     </div>
   )
