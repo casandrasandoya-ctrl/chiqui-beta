@@ -353,6 +353,16 @@ export default async function VetPage({ searchParams }: Props) {
 
   const registros = datos.registros || []
 
+  // Etiquetas legibles del tamaño del perro (la base guarda la clave).
+  // Solo aplica a perros; para gatos queda en "—".
+  const TAMANO_LABEL_VET: Record<string, string> = {
+    muy_pequeno: 'Muy pequeño (menos de 5 kg)',
+    pequeno: 'Pequeño (5–10 kg)',
+    mediano: 'Mediano (10–25 kg)',
+    grande: 'Grande (25–45 kg)',
+    gigante: 'Gigante (más de 45 kg)',
+  }
+
   // --- Actividad física diaria promedio (SOLO PERROS) ---
   // Combina paseo + enriquecimiento de los últimos 30 días y lo expresa
   // como minutos/día, para que el veterinario sepa de un vistazo si es
@@ -471,6 +481,7 @@ export default async function VetPage({ searchParams }: Props) {
             {[
               ['Estado reproductivo', mascota.castrado ? 'Esterilizado/a' : 'Entero/a'],
               ['Peso actual', mascota.peso_actual ? `${mascota.peso_actual} kg` : '—'],
+              ['Tamaño', TAMANO_LABEL_VET[mascota.tamano_esperado as string] || '—'],
               ['Alimentación', mascota.alimentacion_tipo || '—'],
               ['Marca / proteína', mascota.alimentacion_marca || '—'],
               ['Microchip', mascota.microchip || '—'],

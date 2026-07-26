@@ -762,8 +762,49 @@ export default function AnalisisPage() {
       return { apertura, cierre, color: resumenInteligente.estadoColor, icono: estado }
     })()
 
-  // Día anterior a una fecha YYYY-MM-DD. Se construye a MEDIODÍA para
-  // que los cambios de horario de verano no desplacen el día.
+  // --- Actividad recomendada según tamaño y edad (SOLO PERROS) ---
+  // Compara el promedio diario REGISTRADO (paseo + enriquecimiento, 30
+  // días) contra un rango orientativo por etapa de vida y tamaño. Se
+  // usa en el resumen de Chiqui con tono cuidadoso: nunca afirma que el
+  // perro "está sedentario" (medimos lo registrado, no lo real, y la
+  // poca actividad puede ser síntoma de dolor, no pereza del tutor).
+  const actividadChiqui: { promedioDia: number; min: number; ideal: string; suficiente: boolean } | null = (() => {
+    if (!esPerro) return null
+    const MIN_PASEO: Record<string, number> = { '10_30min': 20, '30min_1h': 45, '1_2h': 90, '2_4h': 180 }
+    const minP = (r: any) => r.paseo === 'tiempo_exacto' && typeof r.paseo_minutos_exactos === 'number'
+      ? r.paseo_minutos_exactos : (MIN_PASEO[r.paseo] || 0)
+    const inicio30 = (() => { const d = new Date(); d.setDate(d.getDate() - 29); return fechaChile(d) })()
+    const totalP = paseoHistorial.filter(r => r.fecha >= inicio30).reduce((a, r) => a + minP(r), 0)
+    const totalE = enriqRegistros.filter(e => e.fecha >= inicio30).reduce((a, e) => a + (e.duracion_min || 0), 0)
+    const promedioDia = Math.round((totalP + totalE) / 30)
+    // Rango orientativo por edad y tamaño (minutos/día). Basado en
+    // guías generales de ejercicio canino; NO es un estándar clínico
+    // rígido — por eso el mensaje siempre deja espacio a la duda.
+    const edadM = mascotaNacimiento ? (() => {
+      const nac = new Date(mascotaNacimiento + 'T00:00:00')
+      return Math.floor((Date.now() - nac.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
+    })() : null
+    let min = 30
+    let ideal = '30 a 60 minutos'
+    if (edadM !== null && edadM < 12) {
+      // Cachorro: la "regla de 5 min/mes" es orientación popular, no
+      // ley. Se usa suave y sin límite superior tajante.
+      min = 15
+      ideal = 'sesiones cortas de juego varias veces al día'
+    } else if (edadM !== null && edadM >= 84) {
+      // Senior (7+ años): mantiene necesidad pero suave y adaptada.
+      min = 20
+      ideal = 'paseos suaves, 20 a 40 minutos'
+    } else {
+      // Adulto: según tamaño.
+      const t = mascota?.tamano_esperado
+      if (t === 'muy_pequeno' || t === 'pequeno') { min = 30; ideal = '30 a 45 minutos' }
+      else if (t === 'grande' || t === 'gigante') { min = 60; ideal = '1 a 2 horas' }
+      else { min = 30; ideal = '30 a 90 minutos' }
+    }
+    return { promedioDia, min, ideal, suficiente: promedioDia >= min }
+  })()
+
   function diaAnteriorStr(f: string): string {
     const d = new Date(f + 'T12:00:00')
     d.setDate(d.getDate() - 1)
@@ -870,6 +911,22 @@ export default function AnalisisPage() {
             <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2 font-semibold">{vozChiqui.apertura}</p>
             {/* Síntesis de datos observados (los hechos del mes) */}
             <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2">{resumenInteligente.sintesis}</p>
+            {/* Actividad acorde a tamaño y edad (solo perros con algo de
+                actividad registrada). Tono cuidadoso: habla de "lo
+                registrado", compara con un rango orientativo y, si es
+                baja, deja espacio a que sea salud o registro incompleto
+                — nunca acusa de sedentarismo. */}
+            {actividadChiqui && actividadChiqui.promedioDia > 0 && (
+              actividadChiqui.suficiente ? (
+                <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2">
+                  🐾 Según lo que registraste, {nombreM} se movió un promedio de <span className="font-semibold">{actividadChiqui.promedioDia} min al día</span> — acorde a lo esperable para su tamaño y edad ({actividadChiqui.ideal}). ¡Muy bien!
+                </p>
+              ) : (
+                <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2">
+                  🐾 Según lo que registraste, {nombreM} se movió un promedio de <span className="font-semibold">{actividadChiqui.promedioDia} min al día</span>. Para su tamaño y edad suele recomendarse algo más ({actividadChiqui.ideal}) — aunque si tiene alguna molestia o no registraste todas las salidas, esto puede variar. Ante la duda, tu veterinario es la mejor guía.
+                </p>
+              )
+            )}
             {/* Cierre con la conclusión y el tono adecuado al estado.
                 Va en una caja con el color del semáforo — así el estado
                 general se comunica sin una etiqueta fría aparte. */}
