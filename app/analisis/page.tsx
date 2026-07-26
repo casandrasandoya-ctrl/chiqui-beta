@@ -142,6 +142,7 @@ export default function AnalisisPage() {
   // una ventana deslizante.
   const [paseoHistorial, setPaseoHistorial] = useState<any[]>([])
   const [abiertaEnriq, setAbiertaEnriq] = useState(false)
+  const [abiertoAnillo, setAbiertoAnillo] = useState(false)
   const [abiertaSignos, setAbiertaSignos] = useState(false)
 
   // Misma función que en el dashboard: devuelve la fecha en zona horaria
@@ -564,6 +565,102 @@ export default function AnalisisPage() {
   const diasConDuracionMes = registrosMesActual.filter(r => minutosDePaseo(r) > 0).length
   const diasSinDuracionMes = diasConPaseoMes - diasConDuracionMes
   const promedioPorDiaConPaseo = diasConDuracionMes > 0 ? Math.round(minutosPaseoMes / diasConDuracionMes) : 0
+
+  // --- Constancia de cuidado del mes (el "anillo") ---
+  // NO mide la salud del animal (la app no puede conocerla). Mide
+  // cuánto has REGISTRADO y ATENDIDO este mes — un espejo honesto del
+  // seguimiento del tutor. Por eso "constancia de cuidado" y no
+  // "bienestar": un número de bienestar bajo asustaría sin razón.
+  //
+  // Pilares medibles; el % se normaliza sobre los que aplican (un gato
+  // no se penaliza por no pasear).
+  const pilaresConstancia: { label: string; emoji: string; puntos: number; maximo: number; detalle: string; ok: boolean }[] = []
+
+  // Pilar 1 — Registro diario: días registrados sobre días del mes.
+  {
+    const diasRegistradosMes = new Set(
+      registros.filter(r => r.fecha >= inicioMesActual && r.fecha <= hoyStrPaseo).map(r => r.fecha)
+    ).size
+    const prop = diaActualP > 0 ? Math.min(diasRegistradosMes / diaActualP, 1) : 0
+    pilaresConstancia.push({
+      label: 'Registro diario', emoji: '📝',
+      puntos: Math.round(prop * 40), maximo: 40,
+      detalle: `${diasRegistradosMes} de ${diaActualP} días registrados`,
+      ok: prop >= 0.6,
+    })
+  }
+
+  // Pilar 2 — Prevención registrada: ¿hay vacuna y antiparasitario en
+  // el historial? Señal honesta de control preventivo. No se afirma
+  // "al día" porque Análisis no calcula vencimientos (eso vive en
+  // Prevención); afirmarlo sería prometer precisión que aquí no hay.
+  {
+    const tieneVacunas = rutinas.some(r => r.columna === 'vacuna_hoy')
+    const tieneAntis = rutinas.some(r => r.columna === 'anti_hoy')
+    const ambos = tieneVacunas && tieneAntis
+    pilaresConstancia.push({
+      label: 'Prevención registrada', emoji: '🛡️',
+      puntos: ambos ? 25 : (tieneVacunas || tieneAntis ? 12 : 0), maximo: 25,
+      detalle: ambos ? 'Vacunas y antiparasitarios registrados' : (tieneVacunas || tieneAntis ? 'Falta registrar una prevención' : 'Sin prevención registrada'),
+      ok: ambos,
+    })
+  }
+
+  // Pilar 3 — Rutinas al día: cuántas de las detectadas no están
+  // atrasadas (proximaEstimadaDias >= 0).
+  {
+    const totalRut = rutinas.length
+    const alDiaRut = rutinas.filter(r => (r.proximaEstimadaDias ?? 0) >= 0).length
+    const prop = totalRut > 0 ? alDiaRut / totalRut : 1
+    pilaresConstancia.push({
+      label: 'Rutinas al día', emoji: '🔄',
+      puntos: Math.round(prop * 20), maximo: 20,
+      detalle: totalRut > 0 ? `${alDiaRut} de ${totalRut} rutinas al día` : 'Aún sin rutinas detectadas',
+      ok: prop >= 0.6,
+    })
+  }
+
+  // Pilar 4 — Actividad física (SOLO PERROS): días con paseo del mes.
+  if (esPerro) {
+    const prop = diaActualP > 0 ? Math.min(diasConPaseoMes / diaActualP, 1) : 0
+    pilaresConstancia.push({
+      label: 'Actividad física', emoji: '🚶',
+      puntos: Math.round(prop * 15), maximo: 15,
+      detalle: `${diasConPaseoMes} de ${diaActualP} días con paseo`,
+      ok: prop >= 0.5,
+    })
+  }
+
+  const maximoPosible = pilaresConstancia.reduce((a, p) => a + p.maximo, 0)
+  const puntosLogrados = pilaresConstancia.reduce((a, p) => a + p.puntos, 0)
+  const constanciaPct = maximoPosible > 0 ? Math.round((puntosLogrados / maximoPosible) * 100) : 0
+  const anilloColor = constanciaPct >= 80 ? '#4CAF7D' : constanciaPct >= 55 ? '#F5C842' : '#F07A30'
+  const anilloMensaje = constanciaPct >= 80
+    ? '¡Excelente constancia este mes!'
+    : constanciaPct >= 55
+      ? 'Buen seguimiento, con espacio para mejorar.'
+      : 'Hay varios cuidados por poner al día.'
+  const anilloCirc = 2 * Math.PI * 52
+  const anilloOffset = anilloCirc * (1 - constanciaPct / 100)
+
+  // --- Actividad de la semana: paseo + enriquecimiento por día ---
+  // Reemplaza el viejo gráfico de "solo paseos, 7 días" por una vista
+  // de TODA la estimulación: minutos de paseo y de enriquecimiento
+  // apilados. Muestra los últimos 7 días (hoy a la derecha).
+  const actividadSemana = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (6 - i))
+    const fechaStr = fechaChile(d)
+    const regPaseo = paseoHistorial.find(r => r.fecha === fechaStr)
+    const minPaseo = regPaseo ? minutosDePaseo(regPaseo) : 0
+    const minEnr = enriqRegistros
+      .filter(e => e.fecha === fechaStr)
+      .reduce((acc, e) => acc + (e.duracion_min || 0), 0)
+    return { fecha: d, minPaseo, minEnr, total: minPaseo + minEnr }
+  })
+  const maxActividadSemana = Math.max(...actividadSemana.map(a => a.total), 1)
+  const totalPaseoSemana = actividadSemana.reduce((a, d) => a + d.minPaseo, 0)
+  const totalEnrSemana = actividadSemana.reduce((a, d) => a + d.minEnr, 0)
   const promedioDiarioMes = diaActualP > 0 ? Math.round(minutosPaseoMes / diaActualP) : 0
   let diaMayorPaseo: { fecha: string; minutos: number } | null = null
   for (const r of registrosMesActual) {
@@ -704,6 +801,59 @@ export default function AnalisisPage() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+      {/* Anillo de constancia de cuidado del mes. Mide seguimiento del
+          tutor (registro, prevención, rutinas, actividad), NO la salud
+          del animal. Tocable para ver de qué se compone. */}
+      {pilaresConstancia.length > 0 && (
+        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setAbiertoAnillo(v => !v)}
+            className="w-full flex items-center gap-4 px-4 py-4 text-left"
+          >
+            {/* Anillo SVG */}
+            <div className="relative flex-shrink-0" style={{ width: '96px', height: '96px' }}>
+              <svg width="96" height="96" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="#EEE2D4" strokeWidth="12" />
+                <circle
+                  cx="60" cy="60" r="52" fill="none"
+                  stroke={anilloColor} strokeWidth="12" strokeLinecap="round"
+                  strokeDasharray={anilloCirc} strokeDashoffset={anilloOffset}
+                  transform="rotate(-90 60 60)"
+                  style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-extrabold text-[#3D2B1F] leading-none">{constanciaPct}%</span>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-[#3D2B1F]">Constancia de cuidado</p>
+              <p className="text-xs text-[#8A7560] mt-0.5 leading-snug">{anilloMensaje}</p>
+              <span className="inline-block mt-1.5 text-[11px] font-bold text-[#CD7421]">
+                {abiertoAnillo ? 'Ocultar detalle ▾' : 'Ver de qué se compone ›'}
+              </span>
+            </div>
+          </button>
+          {abiertoAnillo && (
+            <div className="px-4 pb-4 space-y-2">
+              <p className="text-[10px] text-[#8A7560] leading-relaxed">
+                Este número refleja tu <span className="font-semibold">seguimiento</span> del mes — cuánto has registrado y atendido — no un diagnóstico de salud.
+              </p>
+              {pilaresConstancia.map(pilar => (
+                <div key={pilar.label} className="flex items-center gap-2.5 rounded-xl px-3 py-2" style={{ background: '#FBEAD9' }}>
+                  <span className="text-base flex-shrink-0">{pilar.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-semibold text-[#3D2B1F]">{pilar.label}</p>
+                    <p className="text-[10px] text-[#8A7560]">{pilar.detalle}</p>
+                  </div>
+                  <span className="text-sm flex-shrink-0">{pilar.ok ? '✅' : '•'}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {/* Lo observado este mes (insights) */}
@@ -981,6 +1131,57 @@ export default function AnalisisPage() {
               </div>
               <p className="text-[9px] text-[#8A7560] mt-1.5">El mes en curso (destacado) todavía no termina.</p>
             </div>
+
+            {/* Actividad de la semana: paseo + enriquecimiento apilados.
+                Da una imagen de toda la estimulación, no solo caminatas.
+                Solo se muestra si hubo algo de actividad en la semana. */}
+            {(totalPaseoSemana > 0 || totalEnrSemana > 0) && (
+              <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-semibold text-[#8A7560]">Actividad de la semana</p>
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex items-center gap-1 text-[9px] text-[#8A7560]">
+                      <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#FFBD59' }} />Paseo
+                    </span>
+                    {esPerro && (
+                      <span className="flex items-center gap-1 text-[9px] text-[#8A7560]">
+                        <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#4AABDB' }} />Enriquecim.
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-end justify-between gap-1.5" style={{ height: '72px' }}>
+                  {actividadSemana.map((d, i) => {
+                    const diasSemana = ['D','L','M','M','J','V','S']
+                    const alturaPaseo = d.minPaseo > 0 ? Math.max(Math.round((d.minPaseo / maxActividadSemana) * 52), 3) : 0
+                    const alturaEnr = d.minEnr > 0 ? Math.max(Math.round((d.minEnr / maxActividadSemana) * 52), 3) : 0
+                    const esHoy = i === 6
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
+                        <div className="w-full flex flex-col justify-end items-center" style={{ minHeight: '3px' }}>
+                          {/* Enriquecimiento arriba (azul), paseo abajo
+                              (dorado): apilados forman el total del día. */}
+                          {alturaEnr > 0 && (
+                            <div className="w-full rounded-t" style={{ height: `${alturaEnr}px`, background: '#4AABDB' }} />
+                          )}
+                          {alturaPaseo > 0 && (
+                            <div className={`w-full ${alturaEnr > 0 ? '' : 'rounded-t'}`} style={{ height: `${alturaPaseo}px`, background: '#FFBD59' }} />
+                          )}
+                          {d.total === 0 && <div className="w-full rounded" style={{ height: '3px', background: 'rgba(140,87,47,0.08)' }} />}
+                        </div>
+                        <span className="text-[8px] leading-none" style={{ color: esHoy ? '#CD7421' : '#8A7560', fontWeight: esHoy ? 700 : 400 }}>
+                          {diasSemana[d.fecha.getDay()]}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#EEE2D4]">
+                  <p className="text-[10px] text-[#8A7560]">🚶 {fmtDuracion(totalPaseoSemana)} de paseo</p>
+                  {esPerro && totalEnrSemana > 0 && <p className="text-[10px] text-[#8A7560]">🧠 {fmtDuracion(totalEnrSemana)} de enriquecimiento</p>}
+                </div>
+              </div>
+            )}
 
             {/* Detalle del mes en curso. Nota de honestidad: el
                 registro diario guarda UN paseo por día, así que se
