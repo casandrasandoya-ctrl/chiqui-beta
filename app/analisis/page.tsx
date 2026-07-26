@@ -40,7 +40,7 @@ const SIGNOS_LABELS: Record<string, { emoji: string; label: string }> = {
 // "compras arena cada N días" funciona igual que "compras alimento cada
 // N días". En perros esas columnas nunca son true, así que simplemente
 // no aparecen (el filtro de ocurrencias === 0 las descarta solo).
-const CUIDADOS_RUTINA: { columna: string; label: string; emoji: string; grupo: string; frase: string }[] = [
+const CUIDADOS_RUTINA: { columna: string; label: string; emoji: string; grupo: string; frase: string; diario?: boolean }[] = [
   { columna: 'fue_al_vet', label: 'Visitas al veterinario', emoji: '🩺', grupo: 'Veterinario y salud', frase: 'Sueles llevar a {nombre} al veterinario {cada}' },
   { columna: 'control_peso', label: 'Controles de peso', emoji: '⚖️', grupo: 'Veterinario y salud', frase: 'Controlas su peso {cada}' },
   { columna: 'procedimiento_cirugia', label: 'Procedimientos o cirugías', emoji: '🏥', grupo: 'Veterinario y salud', frase: 'Se ha registrado un procedimiento o cirugía {cada} aprox.' },
@@ -49,7 +49,7 @@ const CUIDADOS_RUTINA: { columna: string; label: string; emoji: string; grupo: s
   { columna: 'vacuna_hoy', label: 'Vacunas', emoji: '💉', grupo: 'Prevención', frase: 'Las vacunas se han aplicado {cada} aprox.' },
   { columna: 'anti_hoy', label: 'Antiparasitarios', emoji: '🪱', grupo: 'Prevención', frase: 'Aplicas antiparasitario {cada} aprox.' },
   { columna: 'suplemento_hoy', label: 'Suplementos', emoji: '🌿', grupo: 'Prevención', frase: 'Le das suplemento {cada}' },
-  { columna: 'alimente_hoy', label: 'Alimentación', emoji: '🥘', grupo: 'Alimentación', frase: 'Registras su alimentación {cada}' },
+  { columna: 'alimente_hoy', label: 'Alimentación', emoji: '🥘', grupo: 'Alimentación', frase: 'Registras su alimentación {cada}', diario: true },
   { columna: 'compro_alimento', label: 'Compras de alimento', emoji: '🍖', grupo: 'Alimentación', frase: 'Habitualmente compras alimento {cada}' },
   { columna: 'cambio_alimento', label: 'Cambios de alimento', emoji: '🥣', grupo: 'Alimentación', frase: 'Cambias su alimento {cada} aprox.' },
   { columna: 'probo_alimento_nuevo', label: 'Alimentos nuevos probados', emoji: '🎁', grupo: 'Alimentación', frase: 'Le das a probar algo nuevo {cada} aprox.' },
@@ -80,6 +80,10 @@ interface RutinaCalculada {
   emoji: string
   grupo: string
   frase: string
+  // Cuidado diario (alimentación): no aplica lógica de "vence cada N
+  // días". Si se registró hoy, está al día; si no, es un recordatorio
+  // suave, nunca "pendiente/atrasado".
+  diario?: boolean
   ocurrencias: number
   promedioDias: number | null
   ultimaFecha: string
@@ -278,6 +282,7 @@ export default function AnalisisPage() {
           emoji: c.emoji,
           grupo: c.grupo,
           frase: c.frase,
+          diario: c.diario,
           ocurrencias,
           promedioDias,
           ultimaFecha,
@@ -1490,29 +1495,34 @@ export default function AnalisisPage() {
         // Una rutina "necesita atención" si está pendiente o vence hoy
         // (proximaEstimadaDias <= 0). El encabezado del grupo lo indica
         // para que lo urgente se vea aunque el grupo esté cerrado.
-        const necesitaAtencion = (r: RutinaCalculada) => (r.proximaEstimadaDias ?? 99999) <= 0
+        // Los cuidados diarios (alimentación) no cuentan como
+        // "pendientes": alimentar una o dos veces al día es normal y no
+        // es un atraso. Solo los cuidados periódicos pueden estar
+        // vencidos.
+        const necesitaAtencion = (r: RutinaCalculada) => !r.diario && (r.proximaEstimadaDias ?? 99999) <= 0
         const renderRutina = (r: RutinaCalculada) => (
           <div key={r.columna} className="px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-base flex-shrink-0">{r.emoji}</span>
               <p className="text-xs font-semibold text-[#3D2B1F] flex-1">{r.label}</p>
             </div>
-            {r.promedioDias !== null ? (
+            {r.diario ? (
+              /* Cuidado diario (alimentación): sin lógica de \"vence\".
+                 Muestra si está al día hoy y la frecuencia observada,
+                 pero nunca \"pendiente\" — comer una o dos veces al día
+                 es lo normal, no un atraso. */
               <>
                 <p className="text-xs text-[#3D2B1F] leading-relaxed">
-                  {r.frase.replace('{cada}', textoCada(r.promedioDias)).replace('{nombre}', mascota?.nombre || 'tu mascota')}
+                  {r.diasDesdeUltima === 0
+                    ? 'Registrada hoy ✓'
+                    : `Última vez: hace ${r.diasDesdeUltima} ${r.diasDesdeUltima === 1 ? 'día' : 'días'}`}
                 </p>
-                <p className="text-[11px] text-[#8A7560] mt-0.5">
-                  Última vez: hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'} · {r.ocurrencias} registros
-                </p>
-                {(() => {
-                  const ep = estadoProxima(r.proximaEstimadaDias)
-                  return (
-                    <p className="text-[11px] font-semibold mt-0.5" style={{ color: ep.color }}>
-                      {ep.icono} {ep.texto}
-                    </p>
-                  )
-                })()}
+                <p className="text-[11px] text-[#8A7560] mt-0.5">{r.ocurrencias} días registrados</p>
+                {r.diasDesdeUltima === 0 ? (
+                  <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#4CAF7D' }}>🟢 Al día</p>
+                ) : r.diasDesdeUltima >= 2 ? (
+                  <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#F5C842' }}>🟡 ¿Registraste su comida de hoy?</p>
+                ) : null}
                 {/* Distribución de franjas (solo alimentación): en qué
                     momento del día suele comer. Útil sobre todo para
                     coordinar cotutores. */}
@@ -1536,6 +1546,23 @@ export default function AnalisisPage() {
                     </div>
                   </div>
                 )}
+              </>
+            ) : r.promedioDias !== null ? (
+              <>
+                <p className="text-xs text-[#3D2B1F] leading-relaxed">
+                  {r.frase.replace('{cada}', textoCada(r.promedioDias)).replace('{nombre}', mascota?.nombre || 'tu mascota')}
+                </p>
+                <p className="text-[11px] text-[#8A7560] mt-0.5">
+                  Última vez: hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'} · {r.ocurrencias} registros
+                </p>
+                {(() => {
+                  const ep = estadoProxima(r.proximaEstimadaDias)
+                  return (
+                    <p className="text-[11px] font-semibold mt-0.5" style={{ color: ep.color }}>
+                      {ep.icono} {ep.texto}
+                    </p>
+                  )
+                })()}
               </>
             ) : (
               <p className="text-xs text-[#8A7560]">

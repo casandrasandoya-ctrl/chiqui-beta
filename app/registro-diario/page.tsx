@@ -577,6 +577,16 @@ function RegistroContenido() {
     })
     setSel(nuevoSel)
     setDet(nuevoDet)
+    // Restaurar la duración exacta del paseo si el registro la tenía.
+    // Sin esto, al editar quedaba en null y —como el guardado escribe
+    // paseo_minutos_exactos solo cuando hay valor— la hora se perdía
+    // en silencio si el tutor no la re-ingresaba. Ahora viene cargada
+    // y solo cambia si la tocan a propósito.
+    setPaseoMinutos(
+      r.paseo === 'tiempo_exacto' && typeof r.paseo_minutos_exactos === 'number'
+        ? r.paseo_minutos_exactos
+        : null
+    )
     setNota(r.nota || '')
     // Signos de alerta guardados como texto "a, b, c" en signos_alerta
     if (r.signos_alerta) {

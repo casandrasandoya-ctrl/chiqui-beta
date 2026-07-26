@@ -326,6 +326,18 @@ export default async function VetPage({ searchParams }: Props) {
     .eq('mascota_id', datos.mascota.id)
     .order('fecha', { ascending: true })
 
+  // Enriquecimiento de los últimos 30 días — para el item de actividad
+  // (solo perros). El paseo ya viene en los registros; esto suma la
+  // estimulación mental/física estructurada.
+  const hace30Vet = new Date()
+  hace30Vet.setDate(hace30Vet.getDate() - 30)
+  const inicio30Vet = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(hace30Vet)
+  const { data: enriqVet } = await supabase
+    .from('enriquecimientos')
+    .select('fecha, duracion_min')
+    .eq('mascota_id', datos.mascota.id)
+    .gte('fecha', inicio30Vet)
+
   // Cargar evoluciones de cada observación
   const obsData = datos.observaciones || []
   const obsConEvoluciones = await Promise.all(
@@ -340,6 +352,36 @@ export default async function VetPage({ searchParams }: Props) {
   )
 
   const registros = datos.registros || []
+
+  // --- Actividad física diaria promedio (SOLO PERROS) ---
+  // Combina paseo + enriquecimiento de los últimos 30 días y lo expresa
+  // como minutos/día, para que el veterinario sepa de un vistazo si es
+  // un perro activo, moderado o sedentario. Es un promedio sobre los 30
+  // días del período (no solo los días con actividad), que es lo que
+  // refleja el nivel real de ejercicio.
+  const MIN_PASEO_VET: Record<string, number> = {
+    '10_30min': 20, '30min_1h': 45, '1_2h': 90, '2_4h': 180,
+  }
+  function minPaseoVet(r: any): number {
+    if (r.paseo === 'tiempo_exacto' && typeof r.paseo_minutos_exactos === 'number') return r.paseo_minutos_exactos
+    return MIN_PASEO_VET[r.paseo] || 0
+  }
+  const esPerroVet = mascota?.especie === 'Perro'
+  let actividadPromedioDia: number | null = null
+  let nivelActividad: { label: string; color: string } | null = null
+  if (esPerroVet) {
+    const inicio = inicio30Vet
+    const totalPaseo = registros
+      .filter((r: any) => r.fecha >= inicio)
+      .reduce((acc: number, r: any) => acc + minPaseoVet(r), 0)
+    const totalEnr = (enriqVet || []).reduce((acc: number, e: any) => acc + (e.duracion_min || 0), 0)
+    actividadPromedioDia = Math.round((totalPaseo + totalEnr) / 30)
+    // Rangos orientativos de actividad diaria para un perro adulto.
+    // No son un estándar clínico rígido; ayudan a leer el número.
+    if (actividadPromedioDia >= 60) nivelActividad = { label: 'Activo', color: '#4CAF7D' }
+    else if (actividadPromedioDia >= 30) nivelActividad = { label: 'Moderado', color: '#F5C842' }
+    else nivelActividad = { label: 'Bajo', color: '#F07A30' }
+  }
   // Dieta especial más reciente registrada (indicación veterinaria).
   // Se muestra al vet como contexto: si el tutor viene registrando
   // dieta gastrointestinal, es dato clínico relevante.
@@ -478,6 +520,28 @@ export default async function VetPage({ searchParams }: Props) {
             </div>
           )}
         </div>
+
+        {/* Actividad física (solo perros): promedio diario de paseo +
+            enriquecimiento en 30 días. Le dice al vet si es un perro
+            activo o sedentario, contexto útil para peso, conducta y
+            recomendaciones. */}
+        {esPerroVet && actividadPromedioDia !== null && nivelActividad && (
+          <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4]">
+            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-2">🐾 Actividad física</h2>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-extrabold text-[#3D2B1F]">
+                {actividadPromedioDia >= 60
+                  ? `${Math.floor(actividadPromedioDia / 60)}h ${actividadPromedioDia % 60}m`
+                  : `${actividadPromedioDia} min`}
+              </span>
+              <span className="text-xs text-[#8A7560]">promedio al día</span>
+              <span className="ml-auto text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: `${nivelActividad.color}22`, color: nivelActividad.color }}>
+                {nivelActividad.label}
+              </span>
+            </div>
+            <p className="text-[10px] text-[#8A7560] mt-1.5">Paseo y enriquecimiento combinados, últimos 30 días.</p>
+          </div>
+        )}
 
         {/* Dieta especial activa -- indicación veterinaria que el
             tutor viene registrando. Dato clínico, por eso va junto al
