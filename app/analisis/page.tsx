@@ -27,7 +27,7 @@ const SIGNOS_LABELS: Record<string, { emoji: string; label: string }> = {
   otro_signo: { emoji: '❓', label: 'Otro evento grave' },
 }
 
-// Definición de los 22 cuidados que se pueden calcular como "rutina"
+// Definición de los 23 cuidados que se pueden calcular como "rutina"
 // (cada cuánto ocurren). Mismo set, mismos grupos, mismo orden y mismos
 // emojis que en registro-diario y dashboard.
 // Cada rutina tiene una "frase" conversacional para que Chiqui le hable
@@ -48,6 +48,7 @@ const CUIDADOS_RUTINA: { columna: string; label: string; emoji: string; grupo: s
   { columna: 'medicamento_hoy', label: 'Medicamentos', emoji: '💊', grupo: 'Prevención', frase: 'Registras medicamentos {cada} aprox.' },
   { columna: 'vacuna_hoy', label: 'Vacunas', emoji: '💉', grupo: 'Prevención', frase: 'Las vacunas se han aplicado {cada} aprox.' },
   { columna: 'anti_hoy', label: 'Antiparasitarios', emoji: '🪱', grupo: 'Prevención', frase: 'Aplicas antiparasitario {cada} aprox.' },
+  { columna: 'suplemento_hoy', label: 'Suplementos', emoji: '🌿', grupo: 'Prevención', frase: 'Le das suplemento {cada}' },
   { columna: 'alimente_hoy', label: 'Alimentación', emoji: '🥘', grupo: 'Alimentación', frase: 'Registras su alimentación {cada}' },
   { columna: 'compro_alimento', label: 'Compras de alimento', emoji: '🍖', grupo: 'Alimentación', frase: 'Habitualmente compras alimento {cada}' },
   { columna: 'cambio_alimento', label: 'Cambios de alimento', emoji: '🥣', grupo: 'Alimentación', frase: 'Cambias su alimento {cada} aprox.' },
