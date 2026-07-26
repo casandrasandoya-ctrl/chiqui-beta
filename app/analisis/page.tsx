@@ -1113,27 +1113,6 @@ export default function AnalisisPage() {
         </div>
       </>}
       {total > 0 && <>
-        <div className="px-5 mb-2">
-          <div className="flex items-center gap-2">
-            <img src="/chiqui/chiqui_analisis.png" alt="" className="w-8 h-8 object-contain" />
-            <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Resumen del período</h2>
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-2 mx-4 mb-4">
-          {[
-            { label: 'Total', val: total, color: '#3DD6B5' },
-            { label: 'Verdes', val: verdes, color: '#4CAF7D' },
-            { label: 'Leve', val: amarillos, color: '#F5C842' },
-            { label: 'Síntoma', val: naranjos + rojos, color: '#F07A30' },
-          ].map(s => (
-            <div key={s.label} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
-              <div className="font-bold text-lg" style={{ color: s.color }}>{s.val}</div>
-              <div className="text-[9px] text-[#8A7560] uppercase tracking-wider mt-0.5">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </>}
-      {total > 0 && <>
         {/* Paseo (solo perros) */}
         {esPerro && (
           <>
