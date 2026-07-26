@@ -714,6 +714,49 @@ export default function AnalisisPage() {
   const minutosMesAnterior = mesesComparacion[4]?.minutos || 0
   const difMesAnterior = minutosMesAnterior > 0 ? minutosPaseoMes - minutosMesAnterior : null
 
+  // --- Voz de Chiqui: "Lo que Chiqui aprendió este mes" ---
+  // Chiqui es el personaje que aprendió a observar. Aquí HABLA en
+  // primera persona sobre lo que notó, adaptando el TONO al mes: cálido
+  // y entusiasta cuando todo va bien, sereno y atento cuando hay
+  // señales. NUNCA minimiza algo serio con ternura ni regaña cuando
+  // baja la actividad. No es un cálculo nuevo: reusa el estado y la
+  // síntesis del resumenInteligente y algunas señales de actividad.
+  const vozChiqui: { apertura: string; cierre: string; color: string; icono: string } | null =
+    !resumenInteligente ? null : (() => {
+      const estado = resumenInteligente.estadoIcon // 🟢🟡🟠🔴
+      const grave = estado === '🔴' || estado === '🟠'
+      // Apertura en primera persona según el tono del mes.
+      let apertura = ''
+      if (grave) {
+        apertura = `Estuve observando de cerca a ${nombreM} este mes.`
+      } else if (estado === '🟡') {
+        apertura = `Estuve atento a ${nombreM} este mes y quiero contarte lo que noté.`
+      } else {
+        apertura = `¡Estuve cuidando a ${nombreM} contigo este mes!`
+      }
+      // Cierre: una conclusión con la actitud correcta para el estado.
+      // En meses buenos, si además bajó la actividad, un empujón amable;
+      // si todo se mantuvo, reconocimiento sereno.
+      let cierre = ''
+      if (estado === '🔴') {
+        cierre = `Vi varias señales que me gustaría que un veterinario revise pronto. Yo observo, pero ellos son quienes pueden ayudar de verdad. 🐾`
+      } else if (estado === '🟠') {
+        cierre = `Noté algunas cosas que vale la pena seguir de cerca. Si se repiten, coméntalas en el próximo control. Yo sigo atento contigo. 🐾`
+      } else if (estado === '🟡') {
+        cierre = `Nada que me preocupe demasiado, pero conviene observar un poco más estos días. Entre los dos lo cuidamos mejor. 🐾`
+      } else {
+        // Estado estable: modular según actividad si hay datos de paseo.
+        if (difMesAnterior !== null && difMesAnterior <= -60) {
+          cierre = `Todo se mantuvo tranquilo, aunque este mes salimos a caminar bastante menos que el anterior. ¿Recuperamos esas salidas? A ${nombreM} le encantan. 🐾`
+        } else if (difMesAnterior !== null && difMesAnterior >= 60) {
+          cierre = `¡Y además nos movimos más que el mes pasado! Se nota que ${nombreM} lo disfruta. Sigamos así. 🐾`
+        } else {
+          cierre = `${nombreM} se mantuvo estable y con buenas rutinas. Me gusta ver que lo cuidas con constancia. Sigamos observando juntos. 🐾`
+        }
+      }
+      return { apertura, cierre, color: resumenInteligente.estadoColor, icono: estado }
+    })()
+
   // Día anterior a una fecha YYYY-MM-DD. Se construye a MEDIODÍA para
   // que los cambios de horario de verano no desplacen el día.
   function diaAnteriorStr(f: string): string {
@@ -804,31 +847,33 @@ export default function AnalisisPage() {
       </div>
       {/* Selector de mascota */}
       {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
-      {/* Resumen inteligente del período — plantillas inteligentes */}
-      {resumenInteligente && (
+      {/* "Lo que Chiqui aprendió este mes" — el resumen del período
+          contado con la voz del personaje. Chiqui abre en primera
+          persona, comparte la síntesis de datos y cierra con una
+          conclusión cuyo tono se adapta al estado del mes. */}
+      {resumenInteligente && vozChiqui && (
         <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#EEE2D4]" style={{ background: 'linear-gradient(135deg, #FFBD5918, #FFFCF8)' }}>
-            <img src="/chiqui/chiqui_ia.png" alt="Chiqui IA" className="w-9 h-9 object-contain flex-shrink-0" />
+            <img src="/chiqui/chiqui_ia.png" alt="Chiqui" className="w-9 h-9 object-contain flex-shrink-0" />
             <div>
-              <p className="text-sm font-bold text-[#3D2B1F]">{resumenInteligente.titulo}</p>
-              <p className="text-xs text-[#8A7560]">Lo esencial de los últimos {periodo} días</p>
+              <p className="text-sm font-bold text-[#3D2B1F]">🧠 Lo que Chiqui aprendió este mes</p>
+              <p className="text-xs text-[#8A7560]">Sobre los últimos {periodo} días</p>
             </div>
           </div>
           <div className="px-4 py-3">
-            <p className="text-xs text-[#3D2B1F] leading-relaxed mb-3">{resumenInteligente.sintesis}</p>
-            {/* Conclusión de una sola línea con semáforo: no reemplaza
-                el juicio veterinario, ayuda al tutor a entender rápido
-                el panorama. Las recomendaciones específicas viven en
-                las tarjetas de abajo. */}
+            {/* Apertura en primera persona (voz de Chiqui) */}
+            <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2 font-semibold">{vozChiqui.apertura}</p>
+            {/* Síntesis de datos observados (los hechos del mes) */}
+            <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2">{resumenInteligente.sintesis}</p>
+            {/* Cierre con la conclusión y el tono adecuado al estado.
+                Va en una caja con el color del semáforo — así el estado
+                general se comunica sin una etiqueta fría aparte. */}
             <div
-              className="flex items-center gap-2 rounded-xl px-3 py-2"
-              style={{ background: `${resumenInteligente.estadoColor}14`, border: `1px solid ${resumenInteligente.estadoColor}33` }}
+              className="flex items-start gap-2 rounded-xl px-3 py-2.5"
+              style={{ background: `${vozChiqui.color}14`, border: `1px solid ${vozChiqui.color}33` }}
             >
-              <span className="text-base">{resumenInteligente.estadoIcon}</span>
-              <p className="text-xs">
-                <span className="font-semibold text-[#8A7560]">Estado general: </span>
-                <span className="font-bold" style={{ color: resumenInteligente.estadoColor }}>{resumenInteligente.estadoLabel}</span>
-              </p>
+              <span className="text-base flex-shrink-0">{vozChiqui.icono}</span>
+              <p className="text-xs text-[#3D2B1F] leading-relaxed">{vozChiqui.cierre}</p>
             </div>
           </div>
         </div>
