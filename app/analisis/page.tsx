@@ -137,7 +137,8 @@ export default function AnalisisPage() {
   const [tempReciente, setTempReciente] = useState<any>(null)
   const [celoInfo, setCeloInfo] = useState<any>(null)
   const [rutinas, setRutinas] = useState<RutinaCalculada[]>([])
-  const [abiertaRutinas, setAbiertaRutinas] = useState(false)
+  // Grupos de rutinas abiertos (Veterinario, Alimentación, etc.).
+  const [gruposRutinaAbiertos, setGruposRutinaAbiertos] = useState<Set<string>>(new Set())
   const [signosHistorial, setSignosHistorial] = useState<SignoEvento[]>([])
   const [enriqRegistros, setEnriqRegistros] = useState<any[]>([])
   // Historial de paseos de los últimos 6 meses CALENDARIO. Se carga
@@ -1455,9 +1456,17 @@ export default function AnalisisPage() {
           const pb = b.proximaEstimadaDias ?? 99999
           return pa - pb
         })
-        const top = rutinasOrdenadas.slice(0, 3)
-        const resto = rutinasOrdenadas.slice(3)
-        const visibles = abiertaRutinas ? rutinasOrdenadas : top
+        // Agrupar por categoría, en el MISMO orden que el registro
+        // diario, para que la app se lea igual en todas partes. Dentro
+        // de cada grupo se conserva el orden por urgencia.
+        const ORDEN_GRUPOS = ['Veterinario y salud', 'Prevención', 'Alimentación', 'Higiene y bienestar', 'Arenero']
+        const porGrupo = ORDEN_GRUPOS
+          .map(g => ({ grupo: g, items: rutinasOrdenadas.filter(r => r.grupo === g) }))
+          .filter(g => g.items.length > 0)
+        // Una rutina "necesita atención" si está pendiente o vence hoy
+        // (proximaEstimadaDias <= 0). El encabezado del grupo lo indica
+        // para que lo urgente se vea aunque el grupo esté cerrado.
+        const necesitaAtencion = (r: RutinaCalculada) => (r.proximaEstimadaDias ?? 99999) <= 0
         const renderRutina = (r: RutinaCalculada) => (
           <div key={r.columna} className="px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
@@ -1511,26 +1520,59 @@ export default function AnalisisPage() {
             )}
           </div>
         )
+        // Nombre corto y emoji para el encabezado de cada grupo.
+        const GRUPO_INFO: Record<string, { emoji: string; label: string }> = {
+          'Veterinario y salud': { emoji: '🩺', label: 'Veterinario y salud' },
+          'Prevención': { emoji: '🛡️', label: 'Prevención' },
+          'Alimentación': { emoji: '🍽️', label: 'Alimentación' },
+          'Higiene y bienestar': { emoji: '🧼', label: 'Higiene y bienestar' },
+          'Arenero': { emoji: '🐱', label: 'Arenero' },
+        }
         return (
           <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
             <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-[#EEE2D4]">
               <img src="/chiqui/chiqui_cuidados.png" alt="" className="w-9 h-9 object-contain flex-shrink-0" />
               <div>
                 <p className="font-bold text-sm text-[#3D2B1F]">Rutinas de cuidado</p>
-                <p className="text-[10px] text-[#8A7560]">Las más relevantes según todo el historial</p>
+                <p className="text-[10px] text-[#8A7560]">Agrupadas por tipo · todo el historial</p>
               </div>
             </div>
-            <div className="divide-y divide-[#EEE2D4]">
-              {visibles.map(renderRutina)}
-            </div>
-            {resto.length > 0 && (
-              <button onClick={() => setAbiertaRutinas(v => !v)} className="w-full px-4 py-2.5 text-xs font-bold text-[#CD7421] border-t border-[#EEE2D4]">
-                {abiertaRutinas ? 'Ver menos' : `Ver todas las rutinas (${rutinas.length})`}
-              </button>
-            )}
-            {abiertaRutinas && (
-              <p className="text-[10px] text-[#8A7560] px-4 py-2.5 italic border-t border-[#EEE2D4]">Calculado sobre todo el historial registrado de {mascota?.nombre}, no solo los últimos 30 días.</p>
-            )}
+            {porGrupo.map(({ grupo, items }, gi) => {
+              const abierto = gruposRutinaAbiertos.has(grupo)
+              const info = GRUPO_INFO[grupo] || { emoji: '📋', label: grupo }
+              const cuantasAtencion = items.filter(necesitaAtencion).length
+              return (
+                <div key={grupo} className={gi > 0 ? 'border-t border-[#EEE2D4]' : ''}>
+                  <button
+                    onClick={() => setGruposRutinaAbiertos(prev => {
+                      const next = new Set(prev)
+                      if (next.has(grupo)) next.delete(grupo); else next.add(grupo)
+                      return next
+                    })}
+                    className="w-full flex items-center gap-2 px-4 py-3 text-left"
+                  >
+                    <span className="text-base flex-shrink-0">{info.emoji}</span>
+                    <p className="flex-1 text-xs font-bold text-[#3D2B1F]">{info.label}</p>
+                    {/* Contador de rutinas que necesitan atención — se
+                        ve aunque el grupo esté cerrado, así lo urgente
+                        no queda escondido. */}
+                    {cuantasAtencion > 0 && (
+                      <span className="text-[10px] font-bold text-white rounded-full px-2 py-0.5" style={{ background: '#F07A30' }}>
+                        {cuantasAtencion} pendiente{cuantasAtencion === 1 ? '' : 's'}
+                      </span>
+                    )}
+                    <span className="text-[10px] text-[#8A7560]">{items.length}</span>
+                    <span className="text-[#8A7560] text-sm">{abierto ? '▾' : '›'}</span>
+                  </button>
+                  {abierto && (
+                    <div className="divide-y divide-[#EEE2D4] border-t border-[#EEE2D4]">
+                      {items.map(renderRutina)}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            <p className="text-[10px] text-[#8A7560] px-4 py-2.5 italic border-t border-[#EEE2D4]">Calculado sobre todo el historial registrado de {mascota?.nombre}, no solo los últimos 30 días.</p>
           </div>
         )
       })()}
