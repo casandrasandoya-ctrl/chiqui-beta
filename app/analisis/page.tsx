@@ -85,6 +85,9 @@ interface RutinaCalculada {
   ultimaFecha: string
   diasDesdeUltima: number
   proximaEstimadaDias: number | null
+  // Solo para la rutina de alimentación: distribución de franjas
+  // (mañana/tarde/noche) sobre los días alimentados, en %.
+  franjas?: { mañana: number; tarde: number; noche: number; total: number } | null
 }
 
 interface SignoEvento {
@@ -220,7 +223,7 @@ export default function AnalisisPage() {
   }
 
   async function cargarRutinas(mascotaId: string) {
-    const columnas = ['fecha', ...CUIDADOS_RUTINA.map(c => c.columna)].join(', ')
+    const columnas = ['fecha', 'alimento_franjas', ...CUIDADOS_RUTINA.map(c => c.columna)].join(', ')
     const [{ data }, { data: vacunasData }, { data: antisData }, { data: medsData }] = await Promise.all([
       supabase.from('registros_diarios').select(columnas).eq('mascota_id', mascotaId).order('fecha', { ascending: true }),
       supabase.from('vacunas').select('fecha_aplicacion').eq('mascota_id', mascotaId),
@@ -244,6 +247,30 @@ export default function AnalisisPage() {
         const hoy = new Date()
         const ultima = new Date(ultimaFecha + 'T00:00:00')
         const diasDesdeUltima = Math.round((hoy.getTime() - ultima.getTime()) / 86400000)
+        // Distribución de franjas, solo para Alimentación: cuántos
+        // de los días alimentados fueron en la mañana, tarde y noche.
+        // Un día puede tener varias franjas, así que los % pueden
+        // sumar más de 100 (son proporciones independientes).
+        let franjas: RutinaCalculada['franjas'] = null
+        if (c.columna === 'alimente_hoy') {
+          const diasAlimentado = historial.filter(r => r.alimente_hoy)
+          const total = diasAlimentado.length
+          if (total > 0) {
+            let man = 0, tar = 0, noc = 0
+            for (const r of diasAlimentado) {
+              const f = String(r.alimento_franjas || '')
+              if (f.includes('mañana')) man++
+              if (f.includes('tarde')) tar++
+              if (f.includes('noche')) noc++
+            }
+            franjas = {
+              mañana: Math.round((man / total) * 100),
+              tarde: Math.round((tar / total) * 100),
+              noche: Math.round((noc / total) * 100),
+              total,
+            }
+          }
+        }
         return {
           columna: c.columna,
           label: c.label,
@@ -255,6 +282,7 @@ export default function AnalisisPage() {
           ultimaFecha,
           diasDesdeUltima,
           proximaEstimadaDias,
+          franjas,
         }
       })
       .filter(Boolean) as RutinaCalculada[]
@@ -1452,6 +1480,29 @@ export default function AnalisisPage() {
                     </p>
                   )
                 })()}
+                {/* Distribución de franjas (solo alimentación): en qué
+                    momento del día suele comer. Útil sobre todo para
+                    coordinar cotutores. */}
+                {r.franjas && (r.franjas.mañana > 0 || r.franjas.tarde > 0 || r.franjas.noche > 0) && (
+                  <div className="mt-2 pt-2 border-t border-[#EEE2D4]">
+                    <p className="text-[10px] text-[#8A7560] mb-1.5">¿En qué momento suele comer?</p>
+                    <div className="space-y-1">
+                      {([
+                        { k: 'mañana', emoji: '☀️', label: 'Mañana', pct: r.franjas.mañana },
+                        { k: 'tarde', emoji: '🌤️', label: 'Tarde', pct: r.franjas.tarde },
+                        { k: 'noche', emoji: '🌙', label: 'Noche', pct: r.franjas.noche },
+                      ] as const).map(fr => (
+                        <div key={fr.k} className="flex items-center gap-2">
+                          <span className="text-[11px] w-16 flex-shrink-0">{fr.emoji} {fr.label}</span>
+                          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#EEE2D4' }}>
+                            <div className="h-full rounded-full" style={{ width: `${fr.pct}%`, background: '#FFBD59' }} />
+                          </div>
+                          <span className="text-[10px] text-[#8A7560] w-8 text-right flex-shrink-0">{fr.pct}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <p className="text-xs text-[#8A7560]">
