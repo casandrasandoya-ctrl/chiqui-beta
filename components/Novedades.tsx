@@ -327,6 +327,26 @@ function calcularNovedades(
     })
   }
 
+  // ---- 7b. RECORDATORIO DE EDICIÓN (descubribilidad) ----
+  // Muchos usuarios no saben que el registro del día se puede EDITAR:
+  // registran en la mañana y, si algo cambia en la tarde (un paseo, un
+  // vómito, dieta blanda), no vuelven porque creen que ya "cerraron" el
+  // día. Esta novedad se los recuerda. Solo aparece si ya registró hoy
+  // (si no, la prioridad es que registre) y de forma esporádica —un día
+  // de cada tres, por el número de día— para que sea útil y no ruido.
+  if (tieneRegistroHoy) {
+    const diaDelMes = parseInt(hoyStr.split('-')[2], 10)
+    if (diaDelMes % 3 === 0) {
+      lista.push({
+        key: `editar_${m.id}_${hoyStr}`,
+        img: '/chiqui/chiqui_idea.png',
+        mensaje: `¿Pasó algo más con ${m.nombre} hoy? Puedes editar el registro del día en el Calendario cuando quieras — un paseo por la tarde, un cambio en su comida, lo que sea.`,
+        accion: 'Ir al calendario',
+        href: '/calendario',
+      })
+    }
+  }
+
   // ---- 8. RECORDATORIO INTELIGENTE (solo el más atrasado) ----
   // Aparece únicamente cuando aporta valor real: el campo se registró
   // alguna vez y lleva demasiados días sin dato nuevo. Se muestra UNO
