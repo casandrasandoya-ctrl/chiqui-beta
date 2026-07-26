@@ -780,8 +780,8 @@ export default function AnalisisPage() {
     // Rango orientativo por edad y tamaño (minutos/día). Basado en
     // guías generales de ejercicio canino; NO es un estándar clínico
     // rígido — por eso el mensaje siempre deja espacio a la duda.
-    const edadM = mascotaNacimiento ? (() => {
-      const nac = new Date(mascotaNacimiento + 'T00:00:00')
+    const edadM = mascota?.fecha_nacimiento ? (() => {
+      const nac = new Date(mascota.fecha_nacimiento + 'T00:00:00')
       return Math.floor((Date.now() - nac.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
     })() : null
     let min = 30
