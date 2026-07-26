@@ -36,6 +36,7 @@ const CUIDADOS_DIA: { col: string; emoji: string; label: string }[] = [
   { col: 'alimente_hoy', emoji: '🥘', label: 'Lo alimentó' },
   { col: 'compro_alimento', emoji: '🍖', label: 'Compró alimento' },
   { col: 'cambio_alimento', emoji: '🥣', label: 'Cambio de alimento' },
+  { col: 'alimentacion_especial', emoji: '🍚', label: 'Alimentación especial' },
   { col: 'probo_alimento_nuevo', emoji: '🎁', label: 'Probó alimento nuevo' },
   { col: 'cargo_dispensador', emoji: '🤖', label: 'Cargó el dispensador' },
   { col: 'se_bano', emoji: '🛁', label: 'Baño' },
@@ -51,10 +52,18 @@ const CUIDADOS_DIA: { col: string; emoji: string; label: string }[] = [
 ]
 
 // Detalle textual de un cuidado según las columnas de tipo.
+const DIETA_ESPECIAL_LABEL: Record<string, string> = {
+  dieta_blanda: 'dieta blanda',
+  gastrointestinal: 'gastrointestinal',
+  recuperacion: 'de recuperación',
+  otro: 'especial',
+}
 function detalleCuidado(col: string, reg: any): string {
   if (col === 'se_bano' && reg.bano_tipo === 'dermatologico') return ' (dermatológico)'
   if (col === 'limpieza_dental' && reg.dental_tipo === 'destartraje') return ' (destartraje)'
   if (col === 'limpieza_dental' && reg.dental_tipo === 'cepillado') return ' (cepillado)'
+  if (col === 'alimente_hoy' && reg.alimento_franjas) return ` (${reg.alimento_franjas})`
+  if (col === 'alimentacion_especial' && reg.alimentacion_especial) return ` (${DIETA_ESPECIAL_LABEL[reg.alimentacion_especial] || 'especial'})`
   return ''
 }
 

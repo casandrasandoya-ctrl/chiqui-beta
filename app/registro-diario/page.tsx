@@ -273,6 +273,7 @@ function getGruposCuidados(especie: string): GrupoCuidados[] {
       // solo botón; el mini-modal pregunta si fue definitivo o prueba
       // y guarda en la columna que corresponda (las dos existen).
       { value: 'cambio_alimento', emoji: '🥣', label: 'Cambio o prueba de alimento' },
+      { value: 'alimentacion_especial', emoji: '🍚', label: 'Alimentación especial' },
       { value: 'cargo_dispensador', emoji: '🤖', label: 'Cargué el dispensador de comida/agua' },
     ]},
     { titulo: 'Higiene y bienestar', img: '/chiqui/chiqui_grooming.png', items: [
@@ -489,6 +490,14 @@ function RegistroContenido() {
   // probo_alimento_nuevo (columnas existentes, historial intacto).
   const [modalAlimento, setModalAlimento] = useState(false)
   const [alimentoEsPrueba, setAlimentoEsPrueba] = useState(false)
+  // Franjas en que se alimentó (mañana/tarde/noche). Multi-selección:
+  // un cotutor marca una y otro otra. Se abre al tocar "Alimenté".
+  const [modalFranjas, setModalFranjas] = useState(false)
+  const [franjasAlimento, setFranjasAlimento] = useState<Set<string>>(new Set())
+  // Dieta especial del día (indicación veterinaria). Se abre al tocar
+  // "Alimentación especial".
+  const [modalEspecial, setModalEspecial] = useState(false)
+  const [tipoEspecial, setTipoEspecial] = useState<string>('dieta_blanda')
   // Baño: tipo + ¿lo cepillaste? (el cepillado ya no tiene botón
   // propio; se registra en la columna peino de siempre).
   const [modalBano, setModalBano] = useState(false)
@@ -587,6 +596,7 @@ function RegistroContenido() {
       tratamiento_dermatologico: 'tratamiento_dermatologico',
       cargo_dispensador: 'cargo_dispensador',
       alimente_hoy: 'alimente_hoy',
+      alimentacion_especial: 'alimentacion_especial',
       control_peso: 'control_peso', procedimiento_cirugia: 'procedimiento_cirugia',
       seguimiento_lesion: 'seguimiento_lesion',
       limpie_arenero: 'limpie_arenero', cambie_arena: 'cambie_arena', compre_arena: 'compre_arena',
@@ -613,6 +623,13 @@ function RegistroContenido() {
       setBanoTipo('regular'); setBanoCepillo(false)
     }
     setDentalTipo((r.dental_tipo as any) || 'cepillado')
+    // Franjas de alimentación guardadas como "mañana, noche".
+    if (r.alimento_franjas) {
+      setFranjasAlimento(new Set(String(r.alimento_franjas).split(', ').filter(Boolean)))
+    } else {
+      setFranjasAlimento(new Set())
+    }
+    setTipoEspecial((r.alimentacion_especial as string) || 'dieta_blanda')
     setCuidados(cuidadosExistentes)
   }
 
@@ -803,6 +820,7 @@ function RegistroContenido() {
       setYaRegistro(false)
     }
     setEnriqDatos({})
+    setFranjasAlimento(new Set())
     await cargarEnriquecimientos(nueva.id, hoy)
     setCargando(false)
   }
@@ -852,6 +870,12 @@ function RegistroContenido() {
     // baño con tipo, dental con tipo y actividades de enriquecimiento.
     if (valor === 'cambio_alimento' && !cuidados.has(valor)) {
       setAlimentoEsPrueba(false); setModalAlimento(true); return
+    }
+    if (valor === 'alimente_hoy' && !cuidados.has(valor)) {
+      setModalFranjas(true); return
+    }
+    if (valor === 'alimentacion_especial' && !cuidados.has(valor)) {
+      setModalEspecial(true); return
     }
     if (valor === 'bano' && !cuidados.has(valor)) {
       setBanoTipo('regular'); setBanoCepillo(false); setModalBano(true); return
@@ -1070,6 +1094,10 @@ function RegistroContenido() {
       probo_alimento_nuevo: cuidados.has('cambio_alimento') && alimentoEsPrueba,
       cargo_dispensador: cuidados.has('cargo_dispensador'),
       alimente_hoy: cuidados.has('alimente_hoy'),
+      // Franjas solo si se marcó que lo alimentó; texto coma-separado.
+      alimento_franjas: cuidados.has('alimente_hoy') && franjasAlimento.size > 0
+        ? Array.from(franjasAlimento).join(', ') : null,
+      alimentacion_especial: cuidados.has('alimentacion_especial') ? tipoEspecial : null,
       control_peso: cuidados.has('control_peso'), procedimiento_cirugia: cuidados.has('procedimiento_cirugia'),
       seguimiento_lesion: cuidados.has('seguimiento_lesion'),
       limpie_arenero: cuidados.has('limpie_arenero'), cambie_arena: cuidados.has('cambie_arena'), compre_arena: cuidados.has('compre_arena'),
@@ -1601,6 +1629,99 @@ function RegistroContenido() {
       </div>
       {/* Mini-modal para vacuna/antiparasitario aplicado hoy */}
       {/* Mini-modal ALIMENTO fusionado: ¿cambio definitivo o prueba? */}
+      {/* Mini-modal FRANJAS: ¿en qué momento lo alimentó? Multi. */}
+      {modalFranjas && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setModalFranjas(false)}>
+          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-bold text-base">🥘 Alimenté a mi mascota</h2>
+              <button onClick={() => setModalFranjas(false)} className="text-[#8A7560] text-xl">✕</button>
+            </div>
+            <p className="text-xs text-[#8A7560] -mt-2">¿En qué momento? Puedes marcar uno o varios.</p>
+            <div className="space-y-1.5">
+              {[
+                { v: 'mañana', emoji: '☀️', label: 'Mañana' },
+                { v: 'tarde', emoji: '🌤️', label: 'Tarde' },
+                { v: 'noche', emoji: '🌙', label: 'Noche' },
+              ].map(op => {
+                const marcado = franjasAlimento.has(op.v)
+                return (
+                  <button
+                    key={op.v}
+                    onClick={() => setFranjasAlimento(prev => {
+                      const next = new Set(prev)
+                      if (next.has(op.v)) next.delete(op.v); else next.add(op.v)
+                      return next
+                    })}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
+                    style={marcado
+                      ? { borderColor: '#FFBD59', background: '#FFBD5920', borderWidth: '1.5px' }
+                      : { borderColor: '#EEE2D4', background: '#FBEAD9', borderWidth: '1.5px' }}
+                  >
+                    <span
+                      className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+                      style={marcado ? { background: '#FFBD59', color: '#1A1200' } : { border: '1.5px solid #C7B8A5', background: '#FFFCF8' }}
+                    >
+                      {marcado && <span className="text-[11px] font-bold leading-none">✓</span>}
+                    </span>
+                    <span className="text-base">{op.emoji}</span>
+                    <span className="text-sm font-medium text-[#3D2B1F]">{op.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[10px] text-[#8A7560]">Si otro cotutor ya marcó una franja, puedes sumar la tuya.</p>
+            <button
+              onClick={() => { setCuidados(prev => new Set(prev).add('alimente_hoy')); setModalFranjas(false) }}
+              className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm"
+            >
+              Marcar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mini-modal ALIMENTACIÓN ESPECIAL: tipo de dieta (indicación
+          veterinaria). Aviso suave de que suele ser prescrita. */}
+      {modalEspecial && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setModalEspecial(false)}>
+          <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-bold text-base">🍚 Alimentación especial</h2>
+              <button onClick={() => setModalEspecial(false)} className="text-[#8A7560] text-xl">✕</button>
+            </div>
+            <p className="text-xs text-[#8A7560] -mt-2">¿Qué tipo de dieta?</p>
+            <div className="space-y-1.5">
+              {[
+                { v: 'dieta_blanda', emoji: '🍲', label: 'Dieta blanda' },
+                { v: 'gastrointestinal', emoji: '🩹', label: 'Alimento gastrointestinal' },
+                { v: 'recuperacion', emoji: '💪', label: 'Dieta de recuperación' },
+                { v: 'otro', emoji: '🍚', label: 'Otro' },
+              ].map(op => (
+                <button
+                  key={op.v}
+                  onClick={() => setTipoEspecial(op.v)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
+                  style={tipoEspecial === op.v
+                    ? { borderColor: '#FFBD59', background: '#FFBD5920', borderWidth: '1.5px' }
+                    : { borderColor: '#EEE2D4', background: '#FBEAD9', borderWidth: '1.5px' }}
+                >
+                  <span className="text-base">{op.emoji}</span>
+                  <span className="text-sm font-medium text-[#3D2B1F]">{op.label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-[#8A7560] leading-relaxed">Estas dietas suelen ser indicadas por tu veterinario. Registrarlas ayuda a llevar el control del tratamiento.</p>
+            <button
+              onClick={() => { setCuidados(prev => new Set(prev).add('alimentacion_especial')); setModalEspecial(false) }}
+              className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-3.5 rounded-xl text-sm"
+            >
+              Marcar
+            </button>
+          </div>
+        </div>
+      )}
+
       {modalAlimento && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setModalAlimento(false)}>
           <div className="w-full max-w-[420px] bg-[#FFFCF8] rounded-t-2xl p-5 space-y-3.5" onClick={e => e.stopPropagation()}>

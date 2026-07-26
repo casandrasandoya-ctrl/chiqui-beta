@@ -340,6 +340,21 @@ export default async function VetPage({ searchParams }: Props) {
   )
 
   const registros = datos.registros || []
+  // Dieta especial más reciente registrada (indicación veterinaria).
+  // Se muestra al vet como contexto: si el tutor viene registrando
+  // dieta gastrointestinal, es dato clínico relevante.
+  const DIETA_ESPECIAL_VET: Record<string, string> = {
+    dieta_blanda: 'Dieta blanda',
+    gastrointestinal: 'Alimento gastrointestinal',
+    recuperacion: 'Dieta de recuperación',
+    otro: 'Dieta especial',
+  }
+  const registrosConDieta = registros
+    .filter((r: any) => r.alimentacion_especial)
+    .sort((a: any, b: any) => (b.fecha || '').localeCompare(a.fecha || ''))
+  const dietaEspecialReciente = registrosConDieta[0] || null
+  // Cuántos de los últimos registros la traen (señal de continuidad).
+  const diasConDietaEspecial = registrosConDieta.length
   const vacunas = datos.vacunas || []
   const antis = datos.antiparasitarios || []
   const obs = obsConEvoluciones
@@ -463,6 +478,21 @@ export default async function VetPage({ searchParams }: Props) {
             </div>
           )}
         </div>
+
+        {/* Dieta especial activa -- indicación veterinaria que el
+            tutor viene registrando. Dato clínico, por eso va junto al
+            motivo de consulta y no perdido entre los cuidados. */}
+        {dietaEspecialReciente && (
+          <div className="bg-[#4AABDB]/10 rounded-2xl p-4 border border-[#4AABDB]/30">
+            <h2 className="font-bold text-xs text-[#4AABDB] uppercase tracking-wider mb-2">🍚 Alimentación especial</h2>
+            <p className="text-sm font-semibold text-[#3D2B1F]">
+              {DIETA_ESPECIAL_VET[dietaEspecialReciente.alimentacion_especial] || 'Dieta especial'}
+            </p>
+            <p className="text-[11px] text-[#8A7560] mt-1">
+              Registrada {diasConDietaEspecial === 1 ? 'una vez' : `en ${diasConDietaEspecial} días`} en el período. Último: {fmt(dietaEspecialReciente.fecha)}.
+            </p>
+          </div>
+        )}
 
         {/* ÁREA: Historial médico */}
         <div className="flex items-center gap-2 mb-1">
