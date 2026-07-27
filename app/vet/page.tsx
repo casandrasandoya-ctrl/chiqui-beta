@@ -109,9 +109,9 @@ function construirResumenClinico(params: {
   antis: any[]
   obs: any[]
   examenesLab: any[]
-}): string[] {
+}): { texto: string; nivel: 'verde' | 'amarillo' | 'rojo' }[] {
   const { historialPeso, vacunas, antis, obs, examenesLab } = params
-  const resumen: string[] = []
+  const resumen: { texto: string; nivel: 'verde' | 'amarillo' | 'rojo' }[] = []
   const hoy = new Date()
 
   // Peso: compara el registro más antiguo vs el más reciente dentro de
@@ -128,11 +128,11 @@ function construirResumenClinico(params: {
       const ultimo = enPeriodo[enPeriodo.length - 1].peso
       const variacionPct = primero ? Math.abs((ultimo - primero) / primero) * 100 : 0
       if (variacionPct < 5) {
-        resumen.push(`⚖️ Peso estable durante los últimos 6 meses (${ultimo} kg).`)
+        resumen.push({ texto: `Peso estable durante los últimos 6 meses (${ultimo} kg).`, nivel: 'verde' })
       } else if (ultimo > primero) {
-        resumen.push(`⚖️ Peso aumentó de ${primero} kg a ${ultimo} kg en los últimos 6 meses.`)
+        resumen.push({ texto: `Peso aumentó de ${primero} kg a ${ultimo} kg en los últimos 6 meses.`, nivel: 'amarillo' })
       } else {
-        resumen.push(`⚖️ Peso disminuyó de ${primero} kg a ${ultimo} kg en los últimos 6 meses.`)
+        resumen.push({ texto: `Peso disminuyó de ${primero} kg a ${ultimo} kg en los últimos 6 meses.`, nivel: 'amarillo' })
       }
     }
   }
@@ -144,8 +144,8 @@ function construirResumenClinico(params: {
     const vigentesPorNombre = masRecientesPorNombre(vacunas)
     const vencidas = vigentesPorNombre.filter((v: any) => v.proxima_fecha && new Date(v.proxima_fecha + 'T00:00:00') < hoy)
     resumen.push(vencidas.length > 0
-      ? `💉 ${vencidas.length} vacuna${vencidas.length === 1 ? '' : 's'} vencida${vencidas.length === 1 ? '' : 's'}.`
-      : '💉 Vacunas al día.')
+      ? { texto: `${vencidas.length} vacuna${vencidas.length === 1 ? '' : 's'} vencida${vencidas.length === 1 ? '' : 's'}.`, nivel: 'rojo' }
+      : { texto: 'Vacunas al día.', nivel: 'verde' })
   }
 
   // Antiparasitario: se mira la ÚLTIMA DOSIS APLICADA (por
@@ -154,13 +154,13 @@ function construirResumenClinico(params: {
   if (antis.length > 0) {
     const masReciente = antis.slice().sort((a: any, b: any) => (b.fecha_aplicacion || '').localeCompare(a.fecha_aplicacion || ''))[0]
     const vigente = masReciente?.proxima_fecha && new Date(masReciente.proxima_fecha + 'T00:00:00') >= hoy
-    resumen.push(vigente ? '🪱 Antiparasitario vigente.' : '🪱 Antiparasitario vencido o sin próxima fecha registrada.')
+    resumen.push(vigente ? { texto: 'Antiparasitario vigente.', nivel: 'verde' } : { texto: 'Antiparasitario vencido o sin próxima fecha registrada.', nivel: 'rojo' })
   }
 
   // Observaciones activas
   const obsActivas = obs.filter((o: any) => o.estado === 'activa').length
   if (obsActivas > 0) {
-    resumen.push(`👁️ ${obsActivas} observación${obsActivas === 1 ? '' : 'es'} activa${obsActivas === 1 ? '' : 's'}.`)
+    resumen.push({ texto: `${obsActivas} observación${obsActivas === 1 ? '' : 'es'} activa${obsActivas === 1 ? '' : 's'}.`, nivel: 'amarillo' })
   }
 
   // Último perfil bioquímico + parámetros fuera de rango
@@ -168,9 +168,9 @@ function construirResumenClinico(params: {
   if (bioquimicos.length > 0) {
     const ultimo = bioquimicos[0]
     const dias = diasDesde(ultimo.fecha)
-    resumen.push(`🧪 Último perfil bioquímico hace ${dias} día${dias === 1 ? '' : 's'}.`)
+    resumen.push({ texto: `Último perfil bioquímico hace ${dias} día${dias === 1 ? '' : 's'}.`, nivel: 'verde' })
     const fuera = (ultimo.resultados || []).filter((r: any) => fueraDeRango(r.valor, r.rango_min, r.rango_max)).length
-    if (fuera > 0) resumen.push(`⚠️ ${fuera} parámetro${fuera === 1 ? '' : 's'} fuera de rango en el último bioquímico.`)
+    if (fuera > 0) resumen.push({ texto: `${fuera} parámetro${fuera === 1 ? '' : 's'} fuera de rango en el último bioquímico.`, nivel: 'rojo' })
   }
 
   // Último hemograma
@@ -178,7 +178,7 @@ function construirResumenClinico(params: {
   if (hemogramas.length > 0) {
     const ultimo = hemogramas[0]
     const dias = diasDesde(ultimo.fecha)
-    resumen.push(`🩸 Último hemograma hace ${dias} día${dias === 1 ? '' : 's'}.`)
+    resumen.push({ texto: `Último hemograma hace ${dias} día${dias === 1 ? '' : 's'}.`, nivel: 'verde' })
   }
 
   return resumen
@@ -363,12 +363,12 @@ export default async function VetPage({ searchParams }: Props) {
 
   // Etiquetas legibles del tamaño del perro (la base guarda la clave).
   // Solo aplica a perros; para gatos queda en "—".
-  const TAMANO_LABEL_VET: Record<string, string> = {
-    muy_pequeno: 'Muy pequeño (menos de 5 kg)',
-    pequeno: 'Pequeño (5–10 kg)',
-    mediano: 'Mediano (10–25 kg)',
-    grande: 'Grande (25–45 kg)',
-    gigante: 'Gigante (más de 45 kg)',
+  const TAMANO_NOMBRE_VET: Record<string, string> = {
+    muy_pequeno: 'Muy pequeño',
+    pequeno: 'Pequeño',
+    mediano: 'Mediano',
+    grande: 'Grande',
+    gigante: 'Gigante',
   }
 
   // --- Actividad física diaria promedio (SOLO PERROS) ---
@@ -424,6 +424,14 @@ export default async function VetPage({ searchParams }: Props) {
   const examenesLab = datos.examenes_lab || []
 
   const motivosConsulta = detectarMotivosConsulta(registros)
+  // La dieta especial se muestra como un chip más dentro de "Posible
+  // motivo de consulta" (ej. "Dieta blanda · 3 días"), en vez de un
+  // cuadro aparte. Es información del mismo tipo: qué está pasando
+  // últimamente que el vet debería saber.
+  const chipDieta = dietaEspecialReciente
+    ? `${DIETA_ESPECIAL_VET[dietaEspecialReciente.alimentacion_especial] || 'Dieta especial'} · ${diasConDietaEspecial === 1 ? '1 día' : `${diasConDietaEspecial} días`}`
+    : null
+  const chipsMotivo = chipDieta ? [...motivosConsulta, chipDieta] : motivosConsulta
   const resumenClinico = construirResumenClinico({ historialPeso: historialPeso || [], vacunas, antis, obs, examenesLab })
 
   const medicamentosActivos = medicamentos.filter((m: any) => medicamentoEstaActivo(m))
@@ -489,11 +497,10 @@ export default async function VetPage({ searchParams }: Props) {
             {[
               ['Estado reproductivo', mascota.castrado ? 'Esterilizado/a' : 'Entero/a'],
               ['Peso actual', mascota.peso_actual ? `${mascota.peso_actual} kg` : '—'],
-              ['Tamaño', TAMANO_LABEL_VET[mascota.tamano_esperado as string] || '—'],
+              ['Tamaño', TAMANO_NOMBRE_VET[mascota.tamano_esperado as string] || '—'],
               ['Alimentación', mascota.alimentacion_tipo || '—'],
               ['Marca / proteína', mascota.alimentacion_marca || '—'],
               ['Microchip', mascota.microchip || '—'],
-              ['Veterinaria habitual', mascota.veterinaria || '—'],
             ].map(([k, v]) => (
               <div key={k}>
                 <p className="text-xs text-[#8A7560]">{k}</p>
@@ -508,12 +515,26 @@ export default async function VetPage({ searchParams }: Props) {
             (esa se basa solo en los últimos 7 días de registro diario). */}
         {resumenClinico.length > 0 && (
           <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4]">
-            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-2">📋 Resumen clínico</h2>
-            <ul className="space-y-1.5">
-              {resumenClinico.map((linea, i) => (
-                <li key={i} className="text-xs text-[#3D2B1F] leading-relaxed">{linea}</li>
-              ))}
-            </ul>
+            <h2 className="font-extrabold text-sm text-[#3D2B1F] mb-3">📋 Resumen clínico</h2>
+            {(['rojo', 'amarillo', 'verde'] as const).map(nivel => {
+              const items = resumenClinico.filter(r => r.nivel === nivel)
+              if (items.length === 0) return null
+              const dot = nivel === 'rojo' ? '#E05252' : nivel === 'amarillo' ? '#F5C842' : '#4CAF7D'
+              const encabezado = nivel === 'rojo' ? 'Requiere atención' : nivel === 'amarillo' ? 'A observar' : 'Al día'
+              return (
+                <div key={nivel} className="mb-3 last:mb-0">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: dot }} />
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: dot }}>{encabezado}</p>
+                  </div>
+                  <ul className="space-y-1 pl-4">
+                    {items.map((r, i) => (
+                      <li key={i} className="text-xs text-[#3D2B1F] leading-relaxed list-disc marker:text-[#8A7560]">{r.texto}</li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
           </div>
         )}
 
@@ -524,9 +545,9 @@ export default async function VetPage({ searchParams }: Props) {
             🩺 Posible motivo de consulta
           </h2>
           <p className="text-[11px] text-[#8A7560] mb-2">Basado en los últimos 7 días:</p>
-          {motivosConsulta.length > 0 ? (
+          {chipsMotivo.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
-              {motivosConsulta.map(m => (
+              {chipsMotivo.map(m => (
                 <span key={m} className="bg-[#FFFCF8] border border-[#CD7421]/30 text-[#8C572F] text-xs font-semibold px-2.5 py-1 rounded-full">
                   {m}
                 </span>
@@ -540,13 +561,10 @@ export default async function VetPage({ searchParams }: Props) {
           )}
         </div>
 
-        {/* Actividad física (solo perros): promedio diario de paseo +
-            enriquecimiento en 30 días. Le dice al vet si es un perro
-            activo o sedentario, contexto útil para peso, conducta y
-            recomendaciones. */}
+        {/* Actividad física (solo perros): desplegable para no alargar.
+            Promedio diario de paseo + enriquecimiento en 30 días. */}
         {esPerroVet && actividadPromedioDia !== null && nivelActividad && (
-          <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4]">
-            <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider mb-2">🐾 Actividad física</h2>
+          <SeccionVet titulo={`🐾 Actividad física · ${actividadPromedioDia >= 60 ? `${Math.floor(actividadPromedioDia / 60)}h ${actividadPromedioDia % 60}m` : `${actividadPromedioDia} min`}/día`}>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-extrabold text-[#3D2B1F]">
                 {actividadPromedioDia >= 60
@@ -559,23 +577,11 @@ export default async function VetPage({ searchParams }: Props) {
               </span>
             </div>
             <p className="text-[10px] text-[#8A7560] mt-1.5">Paseo y enriquecimiento combinados, últimos 30 días.</p>
-          </div>
+          </SeccionVet>
         )}
 
-        {/* Dieta especial activa -- indicación veterinaria que el
-            tutor viene registrando. Dato clínico, por eso va junto al
-            motivo de consulta y no perdido entre los cuidados. */}
-        {dietaEspecialReciente && (
-          <div className="bg-[#4AABDB]/10 rounded-2xl p-4 border border-[#4AABDB]/30">
-            <h2 className="font-bold text-xs text-[#4AABDB] uppercase tracking-wider mb-2">🍚 Alimentación especial</h2>
-            <p className="text-sm font-semibold text-[#3D2B1F]">
-              {DIETA_ESPECIAL_VET[dietaEspecialReciente.alimentacion_especial] || 'Dieta especial'}
-            </p>
-            <p className="text-[11px] text-[#8A7560] mt-1">
-              Registrada {diasConDietaEspecial === 1 ? 'una vez' : `en ${diasConDietaEspecial} días`} en el período. Último: {fmt(dietaEspecialReciente.fecha)}.
-            </p>
-          </div>
-        )}
+        {/* La dieta especial ahora se muestra como chip dentro de
+            "Posible motivo de consulta" (arriba), no como cuadro aparte. */}
 
         {/* ÁREA: Historial médico */}
         <div className="flex items-center gap-2 mb-1">
