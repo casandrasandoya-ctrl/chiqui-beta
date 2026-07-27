@@ -157,6 +157,7 @@ export default function AnalisisPage() {
   const [abiertoPaseoMes, setAbiertoPaseoMes] = useState(false)
   const [abiertoActSemana, setAbiertoActSemana] = useState(false)
   const [abiertoDetalleMes, setAbiertoDetalleMes] = useState(false)
+  const [abiertoObservado, setAbiertoObservado] = useState(false)
   const [abiertaSignos, setAbiertaSignos] = useState(false)
 
   // Misma función que en el dashboard: devuelve la fecha en zona horaria
@@ -998,44 +999,47 @@ export default function AnalisisPage() {
           )}
         </div>
       )}
-      {/* Sección Estado de salud: agrupa lo observado, la normalidad
-          por categoría y los últimos 7 días — todos hablan de cómo ha
-          estado la mascota. El encabezado los une visualmente. */}
+      {/* SECCIÓN ESTADO DE SALUD — contenedor con fondo */}
       {total > 0 && (
-        <div className="px-5 mb-2 mt-2">
+      <div className="mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#F0E2CE' }}>
+        <div className="px-2 mb-2 pt-1">
           <div className="flex items-center gap-2">
             <img src="/chiqui/chiqui_lupa.png" alt="" className="w-7 h-7 object-contain" />
-            <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Estado de salud</h2>
+            <h2 className="text-sm font-bold text-[#8C572F] uppercase tracking-wider">Estado de salud</h2>
           </div>
         </div>
-      )}
-      {/* Lo observado este mes (insights) */}
-      <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
-        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#EEE2D4]">
-          <img src="/chiqui/chiqui_lupa.png" alt="" className="w-9 h-9 object-contain flex-shrink-0" />
-          <div>
-            <p className="text-sm font-bold">Lo observado este mes</p>
-            <p className="text-xs text-[#8A7560]">{total} registros</p>
-          </div>
-        </div>
-        {insights.length === 0 ? (
-          <div className="p-6 text-center text-sm text-[#8A7560]">Cargando insights...</div>
-        ) : (
-          insights.map((ins, i) => (
-            <div key={i} className="flex items-start gap-3 px-4 py-3 border-b border-[#EEE2D4] last:border-0">
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0 ${ins.tipo === 'good' ? 'bg-[#4CAF7D]/15' : ins.tipo === 'warn' ? 'bg-[#F07A30]/15' : 'bg-[#4AABDB]/15'}`}>
-                {ins.icon}
-              </div>
-              <p className="text-xs text-[#3D2B1F] leading-relaxed">{ins.text}</p>
+        {/* Lo observado este mes — desplegable, cerrado por defecto */}
+        <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden mb-2">
+          <button type="button" onClick={() => setAbiertoObservado(v => !v)} className="w-full flex items-center gap-2.5 px-4 py-3 text-left">
+            <img src="/chiqui/chiqui_lupa.png" alt="" className="w-9 h-9 object-contain flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-bold">Lo observado este mes</p>
+              <p className="text-xs text-[#8A7560]">{total} registros</p>
             </div>
-          ))
-        )}
-      </div>
-      {/* Signos de alerta — episodios por tipo + línea de tiempo, sobre
+            <span className="text-[#8A7560] text-lg">{abiertoObservado ? '⌃' : '⌄'}</span>
+          </button>
+          {abiertoObservado && (
+          <div className="border-t border-[#EEE2D4]">
+          {insights.length === 0 ? (
+            <div className="p-6 text-center text-sm text-[#8A7560]">Cargando insights...</div>
+          ) : (
+            insights.map((ins, i) => (
+              <div key={i} className="flex items-start gap-3 px-4 py-3 border-b border-[#EEE2D4] last:border-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0 ${ins.tipo === 'good' ? 'bg-[#4CAF7D]/15' : ins.tipo === 'warn' ? 'bg-[#F07A30]/15' : 'bg-[#4AABDB]/15'}`}>
+                  {ins.icon}
+                </div>
+                <p className="text-xs text-[#3D2B1F] leading-relaxed">{ins.text}</p>
+              </div>
+            ))
+          )}
+          </div>
+          )}
+        </div>
+        {/* Signos de alerta — episodios por tipo + línea de tiempo, sobre
           todo el historial. Solo registra hechos objetivos informados
           por el tutor; no interpreta clínicamente. */}
       {signosHistorial.length > 0 && (
-        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#E05252]/40 overflow-hidden">
+        <div className="mb-2 bg-[#FFFCF8] rounded-2xl border border-[#E05252]/40 overflow-hidden">
           <button onClick={() => setAbiertaSignos(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
             <div className="flex items-center gap-2.5">
               <span className="text-lg">🚨</span>
@@ -1095,10 +1099,9 @@ export default function AnalisisPage() {
           )}
         </div>
       )}
-      {total > 0 && <>
         {/* Normalidad por categoría — desplegable */}
         {(normalidadPorCategoria.length > 0 || respReciente || tempReciente || celoInfo) && (
-          <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+          <div className="mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
             <button onClick={() => setAbiertaNormalidad(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
               <span className="font-bold text-sm text-[#3D2B1F]">📊 Normalidad por categoría</span>
               <span className="text-[#8A7560] text-lg">{abiertaNormalidad ? '⌃' : '⌄'}</span>
@@ -1157,10 +1160,8 @@ export default function AnalisisPage() {
             )}
           </div>
         )}
-      </>}
-      {total > 0 && <>
         {/* Últimos 7 días visual — parte de la sección Estado de salud */}
-        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
+        <div className="mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
           <p className="text-[10px] font-semibold text-[#8A7560] mb-2">Últimos 7 días</p>
           <div className="flex items-end justify-between gap-1 h-16">
             {Array(7).fill(null).map((_, i) => {
@@ -1184,18 +1185,19 @@ export default function AnalisisPage() {
             ))}
           </div>
         </div>
-      </>}
-      {total > 0 && <>
-        {/* Paseo (solo perros) */}
+
+      </div>
+      )}
+      {/* ACTIVIDAD FÍSICA (solo perros) — contenedor con fondo */}
         {esPerro && (
-          <>
-            <div className="px-5 mb-2">
+          <div className="mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#FBEEDD' }}>
+            <div className="px-2 mb-2 pt-1">
               <div className="flex items-center gap-2">
-                <img src="/chiqui/chiqui_paseo.png" alt="" className="w-8 h-8 object-contain" />
-                <h2 className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Paseo</h2>
+                <img src="/chiqui/chiqui_paseo.png" alt="" className="w-7 h-7 object-contain" />
+                <h2 className="text-sm font-bold text-[#8C572F] uppercase tracking-wider">Actividad física</h2>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2.5 mx-4 mb-3">
+            <div className="grid grid-cols-2 gap-2.5 mb-2">
               <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="text-sm">🔥</span>
@@ -1232,10 +1234,10 @@ export default function AnalisisPage() {
                 mes en curso va en canela para distinguir que aún no
                 termina — comparar un mes a medias con meses completos
                 sería engañoso sin esa señal visual. */}
-            <div className="mx-4 mb-3 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+            <div className="mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
               <button type="button" onClick={() => setAbiertoPaseoMes(v => !v)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
                 <span className="text-sm">📊</span>
-                <p className="flex-1 text-[10px] font-semibold text-[#8A7560]">Tiempo de paseo por mes</p>
+                <p className="flex-1 text-[10px] font-semibold text-[#8A7560]">Historial mensual de paseos</p>
                 <span className="text-[#8A7560] text-sm">{abiertoPaseoMes ? '▾' : '›'}</span>
               </button>
               {abiertoPaseoMes && (
@@ -1267,73 +1269,14 @@ export default function AnalisisPage() {
               )}
             </div>
 
-            {/* Actividad de la semana: paseo + enriquecimiento apilados.
-                Da una imagen de toda la estimulación, no solo caminatas.
-                Solo se muestra si hubo algo de actividad en la semana. */}
-            {(totalPaseoSemana > 0 || totalEnrSemana > 0) && (
-              <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
-                <button type="button" onClick={() => setAbiertoActSemana(v => !v)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
-                  <span className="text-sm">📅</span>
-                  <p className="flex-1 text-[10px] font-semibold text-[#8A7560]">Actividad de la semana</p>
-                  <span className="text-[#8A7560] text-sm">{abiertoActSemana ? '▾' : '›'}</span>
-                </button>
-                {abiertoActSemana && (
-                <div className="px-4 pb-3">
-                <div className="flex items-center justify-end mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex items-center gap-1 text-[9px] text-[#8A7560]">
-                      <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#FFBD59' }} />Paseo
-                    </span>
-                    {esPerro && (
-                      <span className="flex items-center gap-1 text-[9px] text-[#8A7560]">
-                        <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#4AABDB' }} />Enriquecim.
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-end justify-between gap-1.5" style={{ height: '72px' }}>
-                  {actividadSemana.map((d, i) => {
-                    const diasSemana = ['D','L','M','M','J','V','S']
-                    const alturaPaseo = d.minPaseo > 0 ? Math.max(Math.round((d.minPaseo / maxActividadSemana) * 52), 3) : 0
-                    const alturaEnr = d.minEnr > 0 ? Math.max(Math.round((d.minEnr / maxActividadSemana) * 52), 3) : 0
-                    const esHoy = i === 6
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
-                        <div className="w-full flex flex-col justify-end items-center" style={{ minHeight: '3px' }}>
-                          {/* Enriquecimiento arriba (azul), paseo abajo
-                              (dorado): apilados forman el total del día. */}
-                          {alturaEnr > 0 && (
-                            <div className="w-full rounded-t" style={{ height: `${alturaEnr}px`, background: '#4AABDB' }} />
-                          )}
-                          {alturaPaseo > 0 && (
-                            <div className={`w-full ${alturaEnr > 0 ? '' : 'rounded-t'}`} style={{ height: `${alturaPaseo}px`, background: '#FFBD59' }} />
-                          )}
-                          {d.total === 0 && <div className="w-full rounded" style={{ height: '3px', background: 'rgba(140,87,47,0.08)' }} />}
-                        </div>
-                        <span className="text-[8px] leading-none" style={{ color: esHoy ? '#CD7421' : '#8A7560', fontWeight: esHoy ? 700 : 400 }}>
-                          {diasSemana[d.fecha.getDay()]}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#EEE2D4]">
-                  <p className="text-[10px] text-[#8A7560]">🚶 {fmtDuracion(totalPaseoSemana)} de paseo</p>
-                  {esPerro && totalEnrSemana > 0 && <p className="text-[10px] text-[#8A7560]">🧠 {fmtDuracion(totalEnrSemana)} de enriquecimiento</p>}
-                </div>
-                </div>
-                )}
-              </div>
-            )}
-
             {/* Detalle del mes en curso. Nota de honestidad: el
                 registro diario guarda UN paseo por día, así que se
                 cuentan días con paseo, no salidas individuales. */}
             {diasConPaseoMes > 0 && (
-              <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+              <div className="mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
                 <button type="button" onClick={() => setAbiertoDetalleMes(v => !v)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
                   <span className="text-sm">📋</span>
-                  <p className="flex-1 text-[10px] font-semibold text-[#8A7560] capitalize">Detalle de {nombreMesActual}</p>
+                  <p className="flex-1 text-[10px] font-semibold text-[#8A7560] capitalize">Estadísticas del mes</p>
                   <span className="text-[#8A7560] text-sm">{abiertoDetalleMes ? '▾' : '›'}</span>
                 </button>
                 {abiertoDetalleMes && (
@@ -1561,9 +1504,68 @@ export default function AnalisisPage() {
                 </div>
               )
             })()}
-          </>
+{/* Actividad de la semana: paseo + enriquecimiento apilados.
+                Da una imagen de toda la estimulación, no solo caminatas.
+                Solo se muestra si hubo algo de actividad en la semana. */}
+            {(totalPaseoSemana > 0 || totalEnrSemana > 0) && (
+              <div className="mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+                <button type="button" onClick={() => setAbiertoActSemana(v => !v)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
+                  <span className="text-sm">📅</span>
+                  <p className="flex-1 text-[10px] font-semibold text-[#8A7560]">Resumen de actividad semanal</p>
+                  <span className="text-[#8A7560] text-sm">{abiertoActSemana ? '▾' : '›'}</span>
+                </button>
+                {abiertoActSemana && (
+                <div className="px-4 pb-3">
+                <div className="flex items-center justify-end mb-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex items-center gap-1 text-[9px] text-[#8A7560]">
+                      <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#FFBD59' }} />Paseo
+                    </span>
+                    {esPerro && (
+                      <span className="flex items-center gap-1 text-[9px] text-[#8A7560]">
+                        <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#4AABDB' }} />Enriquecim.
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-end justify-between gap-1.5" style={{ height: '72px' }}>
+                  {actividadSemana.map((d, i) => {
+                    const diasSemana = ['D','L','M','M','J','V','S']
+                    const alturaPaseo = d.minPaseo > 0 ? Math.max(Math.round((d.minPaseo / maxActividadSemana) * 52), 3) : 0
+                    const alturaEnr = d.minEnr > 0 ? Math.max(Math.round((d.minEnr / maxActividadSemana) * 52), 3) : 0
+                    const esHoy = i === 6
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
+                        <div className="w-full flex flex-col justify-end items-center" style={{ minHeight: '3px' }}>
+                          {/* Enriquecimiento arriba (azul), paseo abajo
+                              (dorado): apilados forman el total del día. */}
+                          {alturaEnr > 0 && (
+                            <div className="w-full rounded-t" style={{ height: `${alturaEnr}px`, background: '#4AABDB' }} />
+                          )}
+                          {alturaPaseo > 0 && (
+                            <div className={`w-full ${alturaEnr > 0 ? '' : 'rounded-t'}`} style={{ height: `${alturaPaseo}px`, background: '#FFBD59' }} />
+                          )}
+                          {d.total === 0 && <div className="w-full rounded" style={{ height: '3px', background: 'rgba(140,87,47,0.08)' }} />}
+                        </div>
+                        <span className="text-[8px] leading-none" style={{ color: esHoy ? '#CD7421' : '#8A7560', fontWeight: esHoy ? 700 : 400 }}>
+                          {diasSemana[d.fecha.getDay()]}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#EEE2D4]">
+                  <p className="text-[10px] text-[#8A7560]">🚶 {fmtDuracion(totalPaseoSemana)} de paseo</p>
+                  {esPerro && totalEnrSemana > 0 && <p className="text-[10px] text-[#8A7560]">🧠 {fmtDuracion(totalEnrSemana)} de enriquecimiento</p>}
+                </div>
+                </div>
+                )}
+              </div>
+            )}
+
+            
+          </div>
         )}
-      </>}
       {/* Rutinas de cuidado — cada cuánto, sobre todo el historial.
           Se muestran las 3 más relevantes ordenadas por prioridad
           (retrasadas y próximas a vencer primero); el resto aparece al
