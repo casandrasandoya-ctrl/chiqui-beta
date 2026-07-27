@@ -1399,7 +1399,7 @@ export default function AnalisisPage() {
               }
               const fmtMin = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h ${m % 60 > 0 ? (m % 60) + 'm' : ''}`.trim() : `${m} min`
               return (
-                <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+                <div className="mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setAbiertaEnriq(v => !v)}
