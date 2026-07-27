@@ -73,7 +73,7 @@ export default function SelectorMascota({
         </div>
 
         {mascotas.length > 1 && (
-          <span className={`text-[#8A7560] text-base transition-transform ${abierto ? 'rotate-180' : ''}`}>⌄</span>
+          <span className={`text-[#8C572F] text-sm font-bold transition-transform ${abierto ? 'rotate-180' : ''}`}>▼</span>
         )}
       </button>
 
