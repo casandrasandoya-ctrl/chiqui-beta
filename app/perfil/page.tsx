@@ -23,6 +23,25 @@ function calcEdad(f: string): string {
   return m < 12 ? `${m}m` : m % 12 > 0 ? `${Math.floor(m/12)}a ${m%12}m` : `${Math.floor(m/12)}a`
 }
 
+// Tiempo juntos desde que llegó a la familia, en texto cálido y
+// completo ("5 años y 2 meses juntos"). Devuelve null si no hay fecha.
+function tiempoJuntos(f?: string | null): string | null {
+  if (!f) return null
+  const h = new Date(), n = new Date(f + 'T00:00:00')
+  if (isNaN(n.getTime()) || n > h) return null
+  let meses = (h.getFullYear() - n.getFullYear()) * 12 + (h.getMonth() - n.getMonth())
+  if (h.getDate() < n.getDate()) meses -= 1
+  if (meses < 0) meses = 0
+  const anios = Math.floor(meses / 12)
+  const m = meses % 12
+  const pAnio = anios === 1 ? '1 año' : `${anios} años`
+  const pMes = m === 1 ? '1 mes' : `${m} meses`
+  if (anios === 0 && m === 0) return 'Recién llegó a tu familia'
+  if (anios === 0) return `${pMes} juntos`
+  if (m === 0) return `${pAnio} juntos`
+  return `${pAnio} y ${pMes} juntos`
+}
+
 interface Mascota {
   id: string
   nombre: string
@@ -48,6 +67,7 @@ export default function PerfilPage() {
   const [mascotas, setMascotas] = useState<Mascota[]>([])
   const [mascota, setMascota] = useState<Mascota | null>(null)
   const [editando, setEditando] = useState(false)
+  const [datosAbiertos, setDatosAbiertos] = useState(false)
   const [form, setForm] = useState<Partial<Mascota>>({})
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
@@ -243,6 +263,12 @@ export default function PerfilPage() {
           <p className="text-xs text-[#5C4A3A] leading-relaxed bg-[#FBEAD9] rounded-xl px-3 py-2.5">
             💡 {etapa.recomendacion}
           </p>
+          {/* Tiempo juntos — toque emocional, solo si hay fecha de unión */}
+          {tiempoJuntos(mascota?.fecha_union) && (
+            <p className="text-xs text-[#8C572F] font-semibold text-center mt-2.5">
+              ❤️ {tiempoJuntos(mascota?.fecha_union)}
+            </p>
+          )}
         </div>
       )}
 
@@ -262,24 +288,28 @@ export default function PerfilPage() {
       </div>
 
       <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#EEE2D4]">
+        <button onClick={() => setDatosAbiertos(v => !v)} className="w-full flex items-center justify-between px-4 py-3 text-left">
           <div className="flex items-center gap-2">
             <img src="/chiqui/chiqui_registro.png" alt="" className="w-7 h-7 object-contain" />
             <h2 className="font-bold text-sm">Datos del perfil</h2>
           </div>
+          <span className="text-[#8C572F] text-sm font-bold">{datosAbiertos ? '▲' : '▼'}</span>
+        </button>
+
+        {datosAbiertos && (
+        <div className="border-t border-[#EEE2D4]">
+        <div className="flex justify-end px-4 pt-3">
           <button onClick={() => { setEditando(!editando); setForm(mascota || {}) }} className="text-xs font-bold text-[#FFBD59]">
             {editando ? 'Cancelar' : ' ✏️ Editar'}
           </button>
         </div>
 
         {!editando ? (
-          <div className="divide-y divide-[#EEE2D4]">
+          <div className="grid grid-cols-2 gap-2 p-4">
             {datos.map(([label, val]) => (
-              <div key={label} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex-1">
-                  <p className="text-xs text-[#8A7560]">{label}</p>
-                  <p className="text-sm font-medium mt-0.5">{val}</p>
-                </div>
+              <div key={label} className="bg-[#FBEAD9]/40 rounded-xl px-3 py-2.5">
+                <p className="text-[10px] text-[#8A7560] uppercase tracking-wider">{label}</p>
+                <p className="text-sm font-medium mt-0.5 break-words">{val}</p>
               </div>
             ))}
           </div>
@@ -331,6 +361,8 @@ export default function PerfilPage() {
               {saving ? 'Guardando...' : 'Guardar cambios'}
             </button>
           </div>
+        )}
+        </div>
         )}
       </div>
 
