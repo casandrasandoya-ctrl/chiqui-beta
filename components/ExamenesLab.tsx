@@ -676,7 +676,7 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
     <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
       <button onClick={() => setAbierto(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
         <span className="font-bold text-sm text-[#3D2B1F]">🧫 Exámenes de laboratorio</span>
-        <span className="text-[#8A7560] text-lg">{abierto ? '⌃' : '⌄'}</span>
+        <span className="text-[#8C572F] text-base font-bold">{abierto ? '▲' : '▼'}</span>
       </button>
 
       {abierto && (
@@ -900,7 +900,7 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
                             {completados > 0 && (
                               <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">{completados}</span>
                             )}
-                            <span className="text-[#8A7560] text-sm">{abierta ? '▾' : '›'}</span>
+                            <span className="text-[#8C572F] text-sm font-bold">{abierta ? '▲' : '▼'}</span>
                           </button>
                           {abierta && (
                             <div className="px-3 pb-1">
@@ -1046,7 +1046,7 @@ export default function ExamenesLab({ mascotaId, especie }: Props) {
                                   <span className="ml-2 text-[#4CAF7D]">✓ sin positivos</span>
                                 )}
                               </span>
-                              <span className="text-[#8A7560] text-xs">{abiertoEx ? '⌃' : '⌄'}</span>
+                              <span className="text-[#8C572F] text-sm font-bold">{abiertoEx ? '▲' : '▼'}</span>
                             </button>
                             {abiertoEx && (
                               <div className="p-3">

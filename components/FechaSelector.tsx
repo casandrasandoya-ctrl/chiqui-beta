@@ -106,7 +106,7 @@ export default function FechaSelector({ value, onChange, label, opcional, placeh
           {tieneValor && (
             <span onClick={limpiar} className="text-[#8A7560] text-xs px-1">✕</span>
           )}
-          <span className="text-[#8A7560] text-xs">{abierto ? '⌃' : '⌄'}</span>
+          <span className="text-[#8C572F] text-sm font-bold">{abierto ? '▲' : '▼'}</span>
         </div>
       </button>
       {abierto && (

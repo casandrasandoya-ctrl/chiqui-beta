@@ -1218,7 +1218,7 @@ function RegistroContenido() {
                     </p>
                   )}
                 </div>
-                <span className="text-[#8A7560] text-sm">{open ? '▾' : '›'}</span>
+                <span className="text-[#8C572F] text-sm font-bold">{open ? '▲' : '▼'}</span>
               </button>
               {open && (
                 <div className="pb-3">
@@ -1359,7 +1359,7 @@ function RegistroContenido() {
                 {signos.size}
               </span>
             )}
-            <span className="text-[#8A7560] text-sm">{signosAbierto ? '▾' : '›'}</span>
+            <span className="text-[#8C572F] text-sm font-bold">{signosAbierto ? '▲' : '▼'}</span>
           </button>
           {signosAbierto && (
             <div className="px-3 pb-3 pt-1">
@@ -1421,7 +1421,7 @@ function RegistroContenido() {
                     {marcadosEnGrupo}
                   </span>
                 )}
-                <span className="text-[#8A7560] text-sm">{abiertoGrupo ? '▾' : '›'}</span>
+                <span className="text-[#8C572F] text-sm font-bold">{abiertoGrupo ? '▲' : '▼'}</span>
               </button>
               {abiertoGrupo && (
                 <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-2">
@@ -1468,7 +1468,7 @@ function RegistroContenido() {
                 <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">
                   {logradosN}/{hitos.length}
                 </span>
-                <span className="text-[#8A7560] text-sm">{hitosAbierto ? '▾' : '›'}</span>
+                <span className="text-[#8C572F] text-sm font-bold">{hitosAbierto ? '▲' : '▼'}</span>
               </button>
               {hitosAbierto && (
                 <div className="px-3 pb-3 pt-1 space-y-2">
@@ -1519,7 +1519,7 @@ function RegistroContenido() {
                 {momentos.filter(m => m.categoria !== 'cambio_edad').length}
               </span>
             )}
-            <span className="text-[#8A7560] text-sm">{momentosAbierto ? '▾' : '›'}</span>
+            <span className="text-[#8C572F] text-sm font-bold">{momentosAbierto ? '▲' : '▼'}</span>
           </button>
           {momentosAbierto && (
             <div className="px-3 pb-3 pt-1">

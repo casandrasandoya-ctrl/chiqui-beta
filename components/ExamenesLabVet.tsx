@@ -280,7 +280,7 @@ function GrupoExamen({ tipo, examenes }: { tipo: string; examenes: any[] }) {
                           <span className="text-xs font-semibold text-[#3D2B1F]">
                             {fmt(ex.fecha)}{cantidadFuera > 0 ? ` · ⚠️ ${cantidadFuera}` : ''}
                           </span>
-                          <span className="text-[#8A7560] text-xs">{abierto ? '⌃' : '⌄'}</span>
+                          <span className="text-[#8C572F] text-sm font-bold">{abierto ? '▲' : '▼'}</span>
                         </button>
                         {abierto && (
                           <div className="p-2.5">

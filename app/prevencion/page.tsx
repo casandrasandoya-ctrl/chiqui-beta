@@ -603,7 +603,7 @@ export default function PrevencionPage() {
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('peso')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
           <span className="font-bold text-sm text-[#3D2B1F]">⚖️ Peso</span>
-          <span className="text-[#8A7560] text-lg">{estaAbierta('peso') ? '⌃' : '⌄'}</span>
+          <span className="text-[#8C572F] text-base font-bold">{estaAbierta('peso') ? '▲' : '▼'}</span>
         </button>
         {estaAbierta('peso') && !!mascota && (
           <div className="border-t border-[#EEE2D4]">
@@ -623,7 +623,7 @@ export default function PrevencionPage() {
         <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           <button onClick={() => toggleSeccion('respiracion')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
             <span className="font-bold text-sm text-[#3D2B1F]">🫁 Frecuencia respiratoria</span>
-            <span className="text-[#8A7560] text-lg">{estaAbierta('respiracion') ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{estaAbierta('respiracion') ? '▲' : '▼'}</span>
           </button>
           {estaAbierta('respiracion') && (
             <div className="border-t border-[#EEE2D4] px-4 pb-4 pt-2">
@@ -638,7 +638,7 @@ export default function PrevencionPage() {
         <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           <button onClick={() => toggleSeccion('temperatura')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
             <span className="font-bold text-sm text-[#3D2B1F]">🌡️ Temperatura corporal</span>
-            <span className="text-[#8A7560] text-lg">{estaAbierta('temperatura') ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{estaAbierta('temperatura') ? '▲' : '▼'}</span>
           </button>
           {estaAbierta('temperatura') && (
             <div className="border-t border-[#EEE2D4]">
@@ -660,7 +660,7 @@ export default function PrevencionPage() {
           <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">💉 Vacunas</span>{badgeVacunas && <PildoraBadge b={badgeVacunas} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('vacuna'); setForm({}); setEditandoId(null); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
-            <span className="text-[#8A7560] text-lg">{estaAbierta('vacunas') ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{estaAbierta('vacunas') ? '▲' : '▼'}</span>
           </div>
         </button>
         {estaAbierta('vacunas') && (
@@ -715,7 +715,7 @@ export default function PrevencionPage() {
           <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">💊 Antiparasitarios</span>{badgeAntis && <PildoraBadge b={badgeAntis} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('anti'); setForm({}); setEditandoId(null); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
-            <span className="text-[#8A7560] text-lg">{estaAbierta('anti') ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{estaAbierta('anti') ? '▲' : '▼'}</span>
           </div>
         </button>
         {estaAbierta('anti') && (
@@ -779,7 +779,7 @@ export default function PrevencionPage() {
           <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">🩹 Medicamentos</span>{badgeMeds && <PildoraBadge b={badgeMeds} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('medicamento'); setForm({}); setEditandoId(null); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
-            <span className="text-[#8A7560] text-lg">{estaAbierta('medicamentos') ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{estaAbierta('medicamentos') ? '▲' : '▼'}</span>
           </div>
         </button>
         {estaAbierta('medicamentos') && (
@@ -868,7 +868,7 @@ export default function PrevencionPage() {
                                 className="flex items-center justify-between w-full text-[10px] font-bold text-[#8A7560] uppercase tracking-wider"
                               >
                                 <span>Historial · {tomas.length} {tomas.length === 1 ? 'toma' : 'tomas'}</span>
-                                <span className="text-[#CD7421] text-xs">{expandido ? '⌃' : '⌄'}</span>
+                                <span className="text-[#8C572F] text-sm font-bold">{expandido ? '▲' : '▼'}</span>
                               </button>
                               {expandido && (
                                 <div className="flex flex-wrap gap-1.5 mt-2">
@@ -905,7 +905,7 @@ export default function PrevencionPage() {
           <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">🏥 Enfermedades</span>{badgeEnf && <PildoraBadge b={badgeEnf} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('enfermedad'); setForm({}); setEditandoId(null); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
-            <span className="text-[#8A7560] text-lg">{estaAbierta('enfermedades') ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{estaAbierta('enfermedades') ? '▲' : '▼'}</span>
           </div>
         </button>
         {estaAbierta('enfermedades') && (
@@ -961,7 +961,7 @@ export default function PrevencionPage() {
           <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">👁️ Observaciones</span>{badgesObs.map((b, i) => <PildoraBadge key={i} b={b} />)}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('obs'); setForm({}); setEditandoId(null); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Nueva</span>
-            <span className="text-[#8A7560] text-lg">{estaAbierta('obs') ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{estaAbierta('obs') ? '▲' : '▼'}</span>
           </div>
         </button>
         {estaAbierta('obs') && (
@@ -1076,7 +1076,7 @@ export default function PrevencionPage() {
                 <div>
                   <button onClick={() => toggleSeccion('obs_resueltas')} className="w-full flex items-center justify-between py-2 px-1">
                     <span className="text-xs font-bold text-[#8A7560]">Resueltas ({obsResueltas.length})</span>
-                    <span className="text-[#8A7560] text-sm">{estaAbierta('obs_resueltas') ? '⌃' : '⌄'}</span>
+                    <span className="text-[#8C572F] text-sm font-bold">{estaAbierta('obs_resueltas') ? '▲' : '▼'}</span>
                   </button>
                   {estaAbierta('obs_resueltas') && (
                     <div className="space-y-2">
@@ -1133,7 +1133,7 @@ export default function PrevencionPage() {
           <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">📄 Exámenes</span>{badgeExamenes && <PildoraBadge b={badgeExamenes} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('examen'); setForm({}); setEditandoId(null); setArchivoExamen(null); setErrorExamen(''); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
-            <span className="text-[#8A7560] text-lg">{estaAbierta('examenes') ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{estaAbierta('examenes') ? '▲' : '▼'}</span>
           </div>
         </button>
         {estaAbierta('examenes') && (
@@ -1187,7 +1187,7 @@ export default function PrevencionPage() {
               <img src="/chiqui/chiqui_amor.png" alt="" className="w-7 h-7 object-contain" />
               <span className="font-bold text-sm text-[#3D2B1F]">🌸 Reproducción</span>
             </div>
-            <span className="text-[#8A7560] text-lg">{estaAbierta('reproduccion') ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{estaAbierta('reproduccion') ? '▲' : '▼'}</span>
           </button>
           {estaAbierta('reproduccion') && (
             <div className="border-t border-[#EEE2D4] px-4 pb-4 pt-3">
@@ -1209,7 +1209,7 @@ export default function PrevencionPage() {
         <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           <button onClick={() => toggleSeccion('revisiones')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
             <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">🔍 Revisiones Corporales</span>{badgeRevisiones && <PildoraBadge b={badgeRevisiones} />}</div>
-            <span className="text-[#8A7560] text-lg">{estaAbierta('revisiones') ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{estaAbierta('revisiones') ? '▲' : '▼'}</span>
           </button>
           {estaAbierta('revisiones') && (
             <div className="border-t border-[#EEE2D4]">

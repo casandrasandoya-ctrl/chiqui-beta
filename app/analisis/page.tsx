@@ -1016,7 +1016,7 @@ export default function AnalisisPage() {
               <p className="text-sm font-bold">Lo observado este mes</p>
               <p className="text-xs text-[#8A7560]">{total} registros</p>
             </div>
-            <span className="text-[#8A7560] text-lg">{abiertoObservado ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{abiertoObservado ? '▲' : '▼'}</span>
           </button>
           {abiertoObservado && (
           <div className="border-t border-[#EEE2D4]">
@@ -1048,7 +1048,7 @@ export default function AnalisisPage() {
                 <p className="text-[10px] text-[#8A7560]">{signosHistorial.length} día{signosHistorial.length === 1 ? '' : 's'} con eventos graves en todo el historial</p>
               </div>
             </div>
-            <span className="text-[#8A7560] text-lg">{abiertaSignos ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{abiertaSignos ? '▲' : '▼'}</span>
           </button>
           {abiertaSignos && (
             <div className="border-t border-[#EEE2D4]">
@@ -1104,7 +1104,7 @@ export default function AnalisisPage() {
           <div className="mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
             <button onClick={() => setAbiertaNormalidad(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
               <span className="font-bold text-sm text-[#3D2B1F]">📊 Normalidad por categoría</span>
-              <span className="text-[#8A7560] text-lg">{abiertaNormalidad ? '⌃' : '⌄'}</span>
+              <span className="text-[#8C572F] text-base font-bold">{abiertaNormalidad ? '▲' : '▼'}</span>
             </button>
             {abiertaNormalidad && (
               <div className="border-t border-[#EEE2D4] p-4">
@@ -1238,7 +1238,7 @@ export default function AnalisisPage() {
               <button type="button" onClick={() => setAbiertoPaseoMes(v => !v)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
                 <span className="text-sm">📊</span>
                 <p className="flex-1 text-[10px] font-semibold text-[#8A7560]">Historial mensual de paseos</p>
-                <span className="text-[#8A7560] text-sm">{abiertoPaseoMes ? '▾' : '›'}</span>
+                <span className="text-[#8C572F] text-sm font-bold">{abiertoPaseoMes ? '▲' : '▼'}</span>
               </button>
               {abiertoPaseoMes && (
               <div className="px-4 pb-3">
@@ -1277,7 +1277,7 @@ export default function AnalisisPage() {
                 <button type="button" onClick={() => setAbiertoDetalleMes(v => !v)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
                   <span className="text-sm">📋</span>
                   <p className="flex-1 text-[10px] font-semibold text-[#8A7560] capitalize">Estadísticas del mes</p>
-                  <span className="text-[#8A7560] text-sm">{abiertoDetalleMes ? '▾' : '›'}</span>
+                  <span className="text-[#8C572F] text-sm font-bold">{abiertoDetalleMes ? '▲' : '▼'}</span>
                 </button>
                 {abiertoDetalleMes && (
                 <div className="px-4 pb-3">
@@ -1408,7 +1408,7 @@ export default function AnalisisPage() {
                     <img src="/chiqui/chiqui_juguetes.png" alt="" className="w-6 h-6 object-contain flex-shrink-0" />
                     <p className="flex-1 text-[11px] font-bold text-[#8C572F]">Enriquecimiento y entrenamiento</p>
                     <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">{diasConEnr}</span>
-                    <span className="text-[#8A7560] text-sm">{abiertaEnriq ? '▾' : '›'}</span>
+                    <span className="text-[#8C572F] text-sm font-bold">{abiertaEnriq ? '▲' : '▼'}</span>
                   </button>
                   {abiertaEnriq && (
                   <div className="px-4 pb-3">
@@ -1512,7 +1512,7 @@ export default function AnalisisPage() {
                 <button type="button" onClick={() => setAbiertoActSemana(v => !v)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
                   <span className="text-sm">📅</span>
                   <p className="flex-1 text-[10px] font-semibold text-[#8A7560]">Resumen de actividad semanal</p>
-                  <span className="text-[#8A7560] text-sm">{abiertoActSemana ? '▾' : '›'}</span>
+                  <span className="text-[#8C572F] text-sm font-bold">{abiertoActSemana ? '▲' : '▼'}</span>
                 </button>
                 {abiertoActSemana && (
                 <div className="px-4 pb-3">
@@ -1707,7 +1707,7 @@ export default function AnalisisPage() {
                       </span>
                     )}
                     <span className="text-[10px] text-[#8A7560]">{items.length}</span>
-                    <span className="text-[#8A7560] text-sm">{abierto ? '▾' : '›'}</span>
+                    <span className="text-[#8C572F] text-sm font-bold">{abierto ? '▲' : '▼'}</span>
                   </button>
                   {abierto && (
                     <div className="divide-y divide-[#EEE2D4] border-t border-[#EEE2D4]">
@@ -1726,7 +1726,7 @@ export default function AnalisisPage() {
         <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           <button onClick={() => setAbiertoRecientes(v => !v)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
             <span className="font-bold text-sm text-[#3D2B1F]">📋 Registros recientes</span>
-            <span className="text-[#8A7560] text-lg">{abiertoRecientes ? '⌃' : '⌄'}</span>
+            <span className="text-[#8C572F] text-base font-bold">{abiertoRecientes ? '▲' : '▼'}</span>
           </button>
           {abiertoRecientes && (
             <div className="border-t border-[#EEE2D4]">
