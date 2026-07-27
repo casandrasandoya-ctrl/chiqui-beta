@@ -1,6 +1,13 @@
 import { createVetClient } from '@/utils/supabase/vet-client'
 import ExamenesLabVet from '@/components/ExamenesLabVet'
 
+// La vista del veterinario NUNCA se cachea: cada visita trae los datos
+// más recientes. Sin esto, Next.js cacheaba la página y una evolución
+// recién registrada no aparecía hasta forzar recarga o expirar el
+// caché. force-dynamic garantiza que el vet siempre vea lo último.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 interface Props {
   searchParams: { token?: string }
 }
@@ -179,10 +186,11 @@ function construirResumenClinico(params: {
 
 function SeccionVet({ titulo, children, abiertaPorDefecto = false }: { titulo: string, children: React.ReactNode, abiertaPorDefecto?: boolean }) {
   return (
-    <details open={abiertaPorDefecto} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+    <details open={abiertaPorDefecto} className="seccion-vet bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+      <style dangerouslySetInnerHTML={{ __html: '.seccion-vet[open] > summary .flecha-vet { transform: rotate(180deg); }' }} />
       <summary className="flex items-center justify-between px-4 py-3.5 cursor-pointer list-none">
         <span className="font-bold text-sm text-[#3D2B1F]">{titulo}</span>
-        <span className="text-[#8A7560] text-lg select-none">⌄</span>
+        <span className="flecha-vet text-[#8C572F] text-sm font-bold select-none transition-transform">▼</span>
       </summary>
       <div className="border-t border-[#EEE2D4] px-4 py-3">
         {children}

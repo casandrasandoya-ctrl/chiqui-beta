@@ -702,7 +702,6 @@ export default function AnalisisPage() {
   const maxActividadSemana = Math.max(...actividadSemana.map(a => a.total), 1)
   const totalPaseoSemana = actividadSemana.reduce((a, d) => a + d.minPaseo, 0)
   const totalEnrSemana = actividadSemana.reduce((a, d) => a + d.minEnr, 0)
-  const promedioDiarioMes = diaActualP > 0 ? Math.round(minutosPaseoMes / diaActualP) : 0
   let diaMayorPaseo: { fecha: string; minutos: number } | null = null
   for (const r of registrosMesActual) {
     const m = minutosDePaseo(r)
@@ -1291,8 +1290,8 @@ export default function AnalisisPage() {
                     <p className="text-[13px] font-bold text-[#3D2B1F]">{fmtDuracion(promedioPorDiaConPaseo)}</p>
                   </div>
                   <div>
-                    <p className="text-[9px] text-[#8A7560]">Promedio diario</p>
-                    <p className="text-[13px] font-bold text-[#3D2B1F]">{fmtDuracion(promedioDiarioMes)}</p>
+                    <p className="text-[9px] text-[#8A7560]">Constancia</p>
+                    <p className="text-[13px] font-bold text-[#3D2B1F]">{diaActualP > 0 ? Math.round((diasConPaseoMes / diaActualP) * 100) : 0}%<span className="text-[9px] font-normal text-[#8A7560]"> de los días</span></p>
                   </div>
                   {diaMayorPaseo && (
                     <div>
