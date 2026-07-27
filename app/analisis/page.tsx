@@ -1004,7 +1004,7 @@ export default function AnalisisPage() {
       <div className="mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#F0E2CE' }}>
         <div className="px-2 mb-2 pt-1">
           <div className="flex items-center gap-2">
-            <img src="/chiqui/chiqui_lupa.png" alt="" className="w-7 h-7 object-contain" />
+            <img src="/chiqui/chiqui_vet.png" alt="" className="w-7 h-7 object-contain" />
             <h2 className="text-sm font-bold text-[#8C572F] uppercase tracking-wider">Estado de salud</h2>
           </div>
         </div>
