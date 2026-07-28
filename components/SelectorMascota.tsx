@@ -72,9 +72,10 @@ export default function SelectorMascota({
           </div>
         </div>
 
-        {mascotas.length > 1 && (
-          <span className={`text-[#8C572F] text-sm font-bold transition-transform ${abierto ? 'rotate-180' : ''}`}>▼</span>
-        )}
+        {/* Flecha SIEMPRE visible: aunque haya una sola mascota, el
+            desplegable da acceso a "Editar perfil". La flecha le indica
+            al usuario que la tarjeta es tocable. */}
+        <span className={`text-[#8C572F] text-base font-bold transition-transform flex-shrink-0 ${abierto ? 'rotate-180' : ''}`}>▼</span>
       </button>
 
       {abierto && (

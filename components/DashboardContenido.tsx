@@ -10,6 +10,7 @@ import BannerInstalarApp from '@/components/BannerInstalarApp'
 import Novedades from '@/components/Novedades'
 import { useEffect, useState } from 'react'
 import ChiquiTeCuenta from '@/components/ChiquiTeCuenta'
+import { createClient } from '@/utils/supabase/client'
 
 function calcEdad(f: string) {
   const h = new Date(), n = new Date(f)
@@ -55,6 +56,15 @@ export default function DashboardContenido({
 }: Props) {
   const router = useRouter()
   const [cuidadosExpandido, setCuidadosExpandido] = useState(false)
+  // Confirmación de cierre de sesión (útil para cuentas de prueba y
+  // para evitar cerrar sesión por error).
+  const [confirmarCerrar, setConfirmarCerrar] = useState(false)
+  async function cerrarSesion() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
   const today = new Date()
   const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
   const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
@@ -89,7 +99,39 @@ export default function DashboardContenido({
           <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-16 h-16 object-contain" />
           <span className="font-heading text-2xl font-extrabold text-[#8C572F]">Entre Señales</span>
         </div>
+        {/* Cerrar sesión — esquina superior derecha, con confirmación */}
+        <button
+          onClick={() => setConfirmarCerrar(true)}
+          className="flex items-center gap-1 text-[#8A7560] active:opacity-60"
+          aria-label="Cerrar sesión"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          <span className="text-[11px] font-semibold">Salir</span>
+        </button>
       </div>
+
+      {/* Modal de confirmación de cierre de sesión */}
+      {confirmarCerrar && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-8" style={{ background: 'rgba(61,43,31,0.45)' }} onClick={() => setConfirmarCerrar(false)}>
+          <div className="bg-[#FFFCF8] rounded-2xl w-full max-w-xs p-5 text-center" onClick={e => e.stopPropagation()}>
+            <img src="/chiqui/chiqui_hola.png" alt="" className="w-14 h-14 object-contain mx-auto mb-2" />
+            <p className="font-bold text-sm text-[#3D2B1F] mb-1">¿Cerrar sesión?</p>
+            <p className="text-xs text-[#8A7560] mb-4">Tendrás que iniciar sesión de nuevo para volver a entrar.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmarCerrar(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-[#8A7560] bg-[#F0E2CE]">
+                Cancelar
+              </button>
+              <button onClick={cerrarSesion} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#E05252' }}>
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Fecha */}
       <div className="px-5 pb-3">
