@@ -29,12 +29,12 @@ export default function LinksPage() {
         <div className="bg-[#F5EDE3] rounded-t-[120px] rounded-b-3xl px-6 pt-10 pb-8">
 
           {/* Hero: ilustración de mascotas con el logo */}
-          <div className="flex justify-center mb-2">
-            <img src="/chiqui/chiqui_gatos_y_perros.png" alt="CHIQUI Entre Señales" className="w-56 h-56 object-contain" />
+          <div className="flex justify-center">
+            <img src="/chiqui/chiqui_gatos_y_perros.png" alt="CHIQUI Entre Señales" className="w-56 h-56 object-contain -mb-2" />
           </div>
 
           <div className="text-center mb-6">
-            <h1 className="font-heading text-2xl font-extrabold text-[#3D2B1F]">Entre Señales</h1>
+            <h1 className="font-heading text-2xl font-extrabold text-[#3D2B1F] -mt-1">Entre Señales</h1>
             <p className="text-xs text-[#8A7560] mt-0.5">Tu compañero de observación y cuidado</p>
           </div>
 
@@ -81,7 +81,7 @@ export default function LinksPage() {
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="#8C572F"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24a11.46 11.46 0 00-8.94 0L5.65 5.67c-.19-.28-.54-.37-.83-.22-.3.16-.42.54-.26.85L6.4 9.48A10.78 10.78 0 001 18h22a10.78 10.78 0 00-5.4-8.52zM7 15.25a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5zm10 0a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5z"/></svg>
                 <div className="flex-1">
                   <p className="font-bold text-sm text-[#3D2B1F]">Únete a la Beta Cerrada de Chiqui</p>
-                  <p className="text-[11px] text-[#8A7560]">Rellena el formulario aquí</p>
+                  <p className="text-[11px] text-[#8A7560]">Solicita tu acceso</p>
                 </div>
                 <span className="text-[#8C572F] font-bold text-lg">›</span>
               </a>
@@ -126,33 +126,28 @@ export default function LinksPage() {
               className="flex items-center gap-3 bg-[#FFFCF8] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform shadow-sm">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8C572F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
               <div className="flex-1">
-                <p className="font-bold text-sm text-[#3D2B1F]">Abrir la versión web</p>
-                <p className="text-[11px] text-[#8A7560]">Úsala directo en tu navegador</p>
+                <p className="font-bold text-sm text-[#3D2B1F]">Abrir Chiqui en tu navegador</p>
+                <p className="text-[11px] text-[#8A7560]">Úsala directo, sin instalar nada</p>
               </div>
               <span className="text-[#8C572F] font-bold text-lg">›</span>
             </a>
           </div>
 
-          {/* Tu cuenta y privacidad */}
-          <p className="text-[11px] font-bold text-[#3D2B1F] uppercase tracking-wider mb-3">Tu cuenta y privacidad</p>
-          <div className="space-y-3">
+          {/* Tu cuenta y privacidad — requisitos, con menor protagonismo:
+              enlaces más compactos y discretos, separados de la descarga. */}
+          <p className="text-[10px] font-semibold text-[#B5A38F] uppercase tracking-wider mb-2 mt-8">Tu cuenta y privacidad</p>
+          <div className="space-y-1.5">
             <a href="/privacidad"
-              className="flex items-center gap-3 bg-[#FFFCF8] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform shadow-sm">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8C572F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <div className="flex-1">
-                <p className="font-bold text-sm text-[#3D2B1F]">Política de privacidad</p>
-                <p className="text-[11px] text-[#8A7560]">Cómo cuidamos tus datos</p>
-              </div>
-              <span className="text-[#8C572F] font-bold text-lg">›</span>
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl active:bg-[#FFFCF8] transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B5A38F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span className="flex-1 text-xs font-medium text-[#8A7560]">Política de privacidad</span>
+              <span className="text-[#B5A38F] text-sm">›</span>
             </a>
             <a href="/eliminar-cuenta"
-              className="flex items-center gap-3 bg-[#FFFCF8] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform shadow-sm">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E05252" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              <div className="flex-1">
-                <p className="font-bold text-sm text-[#3D2B1F]">Eliminar cuenta</p>
-                <p className="text-[11px] text-[#8A7560]">Solicita borrar tus datos</p>
-              </div>
-              <span className="text-[#E05252] font-bold text-lg">›</span>
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl active:bg-[#FFFCF8] transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B5A38F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span className="flex-1 text-xs font-medium text-[#8A7560]">Eliminar cuenta</span>
+              <span className="text-[#B5A38F] text-sm">›</span>
             </a>
           </div>
         </div>
