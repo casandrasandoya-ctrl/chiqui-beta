@@ -30,11 +30,11 @@ export default function LinksPage() {
 
           {/* Hero: ilustración de mascotas con el logo */}
           <div className="flex justify-center">
-            <img src="/chiqui/chiqui_gatos_y_perros.png" alt="CHIQUI Entre Señales" className="w-56 h-56 object-contain -mb-2" />
+            <img src="/chiqui/chiqui_gatos_y_perros.png" alt="CHIQUI Entre Señales" className="w-56 h-56 object-contain -mb-10" />
           </div>
 
           <div className="text-center mb-6">
-            <h1 className="font-heading text-2xl font-extrabold text-[#3D2B1F] -mt-1">Entre Señales</h1>
+            <h1 className="font-heading text-2xl font-extrabold text-[#3D2B1F]">Entre Señales</h1>
             <p className="text-xs text-[#8A7560] mt-0.5">Tu compañero de observación y cuidado</p>
           </div>
 
