@@ -39,8 +39,8 @@ export default function LinksPage() {
           </div>
 
           {/* Síguenos / contáctanos */}
-          <p className="text-[11px] font-bold text-[#3D2B1F] uppercase tracking-wider text-center mb-3">Síguenos o contáctanos</p>
-          <div className="flex justify-center gap-4 mb-7">
+          <p className="text-[11px] font-bold text-[#3D2B1F] uppercase tracking-wider text-center mb-3">Conecta con nosotros</p>
+          <div className="flex justify-center gap-4 mb-5">
             <a href={INSTAGRAM} target="_blank" rel="noopener noreferrer"
               className="w-12 h-12 rounded-full bg-[#FFFCF8] border border-[#EEE2D4] flex items-center justify-center active:scale-95 transition-transform"
               aria-label="Instagram">
@@ -58,6 +58,15 @@ export default function LinksPage() {
                 <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
               </svg>
             </a>
+          </div>
+
+          {/* Fila de beneficios — contexto de valor, discreto */}
+          <div className="flex justify-center items-center gap-3 mb-7 text-[#8A7560]">
+            <span className="text-[11px] font-semibold flex items-center gap-1">📋 Registros</span>
+            <span className="text-[#EEE2D4]">·</span>
+            <span className="text-[11px] font-semibold flex items-center gap-1">📈 Tendencias</span>
+            <span className="text-[#EEE2D4]">·</span>
+            <span className="text-[11px] font-semibold flex items-center gap-1">🚨 Recordatorios</span>
           </div>
 
           {/* Descargar la app */}
@@ -154,7 +163,7 @@ export default function LinksPage() {
 
         {/* Pie sobre el fondo café */}
         <p className="text-center text-[11px] text-[#F5EDE3] mt-5 mb-1">
-          Hecho con <span className="text-[#FFBD59] font-bold">AMOR</span> para las mascotas y quienes las cuidan.
+          Hecho con 💛 para las mascotas y quienes las cuidan.
         </p>
       </div>
     </div>
