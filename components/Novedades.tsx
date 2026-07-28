@@ -51,6 +51,7 @@ interface Props {
     dosisPorDia: number
     tomasHoy: number
   }[]
+  visitasProximas: { id: string; fecha: string; tipo: string; motivo: string | null; veterinario: string | null }[]
 }
 
 interface Novedad {
@@ -143,6 +144,7 @@ function calcularNovedades(
   seguimientos: Props['seguimientos'],
   diasSinCampo: Props['diasSinCampo'],
   medicamentosPendientesHoy: Props['medicamentosPendientesHoy'],
+  visitasProximas: Props['visitasProximas'],
 ): Novedad[] {
   const lista: Novedad[] = []
   const anio = hoyStr.slice(0, 4)
@@ -372,6 +374,32 @@ function calcularNovedades(
     })
   }
 
+  // ---- 8b. VISITA VETERINARIA PRÓXIMA (dentro de 7 días) ----
+  // Avisa de la visita agendada más cercana si cae dentro de la ventana.
+  {
+    const TIPO_EMOJI: Record<string, string> = {
+      rutina: '🩺', examenes: '🔬', enfermedad: '🤒', tratamiento: '💗',
+    }
+    const proximas = (visitasProximas || [])
+      .map(v => ({ ...v, dias: Math.round((new Date(v.fecha + 'T12:00:00').getTime() - new Date(hoyStr + 'T12:00:00').getTime()) / 86400000) }))
+      .filter(v => v.dias >= 0 && v.dias <= VENTANA)
+      .sort((a, b) => a.dias - b.dias)
+    if (proximas.length > 0) {
+      const v = proximas[0]
+      const emoji = TIPO_EMOJI[v.tipo] || '🏥'
+      const cuando = v.dias === 0 ? 'es hoy' : v.dias === 1 ? 'es mañana' : `es en ${v.dias} días`
+      const detalle = v.motivo ? ` (${v.motivo})` : ''
+      const donde = v.veterinario ? ` en ${v.veterinario}` : ''
+      lista.push({
+        key: `visita_vet_${v.id}_${hoyStr}`,
+        img: '/chiqui/chiqui_vet.png',
+        href: '/prevencion',
+        accion: '🏥 Ver visita',
+        mensaje: `${emoji} La visita al veterinario de ${m.nombre} ${cuando}${detalle}${donde}.`,
+      })
+    }
+  }
+
   // ---- 9. MENSAJE POSITIVO (cuando ya no hay nada más importante) ----
   if (tieneRegistroHoy) {
     const [aH, mH, dH] = hoyStr.split('-').map(Number)
@@ -412,7 +440,7 @@ function calcularNovedades(
 
 const PREFIJO_STORAGE = 'chiqui_novedad_'
 
-export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, rachaRegistros, seguimientos, diasSinCampo, medicamentosPendientesHoy }: Props) {
+export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, rachaRegistros, seguimientos, diasSinCampo, medicamentosPendientesHoy, visitasProximas }: Props) {
   const supabase = createClient()
   // Toast de confirmación tras registrar una dosis desde el dashboard.
   // Sin esto, el reload en seco dejaba al usuario sin feedback de que
@@ -500,7 +528,7 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
   const especies = new Set(mascotas.map(ms => ms.especie))
   const pendientesRaw = calcularNovedades(
     mascota, especies, tieneRegistroHoy, color, rachaRegistros, sinPermisoNotif, fechaHoyChile(),
-    seguimientos, diasSinCampo, medicamentosPendientesHoy,
+    seguimientos, diasSinCampo, medicamentosPendientesHoy, visitasProximas,
   )
   // Enlazar onAccion de las novedades de medicamento con el callback
   // real. Se hace acá (no en calcularNovedades) para que la función

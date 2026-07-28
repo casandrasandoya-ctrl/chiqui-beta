@@ -49,10 +49,11 @@ interface Props {
   rachaRegistros: number
   celoActivoHoy: boolean
   diaCeloHoy: number
+  visitasProximas: { id: string; fecha: string; tipo: string; motivo: string | null; veterinario: string | null }[]
 }
 
 export default function DashboardContenido({
-  mascotas, mascota: m, color, estadoLabel, proximosItems, tieneRegistroHoy, cuidadosRecientes, rachaPaseo, rachaEnRiesgo, celoActivoHoy, diaCeloHoy, rachaRegistros, seguimientosPendientes, diasSinCampo, medicamentosPendientesHoy,
+  mascotas, mascota: m, color, estadoLabel, proximosItems, tieneRegistroHoy, cuidadosRecientes, rachaPaseo, rachaEnRiesgo, celoActivoHoy, diaCeloHoy, rachaRegistros, seguimientosPendientes, diasSinCampo, medicamentosPendientesHoy, visitasProximas,
 }: Props) {
   const router = useRouter()
   const [cuidadosExpandido, setCuidadosExpandido] = useState(false)
@@ -158,6 +159,7 @@ export default function DashboardContenido({
         seguimientos={seguimientosPendientes}
         diasSinCampo={diasSinCampo}
         medicamentosPendientesHoy={medicamentosPendientesHoy}
+        visitasProximas={visitasProximas}
       />
 
       {/* TARJETA CELO ACTIVO */}
