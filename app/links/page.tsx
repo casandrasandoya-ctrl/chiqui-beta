@@ -3,166 +3,163 @@
 import { useState } from 'react'
 
 // Landing tipo "linktree" de CHIQUI Entre Señales.
-// Reúne en un solo lugar: accesos por plataforma (Android / iPhone /
-// Samsung), abrir la app web, redes, contacto, privacidad y eliminar
-// cuenta. Diseñada con la identidad de la marca (café/crema/dorado).
+// Hub con la identidad de la marca que reúne los accesos en un solo
+// lugar: redes/contacto, descargas (Android por formulario, iPhone con
+// instrucciones PWA), abrir la web, privacidad y eliminar cuenta.
 //
-// Los enlaces marcados con {/* EDITAR */} se pueden cambiar fácil
-// cuando estén disponibles (ej. el link oficial de Google Play).
+// Enlaces editables al inicio.
 
 const APP_URL = 'https://chiqui-beta-lilac.vercel.app'
 const INSTAGRAM = 'https://instagram.com/chiquientresenales'
 const CORREO = 'chiquientresenales@gmail.com'
-// EDITAR: cuando exista el link oficial de Google Play, reemplaza null
-// por la URL y el botón pasará de "beta" a "descargar" automáticamente.
+// Formulario de inscripción a la beta de Android.
+const FORM_BETA = 'https://docs.google.com/forms/d/e/1FAIpQLSd029Vw0dKvwKtHiGWC6RiG6bQZEKyUpx6RoC5ThVVmzgHpeQ/viewform'
+// EDITAR: cuando exista el link oficial de Google Play, pon la URL aquí
+// y el botón de Android pasará solo de "beta" a "descargar".
 const GOOGLE_PLAY_URL: string | null = null
 
 export default function LinksPage() {
   const [iosAbierto, setIosAbierto] = useState(false)
 
-  // Correo prellenado para pedir acceso a la beta de Android.
-  const mailtoBeta = `mailto:${CORREO}?subject=${encodeURIComponent('Quiero unirme a la beta de Android')}&body=${encodeURIComponent('¡Hola! Me gustaría participar en la prueba de CHIQUI Entre Señales en Android. Mi correo de Google (Gmail) para agregarme como tester es:\n\n')}`
-
   return (
-    <div className="min-h-screen bg-[#F5EDE3] px-5 py-10">
+    <div className="min-h-screen bg-[#3D2B1F] px-5 py-8">
       <div className="max-w-md mx-auto">
 
-        {/* Encabezado con marca */}
-        <div className="flex flex-col items-center text-center mb-7">
-          <img src="/chiqui/chiqui_hola.png" alt="Chiqui" className="w-24 h-24 object-contain mb-2" />
-          <h1 className="font-heading text-2xl font-extrabold text-[#8C572F]">CHIQUI Entre Señales</h1>
-          <p className="text-sm text-[#8A7560] mt-1">Aprende a leer las señales de salud de tu mascota 🐾</p>
-        </div>
+        {/* Tarjeta principal crema con forma de arco */}
+        <div className="bg-[#F5EDE3] rounded-t-[120px] rounded-b-3xl px-6 pt-10 pb-8">
 
-        {/* Bloque: cómo obtener la app */}
-        <p className="text-[11px] font-bold text-[#8A7560] uppercase tracking-wider mb-2 px-1">Descarga la app</p>
-        <div className="space-y-3 mb-6">
-
-          {/* Android / Google Play */}
-          {GOOGLE_PLAY_URL ? (
-            <a href={GOOGLE_PLAY_URL} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-3 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform">
-              <span className="text-2xl">🤖</span>
-              <div className="flex-1">
-                <p className="font-bold text-sm text-[#3D2B1F]">Descargar en Google Play</p>
-                <p className="text-[11px] text-[#8A7560]">Para teléfonos Android</p>
-              </div>
-              <span className="text-[#8C572F] font-bold">→</span>
-            </a>
-          ) : (
-            <a href={mailtoBeta}
-              className="flex items-center gap-3 bg-[#FFFCF8] border-2 border-[#FFBD59] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform">
-              <span className="text-2xl">🤖</span>
-              <div className="flex-1">
-                <p className="font-bold text-sm text-[#3D2B1F]">¿Quieres probar la beta en Android?</p>
-                <p className="text-[11px] text-[#8A7560]">Escríbenos y te agregamos como tester</p>
-              </div>
-              <span className="text-[#8C572F] font-bold">→</span>
-            </a>
-          )}
-
-          {/* iPhone / iOS — despliega instrucciones de PWA */}
-          <div className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl overflow-hidden">
-            <button onClick={() => setIosAbierto(v => !v)}
-              className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:scale-[0.98] transition-transform">
-              <span className="text-2xl"></span>
-              <div className="flex-1">
-                <p className="font-bold text-sm text-[#3D2B1F]">Instalar en iPhone</p>
-                <p className="text-[11px] text-[#8A7560]">Toca para ver cómo</p>
-              </div>
-              <span className="text-[#8C572F] text-base font-bold">{iosAbierto ? '▲' : '▼'}</span>
-            </button>
-            {iosAbierto && (
-              <div className="px-4 pb-4 border-t border-[#EEE2D4] pt-3">
-                <ol className="space-y-2.5">
-                  {[
-                    ['1', 'Abre el enlace de la app en Safari (no en otro navegador).'],
-                    ['2', 'Toca el botón de compartir (el cuadrado con la flecha hacia arriba).'],
-                    ['3', 'Baja y elige "Agregar a pantalla de inicio".'],
-                    ['4', '¡Listo! El ícono de Chiqui quedará en tu pantalla como una app.'],
-                  ].map(([n, t]) => (
-                    <li key={n} className="flex gap-2.5 text-xs text-[#5C4A3A] leading-relaxed">
-                      <span className="w-5 h-5 rounded-full bg-[#FFBD59] text-[#3D2B1F] flex items-center justify-center text-[11px] font-bold flex-shrink-0">{n}</span>
-                      <span>{t}</span>
-                    </li>
-                  ))}
-                </ol>
-                <a href={APP_URL} target="_blank" rel="noopener noreferrer"
-                  className="mt-3 block text-center bg-[#FFBD59] text-[#3D2B1F] font-bold text-sm py-2.5 rounded-xl active:opacity-80">
-                  Abrir la app en Safari →
-                </a>
-              </div>
-            )}
+          {/* Hero: ilustración de mascotas con el logo */}
+          <div className="flex justify-center mb-2">
+            <img src="/chiqui/chiqui_gatos_y_perros.png" alt="CHIQUI Entre Señales" className="w-56 h-56 object-contain" />
           </div>
 
-          {/* Samsung Galaxy Store */}
-          <a href={APP_URL} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform">
-            <span className="text-2xl">📱</span>
-            <div className="flex-1">
-              <p className="font-bold text-sm text-[#3D2B1F]">Samsung Galaxy</p>
-              <p className="text-[11px] text-[#8A7560]">Abre la app desde tu navegador</p>
+          <div className="text-center mb-6">
+            <h1 className="font-heading text-2xl font-extrabold text-[#3D2B1F]">Entre Señales</h1>
+            <p className="text-xs text-[#8A7560] mt-0.5">Tu compañero de observación y cuidado</p>
+          </div>
+
+          {/* Síguenos / contáctanos */}
+          <p className="text-[11px] font-bold text-[#3D2B1F] uppercase tracking-wider text-center mb-3">Síguenos o contáctanos</p>
+          <div className="flex justify-center gap-4 mb-7">
+            <a href={INSTAGRAM} target="_blank" rel="noopener noreferrer"
+              className="w-12 h-12 rounded-full bg-[#FFFCF8] border border-[#EEE2D4] flex items-center justify-center active:scale-95 transition-transform"
+              aria-label="Instagram">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8C572F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+              </svg>
+            </a>
+            <a href={`mailto:${CORREO}`}
+              className="w-12 h-12 rounded-full bg-[#FFFCF8] border border-[#EEE2D4] flex items-center justify-center active:scale-95 transition-transform"
+              aria-label="Correo">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8C572F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+              </svg>
+            </a>
+          </div>
+
+          {/* Descargar la app */}
+          <p className="text-[11px] font-bold text-[#3D2B1F] uppercase tracking-wider mb-3">Descargar la app</p>
+          <div className="space-y-3 mb-7">
+
+            {/* Android → formulario de beta */}
+            {GOOGLE_PLAY_URL ? (
+              <a href={GOOGLE_PLAY_URL} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-[#FFFCF8] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform shadow-sm">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="#8C572F"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24a11.46 11.46 0 00-8.94 0L5.65 5.67c-.19-.28-.54-.37-.83-.22-.3.16-.42.54-.26.85L6.4 9.48A10.78 10.78 0 001 18h22a10.78 10.78 0 00-5.4-8.52zM7 15.25a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5zm10 0a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5z"/></svg>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-[#3D2B1F]">Descargar en Google Play</p>
+                  <p className="text-[11px] text-[#8A7560]">Para teléfonos Android</p>
+                </div>
+                <span className="text-[#8C572F] font-bold text-lg">›</span>
+              </a>
+            ) : (
+              <a href={FORM_BETA} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-[#FFFCF8] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform shadow-sm">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="#8C572F"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24a11.46 11.46 0 00-8.94 0L5.65 5.67c-.19-.28-.54-.37-.83-.22-.3.16-.42.54-.26.85L6.4 9.48A10.78 10.78 0 001 18h22a10.78 10.78 0 00-5.4-8.52zM7 15.25a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5zm10 0a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5z"/></svg>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-[#3D2B1F]">Únete a la Beta Cerrada de Chiqui</p>
+                  <p className="text-[11px] text-[#8A7560]">Rellena el formulario aquí</p>
+                </div>
+                <span className="text-[#8C572F] font-bold text-lg">›</span>
+              </a>
+            )}
+
+            {/* iPhone → instrucciones PWA desplegables, con manzana */}
+            <div className="bg-[#FFFCF8] rounded-2xl overflow-hidden shadow-sm">
+              <button onClick={() => setIosAbierto(v => !v)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:scale-[0.98] transition-transform">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="#8C572F"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.89-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.78 1.3 10.32.86 1.24 1.89 2.64 3.23 2.59 1.3-.05 1.79-.84 3.36-.84 1.57 0 2.01.84 3.39.81 1.4-.02 2.29-1.27 3.15-2.52.99-1.45 1.4-2.85 1.42-2.92-.03-.01-2.73-1.05-2.76-4.16zM14.6 4.5c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z"/></svg>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-[#3D2B1F]">Instalar en iPhone</p>
+                  <p className="text-[11px] text-[#8A7560]">Toca para ver cómo</p>
+                </div>
+                <span className="text-[#8C572F] text-base font-bold">{iosAbierto ? '▲' : '▼'}</span>
+              </button>
+              {iosAbierto && (
+                <div className="px-4 pb-4 border-t border-[#EEE2D4] pt-3">
+                  <ol className="space-y-2.5">
+                    {[
+                      ['1', 'Abre el enlace de la app en Safari (no en otro navegador).'],
+                      ['2', 'Toca el botón de compartir (el cuadrado con la flecha hacia arriba).'],
+                      ['3', 'Baja y elige "Agregar a pantalla de inicio".'],
+                      ['4', '¡Listo! El ícono de Chiqui quedará en tu pantalla como una app.'],
+                    ].map(([n, t]) => (
+                      <li key={n} className="flex gap-2.5 text-xs text-[#5C4A3A] leading-relaxed">
+                        <span className="w-5 h-5 rounded-full bg-[#FFBD59] text-[#3D2B1F] flex items-center justify-center text-[11px] font-bold flex-shrink-0">{n}</span>
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ol>
+                  <a href={APP_URL} target="_blank" rel="noopener noreferrer"
+                    className="mt-3 block text-center bg-[#FFBD59] text-[#3D2B1F] font-bold text-sm py-2.5 rounded-xl active:opacity-80">
+                    Abrir la app en Safari ›
+                  </a>
+                </div>
+              )}
             </div>
-            <span className="text-[#8C572F] font-bold">→</span>
-          </a>
+
+            {/* Abrir versión web */}
+            <a href={APP_URL} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-3 bg-[#FFFCF8] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform shadow-sm">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8C572F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <div className="flex-1">
+                <p className="font-bold text-sm text-[#3D2B1F]">Abrir la versión web</p>
+                <p className="text-[11px] text-[#8A7560]">Úsala directo en tu navegador</p>
+              </div>
+              <span className="text-[#8C572F] font-bold text-lg">›</span>
+            </a>
+          </div>
+
+          {/* Tu cuenta y privacidad */}
+          <p className="text-[11px] font-bold text-[#3D2B1F] uppercase tracking-wider mb-3">Tu cuenta y privacidad</p>
+          <div className="space-y-3">
+            <a href="/privacidad"
+              className="flex items-center gap-3 bg-[#FFFCF8] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform shadow-sm">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8C572F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <div className="flex-1">
+                <p className="font-bold text-sm text-[#3D2B1F]">Política de privacidad</p>
+                <p className="text-[11px] text-[#8A7560]">Cómo cuidamos tus datos</p>
+              </div>
+              <span className="text-[#8C572F] font-bold text-lg">›</span>
+            </a>
+            <a href="/eliminar-cuenta"
+              className="flex items-center gap-3 bg-[#FFFCF8] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform shadow-sm">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E05252" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <div className="flex-1">
+                <p className="font-bold text-sm text-[#3D2B1F]">Eliminar cuenta</p>
+                <p className="text-[11px] text-[#8A7560]">Solicita borrar tus datos</p>
+              </div>
+              <span className="text-[#E05252] font-bold text-lg">›</span>
+            </a>
+          </div>
         </div>
 
-        {/* Bloque: abrir directo */}
-        <a href={APP_URL} target="_blank" rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 bg-[#8C572F] text-white rounded-2xl px-4 py-4 mb-6 active:scale-[0.98] transition-transform">
-          <span className="text-lg">🐾</span>
-          <span className="font-bold text-sm">Abrir la app ahora</span>
-        </a>
-
-        {/* Bloque: comunidad y contacto */}
-        <p className="text-[11px] font-bold text-[#8A7560] uppercase tracking-wider mb-2 px-1">Síguenos y contáctanos</p>
-        <div className="space-y-3 mb-6">
-          <a href={INSTAGRAM} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform">
-            <span className="text-2xl">📸</span>
-            <div className="flex-1">
-              <p className="font-bold text-sm text-[#3D2B1F]">Instagram</p>
-              <p className="text-[11px] text-[#8A7560]">@chiquientresenales</p>
-            </div>
-            <span className="text-[#8C572F] font-bold">→</span>
-          </a>
-          <a href={`mailto:${CORREO}`}
-            className="flex items-center gap-3 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform">
-            <span className="text-2xl">✉️</span>
-            <div className="flex-1">
-              <p className="font-bold text-sm text-[#3D2B1F]">Escríbenos</p>
-              <p className="text-[11px] text-[#8A7560]">{CORREO}</p>
-            </div>
-            <span className="text-[#8C572F] font-bold">→</span>
-          </a>
-        </div>
-
-        {/* Bloque: legal / cuenta */}
-        <p className="text-[11px] font-bold text-[#8A7560] uppercase tracking-wider mb-2 px-1">Tu cuenta y privacidad</p>
-        <div className="space-y-3 mb-8">
-          <a href="/privacidad"
-            className="flex items-center gap-3 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform">
-            <span className="text-2xl">🛡️</span>
-            <div className="flex-1">
-              <p className="font-bold text-sm text-[#3D2B1F]">Política de privacidad</p>
-              <p className="text-[11px] text-[#8A7560]">Cómo cuidamos tus datos</p>
-            </div>
-            <span className="text-[#8C572F] font-bold">→</span>
-          </a>
-          <a href="/eliminar-cuenta"
-            className="flex items-center gap-3 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-4 py-3.5 active:scale-[0.98] transition-transform">
-            <span className="text-2xl">🗑️</span>
-            <div className="flex-1">
-              <p className="font-bold text-sm text-[#3D2B1F]">Eliminar cuenta</p>
-              <p className="text-[11px] text-[#8A7560]">Solicita borrar tus datos</p>
-            </div>
-            <span className="text-[#8C572F] font-bold">→</span>
-          </a>
-        </div>
-
-        {/* Pie */}
-        <p className="text-center text-[11px] text-[#8A7560]">
-          Hecho con 💛 para las mascotas y quienes las cuidan.
+        {/* Pie sobre el fondo café */}
+        <p className="text-center text-[11px] text-[#F5EDE3] mt-5 mb-1">
+          Hecho con <span className="text-[#FFBD59] font-bold">AMOR</span> para las mascotas y quienes las cuidan.
         </p>
       </div>
     </div>
