@@ -12,6 +12,7 @@ import ReproduccionTracker from '@/components/ReproduccionTracker'
 import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 import ExamenesLab from '@/components/ExamenesLab'
+import VisitasVeterinarias from '@/components/VisitasVeterinarias'
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
 function fmt(f: string) { const d = new Date(f + 'T00:00:00'); return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}` }
@@ -617,6 +618,8 @@ export default function PrevencionPage() {
       </div>
 
       {mascota && <ExamenesLab mascotaId={mascota.id} especie={mascota.especie || ''} />}
+
+      {mascota && <VisitasVeterinarias mascotaId={mascota.id} />}
 
       {/* FRECUENCIA RESPIRATORIA */}
       {mascota && (mascota.especie === 'Perro' || mascota.especie === 'Gato') && (
