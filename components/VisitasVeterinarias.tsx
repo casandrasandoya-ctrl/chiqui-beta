@@ -45,6 +45,7 @@ export default function VisitasVeterinarias({ mascotaId }: Props) {
   const [abierto, setAbierto] = useState(false)
   const [visitas, setVisitas] = useState<any[]>([])
   const [visitasRegistro, setVisitasRegistro] = useState<any[]>([])
+  const [historialExpandido, setHistorialExpandido] = useState(false)
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editando, setEditando] = useState<any>(null)
   const [guardando, setGuardando] = useState(false)
@@ -262,13 +263,24 @@ export default function VisitasVeterinarias({ mascotaId }: Props) {
             </div>
           )}
 
-          {/* Historial de visitas pasadas */}
+          {/* Historial de visitas pasadas — se muestra solo la más
+              reciente; el resto queda plegado tras un botón. */}
           {pasadas.length > 0 && (
             <div>
               <p className="text-[11px] font-bold text-[#8A7560] uppercase tracking-wider mb-2">Historial</p>
               <div className="space-y-2">
-                {pasadas.map(v => <TarjetaVisita key={v.id} v={v} esFutura={false} />)}
+                {(historialExpandido ? pasadas : pasadas.slice(0, 1)).map(v => (
+                  <TarjetaVisita key={v.id} v={v} esFutura={false} />
+                ))}
               </div>
+              {pasadas.length > 1 && (
+                <button onClick={() => setHistorialExpandido(v => !v)}
+                  className="w-full mt-2 text-[11px] font-semibold text-[#8C572F] flex items-center justify-center gap-1 py-1.5">
+                  {historialExpandido
+                    ? 'Ver menos ▲'
+                    : `Ver historial completo (${pasadas.length}) ▼`}
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -563,7 +563,7 @@ export default function PrevencionPage() {
     if (dias === 0) return { texto: 'Hoy', color: '#4CAF7D' }
     return { texto: `Hace ${dias} ${dias === 1 ? 'día' : 'días'}`, color: '#8A7560' }
   }
-  const badgeExamenes = badgeUltimo(examenes, 'fecha')
+  // badgeExamenes eliminado: ya no se muestra "hace X días" en Documentos de examen
   const badgeRevisiones = badgeUltimo(revisiones, 'fecha')
 
   // Píldora reutilizable para los encabezados de sección
@@ -1133,7 +1133,7 @@ export default function PrevencionPage() {
       {/* EXÁMENES */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('examenes')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">📄 Documentos de examen</span>{badgeExamenes && <PildoraBadge b={badgeExamenes} />}</div>
+          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">📄 Documentos de examen</span></div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('examen'); setForm({}); setEditandoId(null); setArchivoExamen(null); setErrorExamen(''); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
             <span className="text-[#8C572F] text-base font-bold">{estaAbierta('examenes') ? '▲' : '▼'}</span>
