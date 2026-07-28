@@ -44,6 +44,7 @@ export default function VisitasVeterinarias({ mascotaId }: Props) {
   const supabase = createClient()
   const [abierto, setAbierto] = useState(false)
   const [visitas, setVisitas] = useState<any[]>([])
+  const [visitasRegistro, setVisitasRegistro] = useState<any[]>([])
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editando, setEditando] = useState<any>(null)
   const [guardando, setGuardando] = useState(false)
@@ -62,17 +63,58 @@ export default function VisitasVeterinarias({ mascotaId }: Props) {
   }, [mascotaId])
 
   async function cargar() {
-    const { data } = await supabase
+    // 1) Visitas formales de la tabla visitas_veterinarias
+    const { data: visitasData } = await supabase
       .from('visitas_veterinarias')
       .select('*')
       .eq('mascota_id', mascotaId)
       .order('fecha', { ascending: true })
-    setVisitas(data || [])
+    const visitasFormales = visitasData || []
+    setVisitas(visitasFormales)
+
+    // 2) Días marcados "fue al veterinario" en los registros diarios.
+    //    Son visitas que ocurrieron (pasadas o de hoy) pero sin detalle.
+    //    Se muestran en el historial y se pueden "completar" después.
+    const { data: regData } = await supabase
+      .from('registros_diarios')
+      .select('fecha, fue_al_vet')
+      .eq('mascota_id', mascotaId)
+      .eq('fue_al_vet', true)
+      .order('fecha', { ascending: false })
+
+    // Evitar duplicados: si ya existe una visita formal en esa misma
+    // fecha, no mostramos también el registro diario (sería la misma
+    // visita vista dos veces).
+    const fechasFormales = new Set(visitasFormales.map(v => v.fecha))
+    const desdeRegistro = (regData || [])
+      .filter(r => !fechasFormales.has(r.fecha))
+      .map(r => ({
+        id: `reg_${r.fecha}`,   // id sintético (no es de la tabla visitas)
+        fecha: r.fecha,
+        tipo: 'rutina',
+        motivo: null,
+        veterinario: null,
+        nota: null,
+        _desdeRegistro: true,   // marca: vino del registro diario
+      }))
+    setVisitasRegistro(desdeRegistro)
   }
 
   function abrirNueva() {
     setEditando(null)
     setFecha(''); setHora(''); setTipo('rutina'); setMotivo(''); setVeterinario(''); setNota('')
+    setModalAbierto(true)
+    document.body.style.overflow = 'hidden'
+  }
+
+  // Completar un día "fue al vet" del registro diario: abre el modal con
+  // la fecha precargada, pero SIN editando (editando=null), de modo que
+  // al guardar se CREA una visita formal nueva en esa fecha. El día
+  // marcado en el registro diario se mantiene; al haber ya una visita
+  // formal en esa fecha, deja de mostrarse por separado (sin duplicar).
+  function abrirCompletar(v: any) {
+    setEditando(null)
+    setFecha(v.fecha || ''); setHora(''); setTipo('rutina'); setMotivo(''); setVeterinario(''); setNota('')
     setModalAbierto(true)
     document.body.style.overflow = 'hidden'
   }
@@ -122,10 +164,14 @@ export default function VisitasVeterinarias({ mascotaId }: Props) {
   }
 
   const hoy = hoyChile()
+  // Todas las visitas juntas: las formales + las que vienen de los
+  // registros diarios (días marcados "fue al vet").
+  const todas = [...visitas, ...visitasRegistro]
   // Futuras: fecha >= hoy, ordenadas de la más próxima a la más lejana.
-  const futuras = visitas.filter(v => v.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha))
+  // (Las del registro diario nunca son futuras, así que solo aporta la tabla.)
+  const futuras = todas.filter(v => v.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha))
   // Pasadas: fecha < hoy, de la más reciente hacia atrás.
-  const pasadas = visitas.filter(v => v.fecha < hoy).sort((a, b) => b.fecha.localeCompare(a.fecha))
+  const pasadas = todas.filter(v => v.fecha < hoy).sort((a, b) => b.fecha.localeCompare(a.fecha))
 
   // Badge: si hay una visita próxima dentro de 7 días, avisamos en el título.
   const proxima = futuras[0]
@@ -134,21 +180,31 @@ export default function VisitasVeterinarias({ mascotaId }: Props) {
   function TarjetaVisita({ v, esFutura }: { v: any; esFutura: boolean }) {
     const info = tipoInfo(v.tipo)
     const dias = esFutura ? diasHasta(v.fecha) : null
+    const desdeRegistro = v._desdeRegistro === true
     return (
       <div className="bg-[#FFFCF8] rounded-xl border border-[#EEE2D4] p-3">
         <div className="flex items-start gap-2.5">
-          <span className="text-lg flex-shrink-0" style={{ lineHeight: 1.2 }}>{info.emoji}</span>
+          <span className="text-lg flex-shrink-0" style={{ lineHeight: 1.2 }}>{desdeRegistro ? '🩺' : info.emoji}</span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-sm text-[#3D2B1F]">{fmtFecha(v.fecha)}</span>
               {v.hora && <span className="text-[11px] text-[#8A7560]">{v.hora.slice(0, 5)} hrs</span>}
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${info.color}22`, color: info.color }}>
-                {info.label}
-              </span>
+              {desdeRegistro ? (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#8A7560]/15 text-[#8A7560]">
+                  Registrada en el día
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${info.color}22`, color: info.color }}>
+                  {info.label}
+                </span>
+              )}
             </div>
             {v.motivo && <p className="text-xs text-[#3D2B1F] mt-1">{v.motivo}</p>}
             {v.veterinario && <p className="text-[11px] text-[#8A7560] mt-0.5">📍 {v.veterinario}</p>}
             {v.nota && <p className="text-[11px] text-[#8A7560] mt-0.5 italic">{v.nota}</p>}
+            {desdeRegistro && (
+              <p className="text-[11px] text-[#8A7560] mt-1 italic">Marcada desde el registro diario. Puedes completar el detalle.</p>
+            )}
             {esFutura && dias !== null && (
               <p className="text-[11px] font-semibold mt-1" style={{ color: dias <= 7 ? '#F07A30' : '#8A7560' }}>
                 {dias === 0 ? '¡Es hoy!' : dias === 1 ? 'Mañana' : `En ${dias} días`}
@@ -156,8 +212,14 @@ export default function VisitasVeterinarias({ mascotaId }: Props) {
             )}
           </div>
           <div className="flex flex-col gap-1 flex-shrink-0">
-            <button onClick={() => abrirEditar(v)} className="text-[11px] text-[#CD7421] font-semibold">Editar</button>
-            <button onClick={() => eliminar(v.id)} className="text-[11px] text-[#E05252] font-semibold">Eliminar</button>
+            {desdeRegistro ? (
+              <button onClick={() => abrirCompletar(v)} className="text-[11px] text-[#CD7421] font-semibold">Completar</button>
+            ) : (
+              <>
+                <button onClick={() => abrirEditar(v)} className="text-[11px] text-[#CD7421] font-semibold">Editar</button>
+                <button onClick={() => eliminar(v.id)} className="text-[11px] text-[#E05252] font-semibold">Eliminar</button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -184,7 +246,7 @@ export default function VisitasVeterinarias({ mascotaId }: Props) {
             + Agregar visita
           </button>
 
-          {visitas.length === 0 && (
+          {todas.length === 0 && (
             <p className="text-xs text-[#8A7560] text-center py-3">
               Aún no hay visitas registradas. Agenda la próxima o registra las que ya fueron.
             </p>
