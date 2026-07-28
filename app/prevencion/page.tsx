@@ -617,8 +617,6 @@ export default function PrevencionPage() {
         )}
       </div>
 
-      {mascota && <ExamenesLab mascotaId={mascota.id} especie={mascota.especie || ''} />}
-
       {/* FRECUENCIA RESPIRATORIA */}
       {mascota && (mascota.especie === 'Perro' || mascota.especie === 'Gato') && (
         <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
@@ -902,10 +900,12 @@ export default function PrevencionPage() {
 
       {mascota && <VisitasVeterinarias mascotaId={mascota.id} />}
 
+      {mascota && <ExamenesLab mascotaId={mascota.id} especie={mascota.especie || ''} />}
+
       {/* ENFERMEDADES */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('enfermedades')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">🏥 Enfermedades</span>{badgeEnf && <PildoraBadge b={badgeEnf} />}</div>
+          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">🦠 Enfermedades</span>{badgeEnf && <PildoraBadge b={badgeEnf} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('enfermedad'); setForm({}); setEditandoId(null); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
             <span className="text-[#8C572F] text-base font-bold">{estaAbierta('enfermedades') ? '▲' : '▼'}</span>
@@ -920,7 +920,7 @@ export default function PrevencionPage() {
               </div>
               {enfermedades.length === 0 && (
                 <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-8 text-center">
-                  <div className="text-4xl mb-3">🏥</div>
+                  <div className="text-4xl mb-3">🦠</div>
                   <p className="text-sm text-[#8A7560]">Sin enfermedades registradas</p>
                   <button onClick={() => { setModal('enfermedad'); setForm({}); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">+ Agregar diagnóstico</button>
                 </div>
@@ -933,7 +933,7 @@ export default function PrevencionPage() {
                     <div className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: `${estadoColor[enf.estado]}20` }}>🏥</div>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: `${estadoColor[enf.estado]}20` }}>🦠</div>
                           <div>
                             <p className="font-bold text-sm">{enf.diagnostico}</p>
                             <p className="text-xs text-[#8A7560] mt-0.5">Diagnosticada: {fmt(enf.fecha_diagnostico)}</p>
@@ -1133,7 +1133,7 @@ export default function PrevencionPage() {
       {/* EXÁMENES */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <button onClick={() => toggleSeccion('examenes')} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">📄 Exámenes</span>{badgeExamenes && <PildoraBadge b={badgeExamenes} />}</div>
+          <div className="flex items-center gap-2"><span className="font-bold text-sm text-[#3D2B1F]">📄 Documentos de examen</span>{badgeExamenes && <PildoraBadge b={badgeExamenes} />}</div>
           <div className="flex items-center gap-2">
             <span onClick={(e) => { e.stopPropagation(); setModal('examen'); setForm({}); setEditandoId(null); setArchivoExamen(null); setErrorExamen(''); setFotoSalud(null); setFotoSaludPreview(null); setErrorFotoSalud('') }} className="bg-[#FFBD59] text-[#1A1200] text-xs font-bold px-3 py-1 rounded-lg">+ Agregar</span>
             <span className="text-[#8C572F] text-base font-bold">{estaAbierta('examenes') ? '▲' : '▼'}</span>
@@ -1272,8 +1272,8 @@ export default function PrevencionPage() {
                 {modal === 'vacuna' ? (editandoId ? '💉 Editar vacuna' : '💉 Nueva vacuna')
                   : modal === 'anti' ? (editandoId ? '💊 Editar antiparasitario' : '💊 Nuevo antiparasitario')
                   : modal === 'medicamento' ? (editandoId ? '🩹 Editar medicamento' : '🩹 Nuevo medicamento')
-                  : modal === 'enfermedad' ? (editandoId ? '🏥 Editar diagnóstico' : '🏥 Nuevo diagnóstico')
-                  : modal === 'examen' ? '📄 Nuevo examen'
+                  : modal === 'enfermedad' ? (editandoId ? '🦠 Editar diagnóstico' : '🦠 Nuevo diagnóstico')
+                  : modal === 'examen' ? '📄 Nuevo documento de examen'
                   : '👁️ Nueva observación'}
               </h2>
               <div className="flex items-center gap-2">
