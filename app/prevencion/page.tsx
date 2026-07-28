@@ -619,8 +619,6 @@ export default function PrevencionPage() {
 
       {mascota && <ExamenesLab mascotaId={mascota.id} especie={mascota.especie || ''} />}
 
-      {mascota && <VisitasVeterinarias mascotaId={mascota.id} />}
-
       {/* FRECUENCIA RESPIRATORIA */}
       {mascota && (mascota.especie === 'Perro' || mascota.especie === 'Gato') && (
         <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
@@ -901,6 +899,8 @@ export default function PrevencionPage() {
         <img src="/chiqui/chiqui_examen.png" alt="" className="w-7 h-7 object-contain" />
         <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
       </div>
+
+      {mascota && <VisitasVeterinarias mascotaId={mascota.id} />}
 
       {/* ENFERMEDADES */}
       <div className="mx-4 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">

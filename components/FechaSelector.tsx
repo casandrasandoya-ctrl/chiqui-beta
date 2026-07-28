@@ -76,13 +76,14 @@ export default function FechaSelector({ value, onChange, label, opcional, placeh
   }
 
   const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl"
-  // Rango de años: 10 pasados, año actual, 10 futuros.
-  // Cubre tanto fechas de nacimiento antiguas (perros/gatos suelen
-  // vivir hasta 20 años) como próximas fechas de vacunas,
-  // antiparasitarios o fin de tratamientos que van a futuro. El orden
-  // es descendente (más recientes arriba), con el año actual siempre
-  // visible al abrir.
-  const anios = Array.from({ length: 21 }, (_, i) => anioActual + 10 - i)
+  // Rango de años: 30 pasados, año actual, 10 futuros.
+  // Hacia atrás cubre fechas de nacimiento de mascotas longevas (hay
+  // perros y gatos de 20-25 años, y aves/tortugas que viven mucho más),
+  // sin que a nadie le falte su año. Hacia adelante cubre próximas
+  // fechas de vacunas, antiparasitarios o fin de tratamientos. El orden
+  // es descendente (más recientes arriba), con el año actual visible al
+  // abrir.
+  const anios = Array.from({ length: 41 }, (_, i) => anioActual + 10 - i)
   const maxDias = selAnio !== null && selMes !== null ? diasEnMes(selAnio, selMes) : 31
   const dias = Array.from({ length: maxDias }, (_, i) => i + 1)
   const tieneValor = selAnio && selMes !== null && selDia
