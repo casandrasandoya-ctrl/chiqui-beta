@@ -452,6 +452,9 @@ function RegistroContenido() {
   const supabase = createClient()
   const [mascotas, setMascotas] = useState<any[]>([])
   const [mascotaId, setMascotaId] = useState('')
+  // Modal que aparece tras "Todo normal": ofrece guardar al toque o
+  // seguir editando (algunas usuarias creían que marcar ya guardaba).
+  const [confirmarGuardado, setConfirmarGuardado] = useState(false)
   const [mascotaNombre, setMascotaNombre] = useState('')
   const [especie, setEspecie] = useState('')
   // Fecha de nacimiento de la mascota activa: determina si la sección
@@ -850,6 +853,9 @@ function RegistroContenido() {
       nuevoSel[cat.id] = 'normal'
     })
     setSel(nuevoSel)
+    // Tras marcar todo normal, ofrecemos guardar de inmediato para que
+    // no quede la duda de si el registro ya se guardó.
+    setConfirmarGuardado(true)
   }
 
   function toggleGrupoCuidados(titulo: string) {
@@ -1146,6 +1152,27 @@ function RegistroContenido() {
 
   return (
     <div className="min-h-screen pb-24 fade-in">
+      {/* Modal tras "Todo normal": guardar al toque o seguir editando */}
+      {confirmarGuardado && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-8" style={{ background: 'rgba(61,43,31,0.45)' }} onClick={() => setConfirmarGuardado(false)}>
+          <div className="bg-[#FFFCF8] rounded-2xl w-full max-w-xs p-5 text-center" onClick={e => e.stopPropagation()}>
+            <img src="/chiqui/chiqui_amor.png" alt="" className="w-14 h-14 object-contain mx-auto mb-2" />
+            <p className="font-bold text-sm text-[#3D2B1F] mb-1">¿Guardar el registro?</p>
+            <p className="text-xs text-[#8A7560] mb-4">Marcaste todo como normal. ¿Quieres guardar ahora o seguir editando?</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => { setConfirmarGuardado(false); guardar() }}
+                disabled={loading}
+                className="w-full py-2.5 rounded-xl text-sm font-bold text-[#1A1200] bg-[#FFBD59] disabled:opacity-50">
+                {loading ? 'Guardando...' : 'Guardar ahora'}
+              </button>
+              <button onClick={() => setConfirmarGuardado(false)} className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#8A7560] bg-[#F0E2CE]">
+                Seguir editando
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="px-5 pt-6 pb-3 sticky top-0 bg-[#F5EDE3] z-10 border-b border-[#EEE2D4]">
         <div className="flex items-center gap-3 mb-2">
           <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg flex-shrink-0">←</button>
