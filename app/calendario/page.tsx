@@ -180,6 +180,7 @@ export default function CalendarioPage() {
   const [momentosMes, setMomentosMes] = useState<Record<string, any[]>>({})
   const [mes, setMes] = useState(new Date().getMonth())
   const [año, setAño] = useState(new Date().getFullYear())
+  const [selectorFecha, setSelectorFecha] = useState(false)
   const [diaSeleccionado, setDiaSeleccionado] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -268,6 +269,14 @@ export default function CalendarioPage() {
     if (mascota) await cargarRegistros(mascota.id, nm, na)
   }
 
+  // Saltar directo a un mes/año concreto (desde el selector), útil para
+  // registrar momentos antiguos sin retroceder mes a mes con las flechas.
+  async function irAMesAño(nm: number, na: number) {
+    setMes(nm); setAño(na)
+    setSelectorFecha(false)
+    if (mascota) await cargarRegistros(mascota.id, nm, na)
+  }
+
   // Swipe horizontal para cambiar de mes -- complementa los botones de
   // flecha, no los reemplaza. Umbral de 50px para evitar que un scroll
   // vertical accidental dispare el cambio de mes.
@@ -310,12 +319,53 @@ export default function CalendarioPage() {
         <div className="text-center flex items-center gap-2">
           <img src="/chiqui/chiqui_calendario.png" alt="CHIQUI" className="w-7 h-7 object-contain" />
           <div>
-            <h1 className="font-heading text-base font-extrabold">{MESES[mes]} {año}</h1>
+            <button onClick={() => setSelectorFecha(true)} className="flex items-center gap-1">
+              <h1 className="font-heading text-base font-extrabold">{MESES[mes]} {año}</h1>
+              <span className="text-[#8C572F] text-xs font-bold">▼</span>
+            </button>
             <p className="text-xs text-[#8A7560]">{mascota?.nombre}</p>
           </div>
         </div>
         <button onClick={() => cambiarMes(1)} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg">›</button>
       </div>
+
+      {/* Selector de mes/año: saltar directo sin retroceder con flechas */}
+      {selectorFecha && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-8" style={{ background: 'rgba(61,43,31,0.45)' }} onClick={() => setSelectorFecha(false)}>
+          <div className="bg-[#FFFCF8] rounded-2xl w-full max-w-xs p-5" onClick={e => e.stopPropagation()}>
+            <p className="font-bold text-sm text-[#3D2B1F] mb-3 text-center">Ir a un mes</p>
+            <div className="flex gap-2 mb-4">
+              <select
+                value={mes}
+                onChange={e => setMes(Number(e.target.value))}
+                className="flex-1 bg-[#F5EDE3] border border-[#EEE2D4] rounded-xl px-3 py-2.5 text-sm text-[#3D2B1F] font-medium"
+              >
+                {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
+              </select>
+              <select
+                value={año}
+                onChange={e => setAño(Number(e.target.value))}
+                className="w-24 bg-[#F5EDE3] border border-[#EEE2D4] rounded-xl px-3 py-2.5 text-sm text-[#3D2B1F] font-medium"
+              >
+                {Array.from({ length: 31 }, (_, i) => new Date().getFullYear() - i).map(a => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => irAMesAño(mes, año)}
+                className="w-full py-2.5 rounded-xl text-sm font-bold text-[#1A1200] bg-[#FFBD59]"
+              >
+                Ir a este mes
+              </button>
+              <button onClick={() => setSelectorFecha(false)} className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#8A7560] bg-[#F0E2CE]">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Selector de mascota */}
       {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}

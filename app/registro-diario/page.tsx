@@ -1589,6 +1589,9 @@ function RegistroContenido() {
           const umbral = especie === 'Gato' ? 8 : 4
           if (edad < umbral) return null
           const yaRegistrado = momentos.find(m => m.categoria === 'cambio_edad' && m.tipo === 'primeras_canas')
+          // Si ya se registró, desaparece del registro diario (queda en
+          // la línea de tiempo del perfil).
+          if (yaRegistrado) return null
           return (
             <div className="mb-2 rounded-xl border border-[#EEE2D4] overflow-hidden bg-[#FFFCF8]">
               <div className="px-3 py-3">
@@ -1599,32 +1602,13 @@ function RegistroContenido() {
                 <p className="text-[10px] text-[#8A7560] leading-relaxed mb-2">
                   Con los años empiezan a asomar las primeras canas, muchas veces en el hocico y las cejas. Es una señal linda de que está entrando en su etapa más madura y sabia. 🤍
                 </p>
-                {yaRegistrado ? (
-                  <div className="rounded-xl bg-[#FBEAD9] px-3 py-2.5">
-                    <p className="text-[11px] text-[#3D2B1F] font-medium">
-                      🐺 Le notaste sus primeras canas el {(() => {
-                        const d = new Date(yaRegistrado.fecha + 'T00:00:00')
-                        const ms = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-                        return `${d.getDate()} de ${ms[d.getMonth()]} de ${d.getFullYear()}`
-                      })()}
-                    </p>
-                    <p className="text-[10px] text-[#8A7560] mt-1">💛 Un antecedente bonito de su historia contigo.</p>
-                    <button
-                      onClick={() => { setConfirmarBorrarMomento(false); setMomentoDetalle(yaRegistrado) }}
-                      className="text-[10px] text-[#8A7560] font-semibold mt-1.5"
-                    >
-                      Corregir
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => registrarMomento('primeras_canas', '', 'cambio_edad')}
-                    className="w-full rounded-xl px-3 py-2.5 text-[11px] font-semibold text-[#8C572F]"
-                    style={{ background: '#FBEAD9', border: '1.5px solid #EEE2D4' }}
-                  >
-                    Le salieron sus primeras canas
-                  </button>
-                )}
+                <button
+                  onClick={() => registrarMomento('primeras_canas', '', 'cambio_edad')}
+                  className="w-full rounded-xl px-3 py-2.5 text-[11px] font-semibold text-[#8C572F]"
+                  style={{ background: '#FBEAD9', border: '1.5px solid #EEE2D4' }}
+                >
+                  Le salieron sus primeras canas
+                </button>
               </div>
             </div>
           )
@@ -1639,6 +1623,9 @@ function RegistroContenido() {
           const edad = edadAnios()
           if (edad === null || edad < 7) return null
           const yaRegistrado = momentos.find(m => m.categoria === 'cambio_edad' && m.tipo === 'ojos_opacos')
+          // Si ya se registró, desaparece del registro diario (queda en
+          // la línea de tiempo del perfil).
+          if (yaRegistrado) return null
           return (
             <div className="mb-2 rounded-xl border border-[#EEE2D4] overflow-hidden bg-[#FFFCF8]">
               <div className="px-3 py-3">
@@ -1649,32 +1636,13 @@ function RegistroContenido() {
                 <p className="text-[10px] text-[#8A7560] leading-relaxed mb-2">
                   Con los años es común que el interior del ojo se vea más azulado o brumoso. Suele ser un cambio normal del cristalino que no afecta mayormente la visión — pero se parece mucho a las cataratas, que sí necesitan revisión. Solo tu veterinario puede distinguirlas.
                 </p>
-                {yaRegistrado ? (
-                  <div className="rounded-xl bg-[#FBEAD9] px-3 py-2.5">
-                    <p className="text-[11px] text-[#3D2B1F] font-medium">
-                      👀 Notaste este cambio el {(() => {
-                        const d = new Date(yaRegistrado.fecha + 'T00:00:00')
-                        const ms = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-                        return `${d.getDate()} de ${ms[d.getMonth()]} de ${d.getFullYear()}`
-                      })()}
-                    </p>
-                    <p className="text-[10px] text-[#8A7560] mt-1">🩺 Coméntalo en el próximo control veterinario.</p>
-                    <button
-                      onClick={() => { setConfirmarBorrarMomento(false); setMomentoDetalle(yaRegistrado) }}
-                      className="text-[10px] text-[#8A7560] font-semibold mt-1.5"
-                    >
-                      Corregir
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => registrarMomento('ojos_opacos', '', 'cambio_edad')}
-                    className="w-full rounded-xl px-3 py-2.5 text-[11px] font-semibold text-[#8C572F]"
-                    style={{ background: '#FBEAD9', border: '1.5px solid #EEE2D4' }}
-                  >
-                    He notado este cambio en sus ojos
-                  </button>
-                )}
+                <button
+                  onClick={() => registrarMomento('ojos_opacos', '', 'cambio_edad')}
+                  className="w-full rounded-xl px-3 py-2.5 text-[11px] font-semibold text-[#8C572F]"
+                  style={{ background: '#FBEAD9', border: '1.5px solid #EEE2D4' }}
+                >
+                  He notado este cambio en sus ojos
+                </button>
               </div>
             </div>
           )
