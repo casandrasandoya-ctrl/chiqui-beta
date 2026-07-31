@@ -429,6 +429,7 @@ function etiquetaMomento(tipo: string): { emoji: string; label: string } {
   const enCatalogo = MOMENTOS_CATALOGO.find(m => m.value === tipo)
   if (enCatalogo) return { emoji: enCatalogo.emoji, label: enCatalogo.label }
   if (tipo === 'ojos_opacos') return { emoji: '👀', label: 'Ojos más opacos o azulados' }
+  if (tipo === 'primeras_canas') return { emoji: '🐺', label: 'Le salieron sus primeras canas' }
   return { emoji: '💛', label: tipo }
 }
 
@@ -1596,6 +1597,58 @@ function RegistroContenido() {
           )}
         </div>
 
+        {/* Primeras canas — momento tierno de que está madurando.
+            Perros desde 4 años (normal desde 5, pero 4 cubre
+            envejecimiento algo prematuro); gatos desde 8. Es un
+            antecedente de vida, no una alerta médica: va con tono
+            cálido y queda guardado como momento (categoría cambio_edad). */}
+        {(() => {
+          const edad = edadAnios()
+          if (edad === null) return null
+          const umbral = especie === 'Gato' ? 8 : 4
+          if (edad < umbral) return null
+          const yaRegistrado = momentos.find(m => m.categoria === 'cambio_edad' && m.tipo === 'primeras_canas')
+          return (
+            <div className="mb-2 rounded-xl border border-[#EEE2D4] overflow-hidden bg-[#FFFCF8]">
+              <div className="px-3 py-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <span className="text-base">🐺</span>
+                  <p className="text-[11px] font-semibold text-[#8A7560]">Primeras canas</p>
+                </div>
+                <p className="text-[10px] text-[#8A7560] leading-relaxed mb-2">
+                  Con los años empiezan a asomar las primeras canas, muchas veces en el hocico y las cejas. Es una señal linda de que está entrando en su etapa más madura y sabia. 🤍
+                </p>
+                {yaRegistrado ? (
+                  <div className="rounded-xl bg-[#FBEAD9] px-3 py-2.5">
+                    <p className="text-[11px] text-[#3D2B1F] font-medium">
+                      🐺 Le notaste sus primeras canas el {(() => {
+                        const d = new Date(yaRegistrado.fecha + 'T00:00:00')
+                        const ms = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+                        return `${d.getDate()} de ${ms[d.getMonth()]} de ${d.getFullYear()}`
+                      })()}
+                    </p>
+                    <p className="text-[10px] text-[#8A7560] mt-1">💛 Un antecedente bonito de su historia contigo.</p>
+                    <button
+                      onClick={() => { setConfirmarBorrarMomento(false); setMomentoDetalle(yaRegistrado) }}
+                      className="text-[10px] text-[#8A7560] font-semibold mt-1.5"
+                    >
+                      Corregir
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => registrarMomento('primeras_canas', '', 'cambio_edad')}
+                    className="w-full rounded-xl px-3 py-2.5 text-[11px] font-semibold text-[#8C572F]"
+                    style={{ background: '#FBEAD9', border: '1.5px solid #EEE2D4' }}
+                  >
+                    Le salieron sus primeras canas
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Cambios propios de la edad — desde los 7 años (umbral de
             "Adulto Maduro" en calcularEtapaVida). NO es un logro y no
             se celebra: es un cambio esperable que conviene comentar en
@@ -1968,7 +2021,8 @@ function RegistroContenido() {
                 {momentoDetalle.tipo !== 'otro' && momentoDetalle.nota && (
                   <p className="text-[11px] text-[#8A7560] italic mt-1.5">📝 {momentoDetalle.nota}</p>
                 )}
-                {esCambioEdad && <p className="text-[10px] text-[#8A7560] mt-1.5">🩺 Coméntalo en el próximo control veterinario.</p>}
+                {esCambioEdad && momentoDetalle.tipo === 'primeras_canas' && <p className="text-[10px] text-[#8A7560] mt-1.5">💛 Un antecedente bonito de su historia contigo.</p>}
+                {esCambioEdad && momentoDetalle.tipo !== 'primeras_canas' && <p className="text-[10px] text-[#8A7560] mt-1.5">🩺 Coméntalo en el próximo control veterinario.</p>}
               </div>
               {!confirmarBorrarMomento ? (
                 <div className="space-y-2">
