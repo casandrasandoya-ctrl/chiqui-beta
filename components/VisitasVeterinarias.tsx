@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import FechaSelector from '@/components/FechaSelector'
 
@@ -42,6 +43,7 @@ function diasHasta(f: string): number {
 
 export default function VisitasVeterinarias({ mascotaId }: Props) {
   const supabase = createClient()
+  const searchParams = useSearchParams()
   const [abierto, setAbierto] = useState(false)
   const [visitas, setVisitas] = useState<any[]>([])
   const [visitasRegistro, setVisitasRegistro] = useState<any[]>([])
@@ -62,6 +64,20 @@ export default function VisitasVeterinarias({ mascotaId }: Props) {
     if (mascotaId) cargar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mascotaId])
+
+  // Si se llega con ?nuevaVisita=1 (ej. desde "Chequeo preventivo" del
+  // dashboard), se despliega la sección y se abre el formulario de nueva
+  // visita automáticamente. Solo se ejecuta una vez al montar.
+  useEffect(() => {
+    if (searchParams.get('nuevaVisita') === '1') {
+      setAbierto(true)
+      setEditando(null)
+      setFecha(''); setHora(''); setTipo('rutina'); setMotivo(''); setVeterinario(''); setNota('')
+      setModalAbierto(true)
+      document.body.style.overflow = 'hidden'
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function cargar() {
     // 1) Visitas formales de la tabla visitas_veterinarias

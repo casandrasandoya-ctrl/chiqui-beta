@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
@@ -898,7 +898,11 @@ export default function PrevencionPage() {
         <p className="text-xs font-bold text-[#8A7560] uppercase tracking-wider">Historial médico</p>
       </div>
 
-      {mascota && <VisitasVeterinarias mascotaId={mascota.id} />}
+      {mascota && (
+        <Suspense fallback={null}>
+          <VisitasVeterinarias mascotaId={mascota.id} />
+        </Suspense>
+      )}
 
       {mascota && <ExamenesLab mascotaId={mascota.id} especie={mascota.especie || ''} />}
 
