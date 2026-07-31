@@ -412,6 +412,7 @@ export default async function Dashboard({ searchParams }: Props) {
     // el recordatorio de chequeo preventivo.
     (etapa?.alertaChequeo) && {
       label: 'Chequeo preventivo', sub: etapa.nombre === 'Senior' ? 'Cada 6 meses' : 'Cada 6-12 meses', dias: '⚕️', color: '#8C572F',
+      url: '/prevencion',
     },
     proximaVacuna && {
       label: 'Vacunas', sub: proximaVacuna.nombre, dias: diasR(proximaVacuna.proxima_fecha), color: '#3B8C5E',
