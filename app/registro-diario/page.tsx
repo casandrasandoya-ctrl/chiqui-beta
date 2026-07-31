@@ -411,15 +411,15 @@ DETALLE_ENR.enr_entrenamiento = {
 // Valor clínico: los cambios de entorno explican muchos cambios de
 // conducta, apetito o sueño. Tener la fecha ayuda al veterinario a
 // interpretar lo que el tutor observa después.
-interface MomentoCatalogo { value: string; emoji: string; label: string }
+interface MomentoCatalogo { value: string; emoji: string; label: string; unico?: boolean }
 const MOMENTOS_CATALOGO: MomentoCatalogo[] = [
-  { value: 'llego_a_casa', emoji: '🏡', label: 'El día que llegó a casa' },
+  { value: 'llego_a_casa', emoji: '🏡', label: 'El día que llegó a casa', unico: true },
   { value: 'mudanza', emoji: '🏠', label: 'Se mudó de casa' },
   { value: 'nuevo_integrante', emoji: '👶', label: 'Llegó un nuevo integrante a la familia' },
   { value: 'nuevo_companero', emoji: '🐾', label: 'Conoció a un nuevo compañero peludo' },
-  { value: 'esterilizacion', emoji: '✂️', label: 'Esterilización' },
-  { value: 'primer_viaje', emoji: '✈️', label: 'Su primer viaje' },
-  { value: 'conocio_mar', emoji: '🌊', label: 'Conoció el mar' },
+  { value: 'esterilizacion', emoji: '✂️', label: 'Esterilización', unico: true },
+  { value: 'primer_viaje', emoji: '✈️', label: 'Su primer viaje', unico: true },
+  { value: 'conocio_mar', emoji: '🌊', label: 'Conoció el mar', unico: true },
   { value: 'supero_enfermedad', emoji: '💪', label: 'Superó una enfermedad' },
   { value: 'despedida_companero', emoji: '🕊️', label: 'Se despidió de un compañero' },
   { value: 'otro', emoji: '💛', label: 'Otro momento importante' },
@@ -1554,7 +1554,12 @@ function RegistroContenido() {
               <p className="text-[10px] text-[#8A7560] mb-2">Eventos que marcan su historia. Quedan guardados con la fecha — y ayudan a entender después cambios de conducta o apetito.</p>
               {momentoError && <p className="text-[10px] font-semibold text-[#E05252] mb-2">{momentoError}</p>}
               <div className="grid grid-cols-2 gap-2">
-                {MOMENTOS_CATALOGO.map(m => (
+                {MOMENTOS_CATALOGO.filter(m => {
+                  // Los momentos únicos (no repetibles) desaparecen del
+                  // selector una vez registrados. Los repetibles quedan.
+                  if (!m.unico) return true
+                  return !momentos.some(reg => reg.tipo === m.value && reg.categoria !== 'cambio_edad')
+                }).map(m => (
                   <button
                     key={m.value}
                     onClick={() => { setMomentoNota(''); setMomentoOtroTexto(''); setModalMomento(m.value) }}
@@ -1566,33 +1571,9 @@ function RegistroContenido() {
                   </button>
                 ))}
               </div>
-              {/* Línea de tiempo de lo ya registrado */}
-              {momentos.filter(m => m.categoria !== 'cambio_edad').length > 0 && (
-                <div className="mt-3 pt-2.5 border-t border-[#EEE2D4]">
-                  <p className="text-[10px] font-bold text-[#8A7560] uppercase tracking-wider mb-1.5">Ya registrados</p>
-                  <div className="space-y-1">
-                    {momentos.filter(m => m.categoria !== 'cambio_edad').map(m => {
-                      const info = etiquetaMomento(m.tipo)
-                      const d = new Date(m.fecha + 'T00:00:00')
-                      const ms = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-                      return (
-                        <button
-                          key={m.id}
-                          onClick={() => { setConfirmarBorrarMomento(false); setMomentoDetalle(m) }}
-                          className="w-full flex items-center gap-2 rounded-xl px-3 py-2 text-left"
-                          style={{ background: '#FFBD5915', border: '1.5px solid #FFBD59' }}
-                        >
-                          <span className="text-sm flex-shrink-0">{info.emoji}</span>
-                          <span className="flex-1 min-w-0">
-                            <span className="text-[11px] font-medium text-[#3D2B1F] block">{m.tipo === 'otro' && m.nota ? m.nota : info.label}</span>
-                            <span className="text-[10px] font-semibold text-[#8C572F]">{d.getDate()} {ms[d.getMonth()]} {d.getFullYear()}</span>
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
+              {/* La línea de tiempo de momentos ya registrados ahora vive
+                  en el Perfil de la mascota, no aquí. El registro diario
+                  solo ofrece registrar momentos nuevos. */}
             </div>
           )}
         </div>

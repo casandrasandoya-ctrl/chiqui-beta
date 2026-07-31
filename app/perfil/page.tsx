@@ -9,6 +9,7 @@ import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascota
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
 import FotoMascota from '@/components/FotoMascota'
 import ConfiguracionNotificaciones from '@/components/ConfiguracionNotificaciones'
+import LineaTiempoMomentos from '@/components/LineaTiempoMomentos'
 import FechaSelector from '@/components/FechaSelector'
 import { calcularEtapaVida, formatearEdad } from '@/utils/etapaVida'
 import GestionCotutor from '@/components/GestionCotutor'
@@ -381,6 +382,8 @@ export default function PerfilPage() {
       <UnirseComoCotutor />
 
       <ConfiguracionNotificaciones />
+
+      {mascota && <LineaTiempoMomentos mascotaId={mascota.id} especie={mascota.especie || ''} />}
 
       <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
         <div className="px-4 py-3 border-b border-[#EEE2D4]">
