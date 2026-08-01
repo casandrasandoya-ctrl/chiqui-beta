@@ -306,7 +306,7 @@ export default function DashboardContenido({
         <>
           <div className="flex items-center justify-between px-5 pb-2.5">
             <div className="flex items-center gap-2">
-              <img src="/chiqui/chiqui_doctor.png" alt="" className="w-8 h-8 object-contain" />
+              <img src="/chiqui/chiqui_cuidados.png" alt="" className="w-8 h-8 object-contain" />
               <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Cuidados recientes</span>
             </div>
             {cuidadosRecientes.length > 4 && (

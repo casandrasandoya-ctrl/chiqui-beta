@@ -15,12 +15,33 @@ interface Props {
   mascotaNombre: string
 }
 
+// ============================================================
+// CO-TUTOR
+// ============================================================
+// QUE SE ARREGLO:
+// revocar() cambiaba la pantalla a "sin_cotutor" SIN revisar si el
+// update habia funcionado. Si Supabase devolvia un error, o si la
+// politica RLS no dejaba tocar la fila (caso en que Supabase NO
+// devuelve error: simplemente actualiza 0 filas), la persona veia que
+// la invitacion se cancelaba... y al volver a entrar al Perfil el
+// codigo seguia ahi. Un fallo silencioso.
+//
+// Ahora:
+//  1. El update pide .select() de vuelta, asi sabemos CUANTAS filas se
+//     actualizaron de verdad. Cero filas = no se pudo, aunque no haya
+//     error.
+//  2. Si algo falla, se muestra el motivo en pantalla en vez de fingir
+//     que funciono.
+//  3. Si funciona, el estado se vuelve a LEER de la base (cargar()) en
+//     lugar de asumirlo. Lo que se ve es lo que hay guardado.
+
 export default function GestionCotutor({ mascotaId, mascotaNombre }: Props) {
   const supabase = createClient()
   const [estado, setEstado] = useState<'cargando' | 'sin_cotutor' | 'pendiente' | 'activo'>('cargando')
   const [invitacion, setInvitacion] = useState<any>(null)
   const [copiado, setCopiado] = useState(false)
   const [procesando, setProcesando] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => { cargar() }, [mascotaId])
 
@@ -42,8 +63,13 @@ export default function GestionCotutor({ mascotaId, mascotaNombre }: Props) {
 
   async function generarInvitacion() {
     setProcesando(true)
+    setError('')
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setProcesando(false); return }
+    if (!user) {
+      setError('No se pudo verificar tu sesión. Vuelve a entrar e intenta de nuevo.')
+      setProcesando(false)
+      return
+    }
 
     // Revocar invitaciones anteriores pendientes
     await supabase.from('mascota_cotutores')
@@ -54,34 +80,69 @@ export default function GestionCotutor({ mascotaId, mascotaNombre }: Props) {
     const expira = new Date()
     expira.setDate(expira.getDate() + 7)
 
-    const { data, error } = await supabase.from('mascota_cotutores').insert({
+    const { error: errIns } = await supabase.from('mascota_cotutores').insert({
       mascota_id: mascotaId,
       dueno_user_id: user.id,
       codigo_invitacion: generarCodigo(),
       codigo_expira_en: expira.toISOString(),
       estado: 'pendiente',
-    }).select().single()
+    })
 
-    if (!error) { setInvitacion(data); setEstado('pendiente') }
+    if (errIns) {
+      setError('No se pudo generar el código. Revisa tu conexión e intenta de nuevo.')
+      setProcesando(false)
+      return
+    }
+
+    // Se relee de la base en vez de asumir el resultado.
+    await cargar()
     setProcesando(false)
   }
 
   async function revocar() {
     if (!invitacion) return
     setProcesando(true)
-    await supabase.from('mascota_cotutores')
+    setError('')
+
+    // .select() devuelve las filas realmente actualizadas. Sin esto,
+    // un update que no toca ninguna fila se ve igual que uno exitoso.
+    const { data, error: errUpd } = await supabase
+      .from('mascota_cotutores')
       .update({ estado: 'revocado' })
       .eq('id', invitacion.id)
-    setEstado('sin_cotutor')
-    setInvitacion(null)
+      .select('id')
+
+    if (errUpd) {
+      setError('No se pudo cancelar: ' + errUpd.message)
+      setProcesando(false)
+      await cargar()
+      return
+    }
+
+    if (!data || data.length === 0) {
+      setError('No se pudo cancelar la invitación (la base no permitió el cambio). Avísale a soporte con este mensaje.')
+      setProcesando(false)
+      await cargar()
+      return
+    }
+
+    // Solo aca damos por hecho el cambio, y aun asi lo confirmamos
+    // releyendo el estado real.
+    await cargar()
     setProcesando(false)
   }
 
-  function copiar() {
+  async function copiar() {
     if (!invitacion) return
-    navigator.clipboard.writeText(invitacion.codigo_invitacion)
-    setCopiado(true)
-    setTimeout(() => setCopiado(false), 2000)
+    try {
+      await navigator.clipboard.writeText(invitacion.codigo_invitacion)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2000)
+    } catch {
+      // El código ya está visible en pantalla y es .copiable, así que
+      // se puede seleccionar a mano.
+      setError('Tu navegador no permitió copiar. Selecciona el código de arriba y cópialo a mano.')
+    }
   }
 
   const diasRestantes = invitacion?.codigo_expira_en
@@ -135,7 +196,7 @@ export default function GestionCotutor({ mascotaId, mascotaNombre }: Props) {
             disabled={procesando}
             className="w-full bg-[#EEE2D4] text-[#8A7560] font-semibold py-2 rounded-xl text-sm disabled:opacity-40"
           >
-            Cancelar invitación
+            {procesando ? 'Cancelando...' : 'Cancelar invitación'}
           </button>
         </>
       )}
@@ -157,6 +218,10 @@ export default function GestionCotutor({ mascotaId, mascotaNombre }: Props) {
             {procesando ? 'Revocando...' : 'Revocar acceso'}
           </button>
         </>
+      )}
+
+      {error && (
+        <p className="text-[11px] text-[#E05252] mt-3 leading-relaxed">{error}</p>
       )}
     </div>
   )
