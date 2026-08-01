@@ -160,15 +160,21 @@ function calcularNovedades(
           key: `cumple_hoy_${m.id}_${anio}`,
           img: '/chiqui/chiqui_cumple.png',
           destacada: true,
-          mensaje: `🎉 ¡Hoy ${m.nombre} está de cumpleaños! Cumple ${o.anios} ${o.anios === 1 ? 'año' : 'años'}.`,
+          mensaje: o.anios === 1
+            ? `🎂 ¡Hoy ${m.nombre} cumple su primer año! Gracias por cuidar cada señal de este primer año de vida. Que vengan muchos, muchos más 💛`
+            : `🎉 ¡Hoy ${m.nombre} está de cumpleaños! Cumple ${o.anios} años.`,
         })
       } else if (o.diasFaltan <= VENTANA) {
         lista.push({
-          key: `cumple_prox_${m.id}_${anio}`,
+          key: `cumple_prox_${m.id}_${hoyStr}`,
           img: '/chiqui/chiqui_cumple.png',
           mensaje: o.diasFaltan === 1
-            ? `🎂 ¡Mañana ${m.nombre} cumple años!`
-            : `🎈 Faltan ${o.diasFaltan} días para el cumpleaños de ${m.nombre}.`,
+            ? (o.anios === 1
+                ? `🎉 ¡Mañana ${m.nombre} cumple su primer añito! Prepárense para celebrar.`
+                : `🎂 ¡Mañana ${m.nombre} cumple años!`)
+            : (o.anios === 1
+                ? `🎈 Faltan ${o.diasFaltan} días para el primer cumpleaños de ${m.nombre}.`
+                : `🎈 Faltan ${o.diasFaltan} días para el cumpleaños de ${m.nombre}.`),
         })
       }
     }
@@ -187,7 +193,7 @@ function calcularNovedades(
         })
       } else if (o.diasFaltan <= VENTANA) {
         lista.push({
-          key: `union_prox_${m.id}_${anio}`,
+          key: `union_prox_${m.id}_${hoyStr}`,
           img: '/chiqui/chiqui_familia.png',
           mensaje: o.diasFaltan === 1
             ? `🏡 ¡Mañana celebrarán un nuevo aniversario juntos!`
