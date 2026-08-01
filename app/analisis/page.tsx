@@ -1248,6 +1248,10 @@ export default function AnalisisPage() {
           a.minutos += e.duracion_min || 0
         }
         const ordenadas = Object.entries(porAct).sort((x, y) => y[1].sesiones - x[1].sesiones)
+        // La duracion es opcional al registrar, asi que este total
+        // puede quedar en 0 aunque si haya habido juego. Por eso va
+        // como dato secundario y solo se muestra si hay minutos.
+        const minutosTotales = Object.values(porAct).reduce((a, v) => a + v.minutos, 0)
         // Lo que mas disfruta: el detalle mas repetido entre caza y
         // olfato, que son los que hablan de preferencia real.
         const gustos: Record<string, number> = {}
@@ -1269,7 +1273,7 @@ export default function AnalisisPage() {
           <div className="mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#FBEEDD' }}>
             <div className="px-2 mb-2 pt-1">
               <div className="flex items-center gap-2">
-                <img src="/chiqui/chiqui_juguetes.png" alt="" className="w-7 h-7 object-contain" />
+                <img src="/chiqui/chiqui_paseo.png" alt="" className="w-7 h-7 object-contain" />
                 <h2 className="text-sm font-bold text-[#8C572F] uppercase tracking-wider">Juego y vínculo</h2>
               </div>
             </div>
@@ -1286,10 +1290,13 @@ export default function AnalisisPage() {
               </div>
               <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-sm">📅</span>
-                  <span className="text-[10px] text-[#8A7560]">Días con juego</span>
+                  <span className="text-sm">🎲</span>
+                  <span className="text-[10px] text-[#8A7560]">Variedad de juego</span>
                 </div>
-                <div className="font-bold text-lg text-[#3D2B1F]">{diasConJuego} <span className="text-xs font-normal text-[#8A7560]">de 30</span></div>
+                <div className="font-bold text-lg text-[#3D2B1F]">{ordenadas.length} <span className="text-xs font-normal text-[#8A7560]">de 6 tipos</span></div>
+                <p className="text-[10px] text-[#8A7560] mt-0.5">
+                  {diasConJuego} {diasConJuego === 1 ? 'día' : 'días'}{minutosTotales > 0 ? ` · ${fmtMinG(minutosTotales)}` : ''}
+                </p>
               </div>
             </div>
             {/* Consejo de la madrugada: el único beneficio inmediato
