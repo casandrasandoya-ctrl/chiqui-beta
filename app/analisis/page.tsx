@@ -1332,6 +1332,15 @@ export default function AnalisisPage() {
                 social_animales: { emoji: '🐶', label: 'Social. con animales' },
                 social_personas: { emoji: '👨‍👩‍👧‍👦', label: 'Social. con personas' },
                 lugar_nuevo: { emoji: '🌳', label: 'Lugar nuevo' },
+                // Actividades felinas (script 327). Sin estas
+                // entradas, una fila de gato se renderiza sin
+                // nombre ni emoji.
+                caza: { emoji: '🎣', label: 'Sesión de caza' },
+                puzzle_comida: { emoji: '🧩', label: 'Comida en puzzle' },
+                vertical: { emoji: '🪜', label: 'Alturas y rascador' },
+                entrenamiento_felino: { emoji: '🎓', label: 'Entrenamiento' },
+                olfato_felino: { emoji: '👃', label: 'Juegos de olfato' },
+                ventana: { emoji: '🪟', label: 'Ventana o mirador' },
               }
               const diasConEnr = new Set(enriqRegistros.map(e => e.fecha)).size
               // Sesiones y minutos por actividad, ordenado por sesiones.

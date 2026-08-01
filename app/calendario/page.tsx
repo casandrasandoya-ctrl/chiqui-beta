@@ -76,6 +76,13 @@ const ACTIVIDADES_ENR: Record<string, { emoji: string; label: string }> = {
   social_animales: { emoji: '🐶', label: 'Socialización con animales' },
   social_personas: { emoji: '👨‍👩‍👧‍👦', label: 'Socialización con personas' },
   lugar_nuevo: { emoji: '🌳', label: 'Exploró un lugar nuevo' },
+  // Actividades felinas (script 327).
+  caza: { emoji: '🎣', label: 'Sesión de caza' },
+  puzzle_comida: { emoji: '🧩', label: 'Comida en puzzle o dispersa' },
+  vertical: { emoji: '🪜', label: 'Alturas y rascador' },
+  entrenamiento_felino: { emoji: '🎓', label: 'Entrenamiento' },
+  olfato_felino: { emoji: '👃', label: 'Juegos de olfato' },
+  ventana: { emoji: '🪟', label: 'Ventana o mirador' },
 }
 
 // Etiquetas de los hitos de cachorro/gatito, espejo del catálogo del
