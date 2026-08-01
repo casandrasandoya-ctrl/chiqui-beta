@@ -33,6 +33,7 @@ export default async function Dashboard({ searchParams }: Props) {
   const { data: mascotas } = await supabase
     .from('mascotas')
     .select('id, nombre, especie, raza, foto_url')
+    .is('archivada_en', null)
     .order('created_at', { ascending: true })
 
   if (!mascotas || !mascotas.length) redirect('/bienvenida')

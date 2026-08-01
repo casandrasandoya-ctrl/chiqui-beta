@@ -83,6 +83,9 @@ export async function GET(request: Request) {
       .from('mascotas')
       .select('id, nombre, especie')
       .eq('user_id', u.user_id)
+      // Misma razon que en el recordatorio diario: una mascota
+      // archivada no genera avisos de racha en riesgo.
+      .is('archivada_en', null)
     if (!mascotas || mascotas.length === 0) continue
 
     const { data: suscripciones } = await supabase

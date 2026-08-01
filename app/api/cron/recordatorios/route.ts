@@ -79,6 +79,10 @@ export async function GET(request: Request) {
       .from('mascotas')
       .select('id, nombre')
       .eq('user_id', u.user_id)
+      // Las mascotas archivadas NO reciben recordatorios. Si alguien
+      // archivo a su mascota porque fallecio, recibir cada noche un
+      // "Como estuvo hoy?" seria doloroso y ademas inutil.
+      .is('archivada_en', null)
 
     if (!mascotas || mascotas.length === 0) continue
 

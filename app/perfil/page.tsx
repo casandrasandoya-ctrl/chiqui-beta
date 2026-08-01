@@ -89,7 +89,7 @@ export default function PerfilPage() {
       // probamos las 3 para que funcione sin importar como haya entrado.
       const meta = user.user_metadata as any
       setUserNombre(meta?.nombre || meta?.full_name || meta?.name || '')
-      const { data: todasMascotas } = await supabase.from('mascotas').select('*').order('created_at', { ascending: true })
+      const { data: todasMascotas } = await supabase.from('mascotas').select('*').is('archivada_en', null).order('created_at', { ascending: true })
       if (!todasMascotas || !todasMascotas.length) { router.push('/mascota/nueva'); return }
       setMascotas(todasMascotas)
       const m = determinarMascotaActiva(todasMascotas)!

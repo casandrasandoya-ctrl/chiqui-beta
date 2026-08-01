@@ -188,7 +188,7 @@ export default function CalendarioPage() {
     async function cargar() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: todasMascotas } = await supabase.from('mascotas').select('*').order('created_at', { ascending: true })
+      const { data: todasMascotas } = await supabase.from('mascotas').select('*').is('archivada_en', null).order('created_at', { ascending: true })
       if (!todasMascotas || !todasMascotas.length) { router.push('/mascota/nueva'); return }
       setMascotas(todasMascotas)
       const activa = determinarMascotaActiva(todasMascotas)!
