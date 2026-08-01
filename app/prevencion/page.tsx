@@ -68,7 +68,7 @@ export default function PrevencionPage() {
   const [modal, setModal] = useState<'vacuna' | 'anti' | 'obs' | 'medicamento' | 'enfermedad' | 'examen' | null>(null)
   const [form, setForm] = useState<any>({})
   const [editandoId, setEditandoId] = useState<string | null>(null)
-  const [menuAbierto, setMenuAbierto] = useState<{ tipo: 'vacuna' | 'anti' | 'medicamento' | 'enfermedad'; id: string } | null>(null)
+  const [menuAbierto, setMenuAbierto] = useState<{ tipo: 'vacuna' | 'anti' | 'medicamento' | 'enfermedad' | 'revision'; id: string } | null>(null)
   // IDs de medicamentos cuyo historial de tomas está expandido.
   const [tomasExpandidas, setTomasExpandidas] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
@@ -470,6 +470,19 @@ export default function PrevencionPage() {
     if (!confirm('¿Eliminar este antiparasitario?')) return
     await supabase.from('antiparasitarios').delete().eq('id', id)
     if (mascota) await cargarDatos(mascota.id)
+  }
+
+  async function eliminarRevision(id: string) {
+    setMenuAbierto(null)
+    if (!confirm('¿Eliminar esta revisión corporal?')) return
+    await supabase.from('revisiones_corporales').delete().eq('id', id)
+    if (mascota) await cargarDatos(mascota.id)
+  }
+
+  function editarRevision(id: string) {
+    setMenuAbierto(null)
+    if (!mascota) return
+    router.push(`/revision-corporal?mascotaId=${mascota.id}&nombre=${encodeURIComponent(mascota.nombre)}&revisionId=${id}`)
   }
 
   const IC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
@@ -1228,9 +1241,12 @@ export default function PrevencionPage() {
                   <div key={rev.id} className={`px-4 py-3 ${i < revisiones.length-1 ? 'border-b border-[#EEE2D4]' : ''}`}>
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs font-bold text-[#3D2B1F]">{d.getDate()} {MESES2[d.getMonth()]} {d.getFullYear()}</p>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${conAlgo ? 'bg-[#F5C842]/20 text-[#8C6A00]' : 'bg-[#4CAF7D]/15 text-[#3B8C5E]'}`}>
-                        {conAlgo ? '⚠ Con observación' : '✓ Todo normal'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${conAlgo ? 'bg-[#F5C842]/20 text-[#8C6A00]' : 'bg-[#4CAF7D]/15 text-[#3B8C5E]'}`}>
+                          {conAlgo ? '⚠ Con observación' : '✓ Todo normal'}
+                        </span>
+                        <button onClick={() => setMenuAbierto({ tipo: 'revision', id: rev.id })} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
+                      </div>
                     </div>
                     {rev.nota && <p className="text-[11px] text-[#8A7560] italic">{rev.nota}</p>}
                   </div>
@@ -1251,6 +1267,7 @@ export default function PrevencionPage() {
               else if (menuAbierto.tipo === 'anti') { const a = antis.find((x: any) => x.id === menuAbierto.id); if (a) editarAnti(a) }
               else if (menuAbierto.tipo === 'medicamento') { const md = medicamentos.find((x: any) => x.id === menuAbierto.id); if (md) editarMed(md) }
               else if (menuAbierto.tipo === 'enfermedad') { const ef = enfermedades.find((x: any) => x.id === menuAbierto.id); if (ef) editarEnf(ef) }
+              else if (menuAbierto.tipo === 'revision') { editarRevision(menuAbierto.id) }
             }} className="w-full px-4 py-3.5 text-left text-sm font-medium text-[#3D2B1F] flex items-center gap-3">
               <span className="text-lg">✏️</span> Editar
             </button>
@@ -1260,6 +1277,7 @@ export default function PrevencionPage() {
               else if (menuAbierto.tipo === 'anti') eliminarAnti(menuAbierto.id)
               else if (menuAbierto.tipo === 'medicamento') eliminarMed(menuAbierto.id)
               else if (menuAbierto.tipo === 'enfermedad') eliminarEnf(menuAbierto.id)
+              else if (menuAbierto.tipo === 'revision') eliminarRevision(menuAbierto.id)
             }} className="w-full px-4 py-3.5 text-left text-sm font-medium text-[#E05252] flex items-center gap-3">
               <span className="text-lg">🗑️</span> Eliminar
             </button>
