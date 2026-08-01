@@ -24,6 +24,28 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Se siente como app nativa: por defecto nada se selecciona ni muestra
+   el menú del navegador ("abrir enlace", "copiar vínculo", "seleccionar
+   todo") al mantener presionado. Esto evita que los botones, títulos y
+   tarjetas se comporten como una página web. */
+body {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Excepciones: los campos de texto y todo lo marcado como .copiable SÍ
+   permiten seleccionar y copiar (ej. el código de co-tutor, notas). */
+input, textarea, [contenteditable="true"], .copiable, .copiable * {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
 body {
   font-family: var(--font-nunito-sans), sans-serif;
   background: var(--bg);
