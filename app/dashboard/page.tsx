@@ -379,8 +379,8 @@ export default async function Dashboard({ searchParams }: Props) {
         const prom = Math.round(intervalos.reduce((a, b) => a + b, 0) / intervalos.length)
         const ultimo = new Date(celos[celos.length-1].fecha_inicio + 'T00:00:00')
         const proximo = new Date(ultimo.getTime() + prom * 86400000)
-        if (proximo > new Date()) {
-          proximoCeloFecha = proximo.toISOString().split('T')[0]
+        if (fechaChile(proximo) >= fechaChile()) {
+          proximoCeloFecha = fechaChile(proximo)
         }
       }
       // Sin historial suficiente: estimar según especie
@@ -390,8 +390,8 @@ export default async function Dashboard({ searchParams }: Props) {
         const diasEspecie = m.especie === 'Gato' ? 21 : 180
         const ultimo = new Date(celos[celos.length-1].fecha_inicio + 'T00:00:00')
         const proximo = new Date(ultimo.getTime() + diasEspecie * 86400000)
-        if (proximo > new Date()) {
-          proximoCeloFecha = proximo.toISOString().split('T')[0]
+        if (fechaChile(proximo) >= fechaChile()) {
+          proximoCeloFecha = fechaChile(proximo)
         }
       }
     }
