@@ -303,6 +303,24 @@ function getGruposCuidados(especie: string): GrupoCuidados[] {
     ]})
   }
   if (esGato) {
+    // Enriquecimiento felino. Va con unshift (primer grupo) a
+    // proposito: el gato de interior necesita estimulacion tanto
+    // como el perro necesita paseo, y si queda al final del
+    // formulario nadie baja hasta ahi.
+    //
+    // La sesion de caza es la mas importante de las seis: el gato
+    // es un cazador crepuscular, y descargar esa energia en la
+    // tarde es lo que evita que despierte a su tutor de
+    // madrugada. Es el unico beneficio inmediato y egoista que
+    // tiene la app, y por eso encabeza la lista.
+    grupos.unshift({ titulo: 'Enriquecimiento y juego', img: '/chiqui/chiqui_juguetes.png', items: [
+      { value: 'enr_caza', emoji: '🎣', label: 'Sesión de caza' },
+      { value: 'enr_puzzle_comida', emoji: '🧩', label: 'Comida en puzzle o dispersa' },
+      { value: 'enr_vertical', emoji: '🪜', label: 'Alturas y rascador' },
+      { value: 'enr_entrenamiento_felino', emoji: '🎓', label: 'Entrenamiento' },
+      { value: 'enr_olfato_felino', emoji: '👃', label: 'Juegos de olfato' },
+      { value: 'enr_ventana', emoji: '🪟', label: 'Ventana o mirador' },
+    ]})
     grupos.push({ titulo: 'Arenero', img: '/chiqui/chiqui_caca.png', items: [
       { value: 'limpie_arenero', emoji: '🧹', label: 'Limpié el arenero' },
       { value: 'cambie_arena', emoji: '🔄', label: 'Cambié la arena' },
@@ -390,6 +408,38 @@ function colorExperiencia(op: string): string {
   if (op === 'Positiva') return '#4CAF7D'
   if (op === 'Neutral') return '#F5C842'
   return '#E05252'
+}
+
+// --- Detalle de las actividades felinas ---
+// Mismo criterio que en perros: preguntar QUE hicieron convierte
+// "jugo 10 veces" en "la cana con plumas es lo que mas le gusta".
+DETALLE_ENR.enr_caza = {
+  pregunta: '¿Con qué jugaron?', multi: true,
+  opciones: ['Caña con plumas', 'Ratón de juguete', 'Puntero láser', 'Pelota', 'Bolsa o papel', 'Otro'],
+}
+DETALLE_ENR.enr_puzzle_comida = {
+  pregunta: '¿Cómo se la diste?', multi: true,
+  opciones: ['Comedero puzzle', 'Comida dispersa', 'Pelota dispensadora', 'Escondida por la casa', 'Otro'],
+}
+DETALLE_ENR.enr_vertical = {
+  pregunta: '¿Dónde estuvo?', multi: true,
+  opciones: ['Rascador', 'Repisas', 'Mueble alto', 'Casa o cueva', 'Otro'],
+}
+DETALLE_ENR.enr_olfato_felino = {
+  pregunta: '¿Con qué?', multi: true,
+  opciones: ['Matatabi', 'Catnip', 'Caja nueva', 'Hierba gatera', 'Olor nuevo', 'Otro'],
+}
+
+// Los gatos SI se entrenan. Estas son ordenes realistas de
+// entrenamiento felino con refuerzo positivo — entrar solo al
+// transportin le ahorra el peor momento a cualquier tutor.
+const TRUCOS_FELINOS = [
+  'Venir al llamado', 'Chocar la mano', 'Sentarse',
+  'Entrar al transportín', 'Subir a un lugar', 'Dar la vuelta',
+  'Usar el rascador',
+]
+DETALLE_ENR.enr_entrenamiento_felino = {
+  pregunta: '¿Qué practicaron?', opciones: TRUCOS_FELINOS, multi: true,
 }
 
 const TRUCOS_ENTRENAMIENTO = [
@@ -1128,7 +1178,9 @@ function RegistroContenido() {
     // Enriquecimiento (solo perros): reemplaza las filas del día por
     // el estado actual — más simple y confiable que diffear una a una.
     const actividadesElegidas = Array.from(cuidados).filter(v => v.startsWith('enr_'))
-    if (especie === 'Perro') {
+    // Antes esto estaba limitado a 'Perro'. Los gatos ahora tienen
+    // sus propias actividades, asi que tambien guardan filas.
+    if (especie === 'Perro' || especie === 'Gato') {
       await supabase.from('enriquecimientos').delete().eq('mascota_id', mascotaId).eq('fecha', fechaRegistro)
       if (actividadesElegidas.length > 0) {
         await supabase.from('enriquecimientos').insert(actividadesElegidas.map(v => ({
