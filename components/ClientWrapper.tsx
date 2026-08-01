@@ -17,6 +17,25 @@ export default function ClientWrapper({ children }: { children: React.ReactNode 
     Promise.all([sesion, tiempoMinimo]).then(() => setCargando(false))
   }, [])
 
+  // Cancela el menú del navegador que aparece al mantener presionado
+  // (sobre enlaces, imágenes, etc.): "abrir en nueva pestaña", "compartir
+  // vínculo", "copiar dirección"... Esto hace que la app se sienta nativa
+  // y no como una web dentro de un navegador.
+  // Excepción: dentro de campos de texto (input/textarea) y de elementos
+  // marcados como .copiable (ej. el código de co-tutor) SÍ se permite,
+  // para no perder el menú de copiar/pegar donde es útil.
+  useEffect(() => {
+    function alMenuContextual(e: Event) {
+      const objetivo = e.target as HTMLElement | null
+      if (objetivo && objetivo.closest('input, textarea, [contenteditable="true"], .copiable')) {
+        return // permitir el menú en campos y elementos copiables
+      }
+      e.preventDefault()
+    }
+    document.addEventListener('contextmenu', alMenuContextual)
+    return () => document.removeEventListener('contextmenu', alMenuContextual)
+  }, [])
+
   if (cargando) return <SplashScreen />
 
   return <div className="fade-in">{children}</div>
