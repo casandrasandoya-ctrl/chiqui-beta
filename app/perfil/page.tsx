@@ -157,6 +157,12 @@ export default function PerfilPage() {
         }
       }
       setMascota({ ...mascota, ...form } as Mascota)
+      // El nombre (y el resto de los datos) tambien se refresca en
+      // la lista de mascotas, para que el selector de arriba no
+      // siga mostrando el nombre viejo hasta recargar la pagina.
+      setMascotas(prev => prev.map(ms => (
+        ms.id === mascota.id ? ({ ...ms, ...form } as Mascota) : ms
+      )))
       setEditando(false)
       showToast('Perfil actualizado')
     }
@@ -204,6 +210,10 @@ export default function PerfilPage() {
   const etapa = mascota?.fecha_nacimiento ? calcularEtapaVida(mascota.fecha_nacimiento, mascota.especie) : null
 
   const datos: [string, string][] = [
+    // El nombre va primero: es el dato mas visible y el que mas
+    // se corrige (una letra mal al crear el perfil). Mostrarlo
+    // aqui deja claro que se puede editar con el boton Editar.
+    ['Nombre', mascota?.nombre || '-'],
     ['Especie', mascota?.especie || '-'],
     ['Raza', mascota?.raza || '-'],
     ['Nacimiento', mascota?.fecha_nacimiento || '-'],
