@@ -1,4 +1,5 @@
 'use client'
+import ArchivarMascota from '@/components/ArchivarMascota'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
@@ -448,6 +449,19 @@ export default function PerfilPage() {
           Cerrar sesión →
         </button>
       </div>
+
+      {/* ARCHIVAR MASCOTA — va al final, despues de "Mi cuenta".
+          Archivar no borra nada: oculta a la mascota de toda la app
+          y corta sus notificaciones. Es lo ultimo del Perfil a
+          proposito, para que no se toque por accidente. */}
+      {mascota && (
+        <ArchivarMascota
+          key={mascota.id}
+          mascotaId={mascota.id}
+          mascotaNombre={mascota.nombre}
+          totalActivas={mascotas.length}
+        />
+      )}
 
       <div className="mx-4 mb-4 bg-[#FBEAD9] border border-[#EEE2D4] rounded-2xl p-4">
         <p className="text-xs text-[#8A7560] leading-relaxed text-center">

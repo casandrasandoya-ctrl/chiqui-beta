@@ -1,0 +1,133 @@
+const fs = require('fs');
+const path = require('path');
+
+// ============================================================
+// generar_325_archivar_mascota.js
+// ============================================================
+// REQUISITO: archivar_mascota.sql corrido en Supabase Y el script 324
+// (filtros) ya desplegado. Sin los filtros, archivar no oculta nada.
+//
+// 1) CREA components/ArchivarMascota.tsx — seccion al final del Perfil
+//    para archivar una mascota (preguntando el motivo) y restaurar las
+//    que ya estan archivadas.
+//
+// 2) LA INSERTA en app/perfil/page.tsx, despues del bloque "Mi cuenta"
+//    y antes del recuadro de "No es una aplicacion veterinaria".
+//
+// El paso 2 hace reemplazos exactos. Si no encuentra el texto tal cual
+// lo espera, ABORTA sin escribir nada.
+// ============================================================
+
+const RUTA_COMPONENTE = 'components/ArchivarMascota.tsx';
+const RUTA_PERFIL = 'app/perfil/page.tsx';
+
+const ARCHIVAR_B64 = 'J3VzZSBjbGllbnQnCmltcG9ydCB7IHVzZVN0YXRlLCB1c2VFZmZlY3QgfSBmcm9tICdyZWFjdCcKaW1wb3J0IHsgdXNlUm91dGVyIH0gZnJvbSAnbmV4dC9uYXZpZ2F0aW9uJwppbXBvcnQgeyBjcmVhdGVDbGllbnQgfSBmcm9tICdAL3V0aWxzL3N1cGFiYXNlL2NsaWVudCcKaW1wb3J0IHsgZ3VhcmRhck1hc2NvdGFBY3RpdmFJZCB9IGZyb20gJ0AvdXRpbHMvbWFzY290YUFjdGl2YScKCi8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQovLyBBUkNISVZBUiBNQVNDT1RBIOKAlCBhbCBmaW5hbCBkZWwgUGVyZmlsCi8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQovLyBBcmNoaXZhciBOTyBib3JyYSBuYWRhLiBMYSBtYXNjb3RhIHkgdG9kbyBzdSBoaXN0b3JpYWwgcXVlZGFuCi8vIGludGFjdG9zIGVuIGxhIGJhc2UgZGUgZGF0b3M7IHNvbG8gZGVqYW4gZGUgYXBhcmVjZXIgZW4gbGEgYXBwCi8vIChkYXNoYm9hcmQsIHJlZ2lzdHJvIGRpYXJpbywgY2FsZW5kYXJpbywgYW5hbGlzaXMsIHNhbHVkKSB5IOKAlGxvIG1hcwovLyBpbXBvcnRhbnRl4oCUIGRlamFuIGRlIGdlbmVyYXIgbm90aWZpY2FjaW9uZXMgcHVzaC4KLy8KLy8gUG9yIHF1ZSBzZSBwcmVndW50YSBlbCBNT1RJVk86Ci8vICJSZXN0YXVyYXIiIG5vIHNpZ25pZmljYSBsbyBtaXNtbyBlbiB0b2RvcyBsb3MgY2Fzb3MuIFF1aWVuIGFyY2hpdm8KLy8gdW4gcGVyZmlsIGRlIHBydWViYSBxdWllcmUgcXVlIHZ1ZWx2YSBjb21wbGV0by4gUXVpZW4gYXJjaGl2byBhIHVuYQovLyBtYXNjb3RhIHF1ZSBmYWxsZWNpbyBxdWllcmUgdmVyIGxvcyByZWN1ZXJkb3MsIG5vIHF1ZSBsZSB2dWVsdmEgYQovLyBzb25hciBlbCB0ZWxlZm9uby4gRWwgbW90aXZvIGVzIHVuIGRhdG8gcXVlIHNvbG8gc2UgcHVlZGUgY2FwdHVyYXIKLy8gZW4gZXN0ZSBtb21lbnRvOyBkZXNwdWVzIGVzIGltcG9zaWJsZSBzYWJlcmxvLgovLwovLyBQb3IgYWhvcmEgYXJjaGl2YXIgaGFjZSBsbyBtaXNtbyBlbiB0b2RvcyBsb3MgY2Fzb3MgeSBlbCBtb3Rpdm8gc29sbwovLyBjYW1iaWEgZWwgdG9ubyBkZWwgbWVuc2FqZS4gQ3VhbmRvIGxhIGJldGEgbXVlc3RyZSBxdWUgYWxndWllbgovLyByZXN0YXVyYSB1bmEgbWFzY290YSBxdWUgZmFsbGVjaW8sIGFoaSBzZSBjb25zdHJ1eWUgZWwgbW9kbwovLyAicmVjdWVyZG8iIChzb2xvIGxlY3R1cmEsIHNpbiByZWNvcmRhdG9yaW9zKSBjb24gZWwgZGF0byB5YSBndWFyZGFkby4KLy8KLy8gTk8gaGF5IG9wY2lvbiBkZSBlbGltaW5hciBkZWZpbml0aXZhbWVudGUsIHkgZXMgYSBwcm9wb3NpdG86IGxhcyAyMQovLyB0YWJsYXMgaGlqYXMgZXN0YW4gZW4gQ0FTQ0FERSwgYXNpIHF1ZSBib3JyYXIgYXJyYXN0cmFyaWEgYcOxb3MgZGUKLy8gcmVnaXN0cm9zIHNpbiB2dWVsdGEgYXRyYXMuIE9mcmVjZXIgZXNlIGJvdG9uIGEgYWxndWllbiBjdXlhIG1hc2NvdGEKLy8gYWNhYmEgZGUgbW9yaXIgZXMgdW5hIHRyYW1wYS4gU2kgc2UgYWdyZWdhIGFsZ3VuIGRpYSwgZGViZSBzZXIgZGVzZGUKLy8gbGEgbGlzdGEgZGUgYXJjaGl2YWRhcyDigJR1biBsdWdhciBmcmlvLCBhbCBxdWUgc2UgbGxlZ2EgYSBwcm9wb3NpdG/igJQKLy8geSBlc2NyaWJpZW5kbyBlbCBub21icmUgZGUgbGEgbWFzY290YSBwYXJhIGNvbmZpcm1hci4KCmludGVyZmFjZSBNYXNjb3RhQXJjaGl2YWRhIHsKICBpZDogc3RyaW5nCiAgbm9tYnJlOiBzdHJpbmcKICBlc3BlY2llOiBzdHJpbmcKICBhcmNoaXZhZGFfZW46IHN0cmluZwogIGFyY2hpdm9fbW90aXZvOiBzdHJpbmcgfCBudWxsCn0KCmNvbnN0IE1PVElWT1M6IHsgdmFsb3I6IHN0cmluZzsgbGFiZWw6IHN0cmluZzsgZW1vamk6IHN0cmluZyB9W10gPSBbCiAgeyB2YWxvcjogJ2ZhbGxlY2lvJywgbGFiZWw6ICdGYWxsZWNpw7MnLCBlbW9qaTogJ/CflYrvuI8nIH0sCiAgeyB2YWxvcjogJ3lhX25vX2Nvbm1pZ28nLCBsYWJlbDogJ1lhIG5vIHZpdmUgY29ubWlnbycsIGVtb2ppOiAn8J+PoCcgfSwKICB7IHZhbG9yOiAncHJ1ZWJhJywgbGFiZWw6ICdFcmEgdW4gcGVyZmlsIGRlIHBydWViYScsIGVtb2ppOiAn8J+nqicgfSwKICB7IHZhbG9yOiAnb3RybycsIGxhYmVsOiAnT3RybyBtb3Rpdm8nLCBlbW9qaTogJ+KAoicgfSwKXQoKZnVuY3Rpb24gdGV4dG9Db25maXJtYWNpb24obW90aXZvOiBzdHJpbmcsIG5vbWJyZTogc3RyaW5nKTogc3RyaW5nIHsKICBpZiAobW90aXZvID09PSAnZmFsbGVjaW8nKSB7CiAgICByZXR1cm4gYCR7bm9tYnJlfSB5IHRvZG8gc3UgaGlzdG9yaWFsIHF1ZWRhbiBndWFyZGFkb3MuIE5vIHZhcyBhIHJlY2liaXIgbcOhcyByZWNvcmRhdG9yaW9zIG5pIGF2aXNvcyBkZSBjdW1wbGVhw7Fvcy4gUHVlZGVzIHZvbHZlciBhIHZlcmxvIGN1YW5kbyBxdWllcmFzLmAKICB9CiAgaWYgKG1vdGl2byA9PT0gJ3lhX25vX2Nvbm1pZ28nKSB7CiAgICByZXR1cm4gYCR7bm9tYnJlfSBkZWphIGRlIGFwYXJlY2VyIGVuIGxhIGFwcCB5IG5vIHZhcyBhIHJlY2liaXIgbcOhcyByZWNvcmRhdG9yaW9zLiBTdSBoaXN0b3JpYWwgcXVlZGEgZ3VhcmRhZG8gcG9yIHNpIGxvIG5lY2VzaXRhcy5gCiAgfQogIGlmIChtb3Rpdm8gPT09ICdwcnVlYmEnKSB7CiAgICByZXR1cm4gYCR7bm9tYnJlfSBkZWphIGRlIGFwYXJlY2VyIGVuIGxhIGFwcC4gU2kgbG8gbmVjZXNpdGFzIGRlIHZ1ZWx0YSwgcHVlZGVzIHJlc3RhdXJhcmxvIGRlc2RlIGFxdcOtIG1pc21vLmAKICB9CiAgcmV0dXJuIGAke25vbWJyZX0gZGVqYSBkZSBhcGFyZWNlciBlbiBsYSBhcHAsIHBlcm8gbmFkYSBzZSBib3JyYS4gUHVlZGVzIHJlc3RhdXJhcmxvIGN1YW5kbyBxdWllcmFzLmAKfQoKZnVuY3Rpb24gZm10RmVjaGEoaXNvOiBzdHJpbmcpOiBzdHJpbmcgewogIGNvbnN0IGQgPSBuZXcgRGF0ZShpc28pCiAgY29uc3QgbXMgPSBbJ2VuZXJvJywgJ2ZlYnJlcm8nLCAnbWFyem8nLCAnYWJyaWwnLCAnbWF5bycsICdqdW5pbycsICdqdWxpbycsICdhZ29zdG8nLCAnc2VwdGllbWJyZScsICdvY3R1YnJlJywgJ25vdmllbWJyZScsICdkaWNpZW1icmUnXQogIHJldHVybiBgJHtkLmdldERhdGUoKX0gZGUgJHttc1tkLmdldE1vbnRoKCldfSBkZSAke2QuZ2V0RnVsbFllYXIoKX1gCn0KCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIEFyY2hpdmFyTWFzY290YSh7CiAgbWFzY290YUlkLAogIG1hc2NvdGFOb21icmUsCiAgdG90YWxBY3RpdmFzLAp9OiB7CiAgbWFzY290YUlkOiBzdHJpbmcKICBtYXNjb3RhTm9tYnJlOiBzdHJpbmcKICB0b3RhbEFjdGl2YXM6IG51bWJlcgp9KSB7CiAgY29uc3Qgcm91dGVyID0gdXNlUm91dGVyKCkKICBjb25zdCBzdXBhYmFzZSA9IGNyZWF0ZUNsaWVudCgpCgogIGNvbnN0IFttb2RhbCwgc2V0TW9kYWxdID0gdXNlU3RhdGUoZmFsc2UpCiAgY29uc3QgW21vdGl2bywgc2V0TW90aXZvXSA9IHVzZVN0YXRlKCcnKQogIGNvbnN0IFtndWFyZGFuZG8sIHNldEd1YXJkYW5kb10gPSB1c2VTdGF0ZShmYWxzZSkKICBjb25zdCBbZXJyb3IsIHNldEVycm9yXSA9IHVzZVN0YXRlKCcnKQogIGNvbnN0IFthcmNoaXZhZGFzLCBzZXRBcmNoaXZhZGFzXSA9IHVzZVN0YXRlPE1hc2NvdGFBcmNoaXZhZGFbXT4oW10pCiAgY29uc3QgW3Jlc3RhdXJhbmRvLCBzZXRSZXN0YXVyYW5kb10gPSB1c2VTdGF0ZSgnJykKCiAgY29uc3QgZXNVbmljYSA9IHRvdGFsQWN0aXZhcyA8PSAxCgogIC8vIEJsb3F1ZW8gZGUgc2Nyb2xsIGRlbCBmb25kbyBtaWVudHJhcyBlbCBtb2RhbCBlc3RhIGFiaWVydG8sCiAgLy8gaWd1YWwgcXVlIGVsIHJlc3RvIGRlIGxvcyBtb2RhbGVzIGRlIGxhIGFwcC4KICB1c2VFZmZlY3QoKCkgPT4gewogICAgaWYgKG1vZGFsKSB7CiAgICAgIGRvY3VtZW50LmJvZHkuc3R5bGUub3ZlcmZsb3cgPSAnaGlkZGVuJwogICAgfSBlbHNlIHsKICAgICAgZG9jdW1lbnQuYm9keS5zdHlsZS5vdmVyZmxvdyA9ICcnCiAgICB9CiAgICByZXR1cm4gKCkgPT4geyBkb2N1bWVudC5ib2R5LnN0eWxlLm92ZXJmbG93ID0gJycgfQogIH0sIFttb2RhbF0pCgogIHVzZUVmZmVjdCgoKSA9PiB7CiAgICBjYXJnYXJBcmNoaXZhZGFzKCkKICAgIC8vIGVzbGludC1kaXNhYmxlLW5leHQtbGluZSByZWFjdC1ob29rcy9leGhhdXN0aXZlLWRlcHMKICB9LCBbXSkKCiAgYXN5bmMgZnVuY3Rpb24gY2FyZ2FyQXJjaGl2YWRhcygpIHsKICAgIGNvbnN0IHsgZGF0YSB9ID0gYXdhaXQgc3VwYWJhc2UKICAgICAgLmZyb20oJ21hc2NvdGFzJykKICAgICAgLnNlbGVjdCgnaWQsIG5vbWJyZSwgZXNwZWNpZSwgYXJjaGl2YWRhX2VuLCBhcmNoaXZvX21vdGl2bycpCiAgICAgIC5ub3QoJ2FyY2hpdmFkYV9lbicsICdpcycsIG51bGwpCiAgICAgIC5vcmRlcignYXJjaGl2YWRhX2VuJywgeyBhc2NlbmRpbmc6IGZhbHNlIH0pCiAgICBzZXRBcmNoaXZhZGFzKChkYXRhIGFzIE1hc2NvdGFBcmNoaXZhZGFbXSkgfHwgW10pCiAgfQoKICBhc3luYyBmdW5jdGlvbiBhcmNoaXZhcigpIHsKICAgIGlmICghbW90aXZvKSByZXR1cm4KICAgIHNldEd1YXJkYW5kbyh0cnVlKQogICAgc2V0RXJyb3IoJycpCgogICAgY29uc3QgeyBlcnJvcjogZXJyIH0gPSBhd2FpdCBzdXBhYmFzZQogICAgICAuZnJvbSgnbWFzY290YXMnKQogICAgICAudXBkYXRlKHsgYXJjaGl2YWRhX2VuOiBuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCksIGFyY2hpdm9fbW90aXZvOiBtb3Rpdm8gfSkKICAgICAgLmVxKCdpZCcsIG1hc2NvdGFJZCkKCiAgICBpZiAoZXJyKSB7CiAgICAgIHNldEVycm9yKCdObyBzZSBwdWRvIGFyY2hpdmFyLiBSZXZpc2EgdHUgY29uZXhpw7NuIGUgaW50ZW50YSBkZSBudWV2by4nKQogICAgICBzZXRHdWFyZGFuZG8oZmFsc2UpCiAgICAgIHJldHVybgogICAgfQoKICAgIC8vIFNpIGVyYSBsYSDDum5pY2EgbWFzY290YSBhY3RpdmEsIG5vIHF1ZWRhIG5hZGEgcXVlIG1vc3RyYXI6IHNlIHZhCiAgICAvLyBhIGNyZWFyIHVuYSBudWV2YSBlbiB2ZXogZGUgZGVqYXIgdW5hIHBhbnRhbGxhIHZhY8OtYS4KICAgIGlmIChlc1VuaWNhKSB7CiAgICAgIHJvdXRlci5wdXNoKCcvbWFzY290YS9udWV2YScpCiAgICAgIHJldHVybgogICAgfQoKICAgIC8vIFNpIHF1ZWRhYmFuIG90cmFzLCBsYSBhY3RpdmEgZ3VhcmRhZGEgZW4gbG9jYWxTdG9yYWdlIHlhIG5vIHNpcnZlCiAgICAvLyAoYXB1bnRhIGEgbGEgcXVlIHNlIGFjYWJhIGRlIGFyY2hpdmFyKS4gU2UgbGltcGlhIHJlY2FyZ2FuZG8gZWwKICAgIC8vIHBlcmZpbDogZGV0ZXJtaW5hck1hc2NvdGFBY3RpdmEgZWxpZ2UgbGEgcHJpbWVyYSBkaXNwb25pYmxlLgogICAgZ3VhcmRhck1hc2NvdGFBY3RpdmFJZCgnJykKICAgIHdpbmRvdy5sb2NhdGlvbi5ocmVmID0gJy9wZXJmaWwnCiAgfQoKICBhc3luYyBmdW5jdGlvbiByZXN0YXVyYXIoaWQ6IHN0cmluZykgewogICAgc2V0UmVzdGF1cmFuZG8oaWQpCiAgICBjb25zdCB7IGVycm9yOiBlcnIgfSA9IGF3YWl0IHN1cGFiYXNlCiAgICAgIC5mcm9tKCdtYXNjb3RhcycpCiAgICAgIC51cGRhdGUoeyBhcmNoaXZhZGFfZW46IG51bGwsIGFyY2hpdm9fbW90aXZvOiBudWxsIH0pCiAgICAgIC5lcSgnaWQnLCBpZCkKICAgIGlmIChlcnIpIHsKICAgICAgc2V0RXJyb3IoJ05vIHNlIHB1ZG8gcmVzdGF1cmFyLiBJbnRlbnRhIGRlIG51ZXZvLicpCiAgICAgIHNldFJlc3RhdXJhbmRvKCcnKQogICAgICByZXR1cm4KICAgIH0KICAgIGd1YXJkYXJNYXNjb3RhQWN0aXZhSWQoaWQpCiAgICB3aW5kb3cubG9jYXRpb24uaHJlZiA9ICcvcGVyZmlsJwogIH0KCiAgcmV0dXJuICgKICAgIDw+CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJteC00IG1iLTQgYmctWyNGRkZDRjhdIHJvdW5kZWQtMnhsIGJvcmRlciBib3JkZXItWyNFRUUyRDRdIG92ZXJmbG93LWhpZGRlbiI+CiAgICAgICAgPGRpdiBjbGFzc05hbWU9InB4LTQgcHktMyBib3JkZXItYiBib3JkZXItWyNFRUUyRDRdIj4KICAgICAgICAgIDxoMiBjbGFzc05hbWU9ImZvbnQtYm9sZCB0ZXh0LXNtIj5BcmNoaXZhciBtYXNjb3RhPC9oMj4KICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC14cyB0ZXh0LVsjOEE3NTYwXSBtdC0wLjUgbGVhZGluZy1yZWxheGVkIj4KICAgICAgICAgICAgQXJjaGl2YXIgZ3VhcmRhIHRvZG8gZWwgaGlzdG9yaWFsIHBlcm8gZGVqYSBkZSBtb3N0cmFyIGEgbGEgbWFzY290YSBlbiBsYSBhcHAgeSBkZSBlbnZpYXJ0ZSByZWNvcmRhdG9yaW9zLiBOYWRhIHNlIGJvcnJhIHkgcHVlZGVzIHJlc3RhdXJhcmxhIGN1YW5kbyBxdWllcmFzLgogICAgICAgICAgPC9wPgogICAgICAgIDwvZGl2PgoKICAgICAgICA8YnV0dG9uCiAgICAgICAgICBvbkNsaWNrPXsoKSA9PiB7IHNldE1vdGl2bygnJyk7IHNldEVycm9yKCcnKTsgc2V0TW9kYWwodHJ1ZSkgfX0KICAgICAgICAgIGNsYXNzTmFtZT0idy1mdWxsIHB4LTQgcHktMyB0ZXh0LWxlZnQgdGV4dC1zbSB0ZXh0LVsjOEM1NzJGXSBmb250LXNlbWlib2xkIgogICAgICAgID4KICAgICAgICAgIEFyY2hpdmFyIGEge21hc2NvdGFOb21icmV9CiAgICAgICAgPC9idXR0b24+CgogICAgICAgIHthcmNoaXZhZGFzLmxlbmd0aCA+IDAgJiYgKAogICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImJvcmRlci10IGJvcmRlci1bI0VFRTJENF0iPgogICAgICAgICAgICA8cCBjbGFzc05hbWU9InB4LTQgcHQtMyBwYi0xIHRleHQteHMgdGV4dC1bIzhBNzU2MF0gdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVyIGZvbnQtc2VtaWJvbGQiPgogICAgICAgICAgICAgIEFyY2hpdmFkYXMKICAgICAgICAgICAgPC9wPgogICAgICAgICAgICB7YXJjaGl2YWRhcy5tYXAoYSA9PiAoCiAgICAgICAgICAgICAgPGRpdiBrZXk9e2EuaWR9IGNsYXNzTmFtZT0icHgtNCBweS0zIGJvcmRlci10IGJvcmRlci1bI0VFRTJENF0gZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTMiPgogICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXgtMSBtaW4tdy0wIj4KICAgICAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LXNtIGZvbnQtc2VtaWJvbGQgdGV4dC1bIzNEMkIxRl0gdHJ1bmNhdGUiPgogICAgICAgICAgICAgICAgICAgIHthLmFyY2hpdm9fbW90aXZvID09PSAnZmFsbGVjaW8nID8gJ/CflYrvuI8gJyA6ICcnfXthLm5vbWJyZX0KICAgICAgICAgICAgICAgICAgPC9wPgogICAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtWzExcHhdIHRleHQtWyM4QTc1NjBdIj4KICAgICAgICAgICAgICAgICAgICBBcmNoaXZhZGEgZWwge2ZtdEZlY2hhKGEuYXJjaGl2YWRhX2VuKX0KICAgICAgICAgICAgICAgICAgPC9wPgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICA8YnV0dG9uCiAgICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHJlc3RhdXJhcihhLmlkKX0KICAgICAgICAgICAgICAgICAgZGlzYWJsZWQ9e3Jlc3RhdXJhbmRvID09PSBhLmlkfQogICAgICAgICAgICAgICAgICBjbGFzc05hbWU9InRleHQteHMgZm9udC1ib2xkIHRleHQtWyNDRDc0MjFdIGZsZXgtc2hyaW5rLTAgZGlzYWJsZWQ6b3BhY2l0eS01MCIKICAgICAgICAgICAgICAgID4KICAgICAgICAgICAgICAgICAge3Jlc3RhdXJhbmRvID09PSBhLmlkID8gJy4uLicgOiAnUmVzdGF1cmFyJ30KICAgICAgICAgICAgICAgIDwvYnV0dG9uPgogICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICApKX0KICAgICAgICAgIDwvZGl2PgogICAgICAgICl9CgogICAgICAgIHtlcnJvciAmJiAhbW9kYWwgJiYgKAogICAgICAgICAgPHAgY2xhc3NOYW1lPSJweC00IHBiLTMgdGV4dC1bMTFweF0gdGV4dC1bI0UwNTI1Ml0iPntlcnJvcn08L3A+CiAgICAgICAgKX0KICAgICAgPC9kaXY+CgogICAgICB7bW9kYWwgJiYgKAogICAgICAgIDxkaXYKICAgICAgICAgIGNsYXNzTmFtZT0iZml4ZWQgaW5zZXQtMCB6LVs2MF0gZmxleCBpdGVtcy1lbmQganVzdGlmeS1jZW50ZXIiCiAgICAgICAgICBzdHlsZT17eyBiYWNrZ3JvdW5kOiAncmdiYSg2MSw0MywzMSwwLjQ1KScgfX0KICAgICAgICAgIG9uQ2xpY2s9eygpID0+ICFndWFyZGFuZG8gJiYgc2V0TW9kYWwoZmFsc2UpfQogICAgICAgID4KICAgICAgICAgIDxkaXYKICAgICAgICAgICAgY2xhc3NOYW1lPSJiZy1bI0ZGRkNGOF0gcm91bmRlZC10LTN4bCB3LWZ1bGwgbWF4LXctWzQyMHB4XSBwLTUgb3ZlcmZsb3cteS1hdXRvIgogICAgICAgICAgICBzdHlsZT17eyBtYXhIZWlnaHQ6ICdjYWxjKDEwMHZoIC0gODBweCknIH19CiAgICAgICAgICAgIG9uQ2xpY2s9e2UgPT4gZS5zdG9wUHJvcGFnYXRpb24oKX0KICAgICAgICAgID4KICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJmb250LWJvbGQgdGV4dC1iYXNlIHRleHQtWyMzRDJCMUZdIG1iLTEiPgogICAgICAgICAgICAgIEFyY2hpdmFyIGEge21hc2NvdGFOb21icmV9CiAgICAgICAgICAgIDwvcD4KICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LXhzIHRleHQtWyM4QTc1NjBdIGxlYWRpbmctcmVsYXhlZCBtYi00Ij4KICAgICAgICAgICAgICDCv1BvciBxdcOpIGxhIGVzdMOhcyBhcmNoaXZhbmRvPyBOb3MgYXl1ZGEgYSB0cmF0YXIgc3UgaGlzdG9yaWFsIGNvbW8gY29ycmVzcG9uZGUuCiAgICAgICAgICAgIDwvcD4KCiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJzcGFjZS15LTIgbWItNCI+CiAgICAgICAgICAgICAge01PVElWT1MubWFwKG0gPT4gKAogICAgICAgICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgICAgICBrZXk9e20udmFsb3J9CiAgICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldE1vdGl2byhtLnZhbG9yKX0KICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPSJ3LWZ1bGwgcHgtMy41IHB5LTMgcm91bmRlZC14bCBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMyB0ZXh0LWxlZnQiCiAgICAgICAgICAgICAgICAgIHN0eWxlPXttb3Rpdm8gPT09IG0udmFsb3IKICAgICAgICAgICAgICAgICAgICA/IHsgYm9yZGVyOiAnMnB4IHNvbGlkICNGRkJENTknLCBiYWNrZ3JvdW5kOiAnI0ZCRUFEOScgfQogICAgICAgICAgICAgICAgICAgIDogeyBib3JkZXI6ICcycHggc29saWQgI0VFRTJENCcsIGJhY2tncm91bmQ6ICcjRkZGQ0Y4JyB9fQogICAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQtYmFzZSBmbGV4LXNocmluay0wIj57bS5lbW9qaX08L3NwYW4+CiAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0idGV4dC1zbSBmb250LXNlbWlib2xkIHRleHQtWyMzRDJCMUZdIj57bS5sYWJlbH08L3NwYW4+CiAgICAgICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgICAgICApKX0KICAgICAgICAgICAgPC9kaXY+CgogICAgICAgICAgICB7bW90aXZvICYmICgKICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iYmctWyNGQkVBRDldIGJvcmRlciBib3JkZXItWyNFRUUyRDRdIHJvdW5kZWQteGwgcC0zIG1iLTMiPgogICAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LXhzIHRleHQtWyMzRDJCMUZdIGxlYWRpbmctcmVsYXhlZCI+CiAgICAgICAgICAgICAgICAgIHt0ZXh0b0NvbmZpcm1hY2lvbihtb3Rpdm8sIG1hc2NvdGFOb21icmUpfQogICAgICAgICAgICAgICAgPC9wPgogICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICApfQoKICAgICAgICAgICAge2VzVW5pY2EgJiYgKAogICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC1bMTFweF0gdGV4dC1bI0NENzQyMV0gbGVhZGluZy1yZWxheGVkIG1iLTMiPgogICAgICAgICAgICAgICAgRXMgdHUgw7puaWNhIG1hc2NvdGEgYWN0aXZhLiBBbCBhcmNoaXZhcmxhIHRlIHZhbW9zIGEgcGVkaXIgY3JlYXIgdW5hIG51ZXZhLCBwZXJvIHttYXNjb3RhTm9tYnJlfSBxdWVkYSBndWFyZGFkYSB5IGxhIHB1ZWRlcyByZXN0YXVyYXIgZGVzZGUgYXF1w60uCiAgICAgICAgICAgICAgPC9wPgogICAgICAgICAgICApfQoKICAgICAgICAgICAge2Vycm9yICYmICgKICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtWzExcHhdIHRleHQtWyNFMDUyNTJdIG1iLTMiPntlcnJvcn08L3A+CiAgICAgICAgICAgICl9CgogICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBnYXAtMiI+CiAgICAgICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0TW9kYWwoZmFsc2UpfQogICAgICAgICAgICAgICAgZGlzYWJsZWQ9e2d1YXJkYW5kb30KICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0iZmxleC0xIHB5LTMgcm91bmRlZC14bCB0ZXh0LXNtIGZvbnQtc2VtaWJvbGQgdGV4dC1bIzhBNzU2MF0gYmctWyNGMEUyQ0VdIGRpc2FibGVkOm9wYWNpdHktNTAiCiAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAgQ2FuY2VsYXIKICAgICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgICAgICA8YnV0dG9uCiAgICAgICAgICAgICAgICBvbkNsaWNrPXthcmNoaXZhcn0KICAgICAgICAgICAgICAgIGRpc2FibGVkPXshbW90aXZvIHx8IGd1YXJkYW5kb30KICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0iZmxleC0xIHB5LTMgcm91bmRlZC14bCB0ZXh0LXNtIGZvbnQtYm9sZCB0ZXh0LVsjMUExMjAwXSBiZy1bI0ZGQkQ1OV0gZGlzYWJsZWQ6b3BhY2l0eS00MCIKICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICB7Z3VhcmRhbmRvID8gJ0FyY2hpdmFuZG8uLi4nIDogJ0FyY2hpdmFyJ30KICAgICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgICAgKX0KICAgIDwvPgogICkKfQo=';
+
+const PARES = [
+  {
+    nombre: 'import de ArchivarMascota',
+    viejo: "'use client'",
+    nuevo: [
+      "'use client'",
+      "import ArchivarMascota from '@/components/ArchivarMascota'",
+    ].join('\n'),
+  },
+  {
+    nombre: 'render al final del Perfil',
+    viejo: [
+      '      <div className="mx-4 mb-4 bg-[#FBEAD9] border border-[#EEE2D4] rounded-2xl p-4">',
+      '        <p className="text-xs text-[#8A7560] leading-relaxed text-center">',
+    ].join('\n'),
+    nuevo: [
+      '      {/* ARCHIVAR MASCOTA — va al final, despues de "Mi cuenta".',
+      '          Archivar no borra nada: oculta a la mascota de toda la app',
+      '          y corta sus notificaciones. Es lo ultimo del Perfil a',
+      '          proposito, para que no se toque por accidente. */}',
+      '      {mascota && (',
+      '        <ArchivarMascota',
+      '          key={mascota.id}',
+      '          mascotaId={mascota.id}',
+      '          mascotaNombre={mascota.nombre}',
+      '          totalActivas={mascotas.length}',
+      '        />',
+      '      )}',
+      '',
+      '      <div className="mx-4 mb-4 bg-[#FBEAD9] border border-[#EEE2D4] rounded-2xl p-4">',
+      '        <p className="text-xs text-[#8A7560] leading-relaxed text-center">',
+    ].join('\n'),
+  },
+];
+
+function contar(texto, buscado) {
+  return texto.split(buscado).length - 1;
+}
+
+function abortar(motivo) {
+  console.log('');
+  console.log('ABORTADO: ' + motivo);
+  console.log('No se modifico ningun archivo. Avisale a Claude lo que dice este mensaje.');
+  process.exit(1);
+}
+
+// --- Paso 0: verificar el perfil ANTES de crear nada, para no dejar
+// un componente huerfano si el reemplazo no va a funcionar.
+const destinoPerfil = path.join(process.cwd(), RUTA_PERFIL);
+if (!fs.existsSync(destinoPerfil)) {
+  abortar('no se encontro ' + RUTA_PERFIL + '. Corre el script desde la raiz del proyecto.');
+}
+
+let perfil = fs.readFileSync(destinoPerfil, 'utf8');
+
+if (perfil.includes('ArchivarMascota')) {
+  abortar('el Perfil ya menciona ArchivarMascota. Parece que este script ya se corrio.');
+}
+
+// El filtro del script 324 tiene que estar puesto: si no, archivar no
+// oculta nada y la funcion quedaria mintiendole a la persona.
+if (!perfil.includes("is('archivada_en', null)")) {
+  abortar('el Perfil no tiene el filtro de archivadas. Corre primero el script 324.');
+}
+
+for (const p of PARES) {
+  const n = contar(perfil, p.viejo);
+  console.log('  ' + (n === 1 ? 'OK ' : 'X  ') + p.nombre + ' -> ' + n + ' coincidencia(s)');
+  if (n !== 1) {
+    abortar('esperaba 1 coincidencia de [' + p.nombre + '] y encontre ' + n + '.');
+  }
+}
+
+// --- Paso 1: escribir el componente nuevo
+const nuevoComp = Buffer.from(ARCHIVAR_B64, 'base64').toString('utf8');
+
+const REQUERIDOS = ['export default function ArchivarMascota', 'archivo_motivo', 'MOTIVOS', 'restaurar'];
+for (const r of REQUERIDOS) {
+  if (!nuevoComp.includes(r)) {
+    abortar('el contenido del componente no incluye [' + r + ']. Script corrupto.');
+  }
+}
+
+const destinoComp = path.join(process.cwd(), RUTA_COMPONENTE);
+const carpeta = path.dirname(destinoComp);
+if (!fs.existsSync(carpeta)) {
+  fs.mkdirSync(carpeta, { recursive: true });
+}
+fs.writeFileSync(destinoComp, nuevoComp, 'utf8');
+console.log('');
+console.log('OK: ' + RUTA_COMPONENTE);
+
+// --- Paso 2: insertar en el Perfil
+for (const p of PARES) {
+  perfil = perfil.split(p.viejo).join(p.nuevo);
+}
+
+if (contar(perfil, '<ArchivarMascota') !== 1) {
+  abortar('la seccion no quedo insertada en el Perfil.');
+}
+if (contar(perfil, "import ArchivarMascota from '@/components/ArchivarMascota'") !== 1) {
+  abortar('el import no quedo agregado.');
+}
+
+fs.writeFileSync(destinoPerfil, perfil, 'utf8');
+console.log('OK: ' + RUTA_PERFIL);
+console.log('');
+console.log('Listo. Archivar y restaurar mascota ya estan al final del Perfil.');
