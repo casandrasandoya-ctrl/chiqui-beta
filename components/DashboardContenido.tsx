@@ -10,6 +10,7 @@ import BannerInstalarApp from '@/components/BannerInstalarApp'
 import Novedades from '@/components/Novedades'
 import { useEffect, useState } from 'react'
 import ChiquiTeCuenta from '@/components/ChiquiTeCuenta'
+import LineaVet from '@/components/LineaVet'
 import { createClient } from '@/utils/supabase/client'
 
 function calcEdad(f: string) {
@@ -380,6 +381,11 @@ export default function DashboardContenido({
           )}
         </>
       )}
+
+      {/* LINEA VET — compartir el historial con el veterinario.
+          Vive tambien en Perfil, pero ahi casi nadie la encontraba:
+          es la funcion que distingue a CHIQUI y merece estar visible. */}
+      <LineaVet mascotaId={m.id} mascotaNombre={m.nombre} />
 
       {/* CHIQUI TE CUENTA — carrusel de datos curiosos, cambia cada dia */}
       <ChiquiTeCuenta especie={m.especie} />
