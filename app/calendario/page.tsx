@@ -266,6 +266,10 @@ export default function CalendarioPage() {
     if (nm < 0) { nm = 11; na-- }
     if (nm > 11) { nm = 0; na++ }
     setMes(nm); setAño(na)
+    // Al cambiar de mes se deselecciona el día: si no, un día ya elegido
+    // (ej. hoy) se "arrastraba" al nuevo mes y podía quedar en una fecha
+    // futura registrable.
+    setDiaSeleccionado(null)
     if (mascota) await cargarRegistros(mascota.id, nm, na)
   }
 
@@ -274,6 +278,7 @@ export default function CalendarioPage() {
   async function irAMesAño(nm: number, na: number) {
     setMes(nm); setAño(na)
     setSelectorFecha(false)
+    setDiaSeleccionado(null)
     if (mascota) await cargarRegistros(mascota.id, nm, na)
   }
 
@@ -303,10 +308,24 @@ export default function CalendarioPage() {
   const diasEnMes = new Date(año, mes + 1, 0).getDate()
   const primerDia = (new Date(año, mes, 1).getDay() + 6) % 7 // lunes=0
   const hoy = new Date()
+  // Fecha de hoy a medianoche, para comparar solo el DÍA (sin la hora).
+  // Sin esto, un día futuro a las 00:00 podía "colarse" al compararlo
+  // contra hoy con hora avanzada.
+  const hoyMedianoche = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
   const esHoy = (d: number) => d === hoy.getDate() && mes === hoy.getMonth() && año === hoy.getFullYear()
+  // Un día (d) del mes/año mostrado es futuro si su fecha (a medianoche)
+  // es posterior a hoy (a medianoche). Comparación de fechas puras.
+  const esDiaFuturo = (d: number) => new Date(año, mes, d) > hoyMedianoche
 
   const fechaKey = (d: number) => `${año}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-  const regDia = diaSeleccionado ? registros[fechaKey(diaSeleccionado)] : null
+  // Blindaje: el panel de registro solo se abre para un día que NO sea
+  // futuro. No depende de que el "reset al navegar" funcione: aunque un
+  // día de otro mes se arrastre, si su fecha en el mes/año ACTUAL es
+  // futura, el panel no se muestra. Cierra el hueco del swipe/flechas.
+  const diaSelValido = diaSeleccionado !== null && !esDiaFuturo(diaSeleccionado)
+    ? diaSeleccionado
+    : null
+  const regDia = diaSelValido ? registros[fechaKey(diaSelValido)] : null
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-[#8A7560]">Cargando...</div>
 
@@ -399,7 +418,7 @@ export default function CalendarioPage() {
           const d = i + 1
           const key = fechaKey(d)
           const reg = registros[key]
-          const esFuturo = new Date(año, mes, d) > hoy
+          const esFuturo = esDiaFuturo(d)
           const seleccionado = diaSeleccionado === d
 
           return (
@@ -445,11 +464,11 @@ export default function CalendarioPage() {
       </div>
 
       {/* Panel día seleccionado */}
-      {diaSeleccionado && (
+      {diaSelValido && (
         <div className="mx-4 mt-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
           <div className="px-4 py-3 border-b border-[#EEE2D4] flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold">{diaSeleccionado} de {MESES[mes]}</p>
+              <p className="text-sm font-bold">{diaSelValido} de {MESES[mes]}</p>
               <div className="flex items-center gap-2 mt-1">
                 {regDia && (
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold"
@@ -458,9 +477,9 @@ export default function CalendarioPage() {
                     {({ verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' } as Record<string,string>)[regDia.estado_dia]}
                   </div>
                 )}
-                {diaSeleccionado && pesos[fechaKey(diaSeleccionado)] && (
+                {diaSelValido && pesos[fechaKey(diaSelValido)] && (
                   <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#F07A30]/15 text-[#F07A30]">
-                    ⚖️ {pesos[fechaKey(diaSeleccionado)]} kg
+                    ⚖️ {pesos[fechaKey(diaSelValido)]} kg
                   </div>
                 )}
               </div>
@@ -470,12 +489,12 @@ export default function CalendarioPage() {
 
           {/* Hitos logrados ese día — se muestran SIEMPRE, aunque no
               haya registro diario (un hito puede registrarse solo). */}
-          {(hitosMes[fechaKey(diaSeleccionado)] || []).length > 0 && (
+          {(hitosMes[fechaKey(diaSelValido)] || []).length > 0 && (
             <div className="px-4 pt-3">
               <div className="rounded-xl border border-[#FFBD59] p-3" style={{ background: 'linear-gradient(135deg, #FFBD5918, #FFFCF8)' }}>
                 <p className="text-[10px] font-bold text-[#CD7421] uppercase tracking-wider mb-1.5">🐾 Hito de este día</p>
                 <div className="space-y-1">
-                  {(hitosMes[fechaKey(diaSeleccionado)] || []).map(h => {
+                  {(hitosMes[fechaKey(diaSelValido)] || []).map(h => {
                     const info = HITOS_LABEL[h] || { emoji: '🐾', label: h }
                     return (
                       <p key={h} className="text-[11px] text-[#3D2B1F] font-medium">{info.emoji} {info.label}</p>
@@ -489,9 +508,9 @@ export default function CalendarioPage() {
           {/* Momentos de vida ocurridos ese día — también fuera del
               registro diario. Los cambios de la edad se muestran con
               tono neutro (no son celebraciones). */}
-          {(momentosMes[fechaKey(diaSeleccionado)] || []).length > 0 && (
+          {(momentosMes[fechaKey(diaSelValido)] || []).length > 0 && (
             <div className="px-4 pt-3">
-              {(momentosMes[fechaKey(diaSeleccionado)] || []).map((m: any, i: number) => {
+              {(momentosMes[fechaKey(diaSelValido)] || []).map((m: any, i: number) => {
                 const info = MOMENTOS_LABEL[m.tipo] || { emoji: '💛', label: m.tipo }
                 const esCambio = m.categoria === 'cambio_edad'
                 return (
@@ -565,7 +584,7 @@ export default function CalendarioPage() {
               {/* Enriquecimiento del día (perros): actividad, duración
                   y trucos practicados en entrenamiento. */}
               {(() => {
-                const enrDia = enriqMes[fechaKey(diaSeleccionado)] || []
+                const enrDia = enriqMes[fechaKey(diaSelValido)] || []
                 if (enrDia.length === 0) return null
                 return (
                   <div className="mb-3">
@@ -586,14 +605,14 @@ export default function CalendarioPage() {
                   </div>
                 )
               })()}
-              <Link href={`/registro-diario?fecha=${fechaKey(diaSeleccionado)}`} className="bg-[#FFFCF8] border border-[#EEE2D4] text-[#8C572F] font-bold px-6 py-2.5 rounded-xl text-sm inline-block">
+              <Link href={`/registro-diario?fecha=${fechaKey(diaSelValido)}`} className="bg-[#FFFCF8] border border-[#EEE2D4] text-[#8C572F] font-bold px-6 py-2.5 rounded-xl text-sm inline-block">
                 ✏️ Editar este día
               </Link>
             </div>
           ) : (
             <div className="p-6 text-center">
               <p className="text-sm text-[#8A7560] mb-3">Sin registro para este día</p>
-              <Link href={`/registro-diario?fecha=${fechaKey(diaSeleccionado)}`} className="bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm inline-block">
+              <Link href={`/registro-diario?fecha=${fechaKey(diaSelValido)}`} className="bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm inline-block">
                 Registrar este día →
               </Link>
             </div>

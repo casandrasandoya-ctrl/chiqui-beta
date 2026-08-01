@@ -109,10 +109,22 @@ function construirResumenClinico(params: {
   antis: any[]
   obs: any[]
   examenesLab: any[]
+  fechaNacimiento?: string | null
+  especie?: string | null
 }): { texto: string; nivel: 'verde' | 'amarillo' | 'rojo' }[] {
-  const { historialPeso, vacunas, antis, obs, examenesLab } = params
+  const { historialPeso, vacunas, antis, obs, examenesLab, fechaNacimiento, especie } = params
   const resumen: { texto: string; nivel: 'verde' | 'amarillo' | 'rojo' }[] = []
   const hoy = new Date()
+
+  // ¿Es cachorro/gatito en crecimiento? Perros hasta 18 meses, gatos
+  // hasta 12. En esa etapa, aumentar de peso es esperado (no es una
+  // observación). La pérdida de peso sí sigue marcándose.
+  let esCachorroCrecimiento = false
+  if (fechaNacimiento) {
+    const nac = new Date(fechaNacimiento + 'T00:00:00')
+    const meses = (hoy.getTime() - nac.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
+    esCachorroCrecimiento = meses >= 0 && meses < (especie === 'Gato' ? 12 : 18)
+  }
 
   // Peso: compara el registro más antiguo vs el más reciente dentro de
   // los últimos 6 meses. Si hay menos de 2 registros en ese período, no
@@ -130,7 +142,13 @@ function construirResumenClinico(params: {
       if (variacionPct < 5) {
         resumen.push({ texto: `Peso estable durante los últimos 6 meses (${ultimo} kg).`, nivel: 'verde' })
       } else if (ultimo > primero) {
-        resumen.push({ texto: `Peso aumentó de ${primero} kg a ${ultimo} kg en los últimos 6 meses.`, nivel: 'amarillo' })
+        // En cachorros/gatitos en crecimiento, el aumento es esperado:
+        // se informa en verde, no como observación.
+        if (esCachorroCrecimiento) {
+          resumen.push({ texto: `Peso aumentó de ${primero} kg a ${ultimo} kg, acorde a su crecimiento.`, nivel: 'verde' })
+        } else {
+          resumen.push({ texto: `Peso aumentó de ${primero} kg a ${ultimo} kg en los últimos 6 meses.`, nivel: 'amarillo' })
+        }
       } else {
         resumen.push({ texto: `Peso disminuyó de ${primero} kg a ${ultimo} kg en los últimos 6 meses.`, nivel: 'amarillo' })
       }
@@ -432,7 +450,7 @@ export default async function VetPage({ searchParams }: Props) {
     ? `${DIETA_ESPECIAL_VET[dietaEspecialReciente.alimentacion_especial] || 'Dieta especial'} · ${diasConDietaEspecial === 1 ? '1 día' : `${diasConDietaEspecial} días`}`
     : null
   const chipsMotivo = chipDieta ? [...motivosConsulta, chipDieta] : motivosConsulta
-  const resumenClinico = construirResumenClinico({ historialPeso: historialPeso || [], vacunas, antis, obs, examenesLab })
+  const resumenClinico = construirResumenClinico({ historialPeso: historialPeso || [], vacunas, antis, obs, examenesLab, fechaNacimiento: mascota?.fecha_nacimiento, especie: mascota?.especie })
 
   const medicamentosActivos = medicamentos.filter((m: any) => medicamentoEstaActivo(m))
   const medicamentosFinalizados = medicamentos.filter((m: any) => !medicamentoEstaActivo(m))
