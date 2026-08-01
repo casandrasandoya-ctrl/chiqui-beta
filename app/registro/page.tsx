@@ -8,7 +8,6 @@ import { createClient } from '@/utils/supabase/client'
 export default function RegistroPage() {
   const router = useRouter()
   const supabase = createClient()
-  const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -31,7 +30,8 @@ export default function RegistroPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { nombre } },
+      // El nombre del tutor ya no se pide aquí: se pide en /bienvenida
+      // (mismo lugar para todos, vengan de registro manual o de Google).
     })
 
     if (error) {
@@ -111,18 +111,6 @@ export default function RegistroPage() {
             {error}
           </div>
         )}
-
-        <div>
-          <label className="block text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2">Tu nombre</label>
-          <input
-            type="text"
-            value={nombre}
-            onChange={e => setNombre(e.target.value)}
-            placeholder="¿Cómo te llamamos?"
-            required
-            className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
-          />
-        </div>
 
         <div>
           <label className="block text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2">Email</label>

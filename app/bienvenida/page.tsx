@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
@@ -10,6 +10,38 @@ export default function BienvenidaPage() {
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
   const [paso, setPaso] = useState<'elegir' | 'codigo'>('elegir')
+  const [nombreTutor, setNombreTutor] = useState('')
+  const [errorNombre, setErrorNombre] = useState('')
+
+  // Al cargar, precargar el nombre si ya existe (de un registro manual
+  // previo, o el nombre de la cuenta de Google) para no pedirlo de nuevo
+  // sin necesidad. Los de Google llegan sin "nombre" propio pero suelen
+  // traer "full_name" o "name".
+  useEffect(() => {
+    ;(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      const meta = user?.user_metadata as any
+      const existente = meta?.nombre || meta?.full_name || meta?.name || ''
+      if (existente) setNombreTutor(existente)
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Guarda el nombre del tutor en la metadata de auth (de donde lo lee
+  // "Mi cuenta" y el resto de la app). Se llama antes de avanzar por
+  // cualquier camino (crear mascota o unirse con código), así queda
+  // registrado para TODOS por igual, vengan de Google o de registro
+  // manual. Devuelve true si está ok para continuar.
+  async function guardarNombreTutor(): Promise<boolean> {
+    const n = nombreTutor.trim()
+    if (!n) {
+      setErrorNombre('Cuéntanos tu nombre para continuar.')
+      return false
+    }
+    setErrorNombre('')
+    await supabase.auth.updateUser({ data: { nombre: n } })
+    return true
+  }
 
   async function unirseConCodigo() {
     const c = codigo.trim().toUpperCase()
@@ -76,15 +108,29 @@ export default function BienvenidaPage() {
       <h1 className="text-2xl font-bold text-[#3D2B1F] text-center mb-2">
         ¡Bienvenido/a a CHIQUI!
       </h1>
-      <p className="text-sm text-[#8A7560] text-center mb-10 leading-relaxed">
-        ¿Cómo quieres empezar?
+      <p className="text-sm text-[#8A7560] text-center mb-8 leading-relaxed">
+        Cuéntanos tu nombre y cómo quieres empezar.
       </p>
 
       <div className="w-full max-w-sm space-y-3">
 
+        {/* Nombre del tutor — se pide una vez aquí, para todos (Google o
+            registro manual), y queda guardado en la cuenta. */}
+        <div className="mb-2">
+          <label className="block text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2">Nombre de tutor</label>
+          <input
+            type="text"
+            value={nombreTutor}
+            onChange={e => { setNombreTutor(e.target.value); if (errorNombre) setErrorNombre('') }}
+            placeholder="¿Cómo te llamamos?"
+            className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
+          />
+          {errorNombre && <p className="text-xs text-[#E05252] mt-1.5">{errorNombre}</p>}
+        </div>
+
         {/* Opción 1: Agregar mi mascota */}
         <button
-          onClick={() => router.push('/mascota/nueva')}
+          onClick={async () => { if (await guardarNombreTutor()) router.push('/mascota/nueva') }}
           className="w-full bg-[#FFBD59] rounded-2xl p-5 text-left flex items-center gap-4"
         >
           <span className="text-3xl flex-shrink-0">🐾</span>
@@ -98,7 +144,7 @@ export default function BienvenidaPage() {
 
         {/* Opción 2: Tengo un código */}
         <button
-          onClick={() => setPaso('codigo')}
+          onClick={async () => { if (await guardarNombreTutor()) setPaso('codigo') }}
           className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-5 text-left flex items-center gap-4"
         >
           <span className="text-3xl flex-shrink-0">🔑</span>
