@@ -145,6 +145,11 @@ export default function AnalisisPage() {
   const [gruposRutinaAbiertos, setGruposRutinaAbiertos] = useState<Set<string>>(new Set())
   const [signosHistorial, setSignosHistorial] = useState<SignoEvento[]>([])
   const [enriqRegistros, setEnriqRegistros] = useState<any[]>([])
+  // Historial COMPLETO de enriquecimiento (no los 30 dias de
+  // enriqRegistros): la racha de juego de los gatos se cuenta
+  // sobre el, para que no tenga un techo artificial de 30 dias.
+  const [enriqHistorial, setEnriqHistorial] = useState<any[]>([])
+  const [abiertoJuegoGato, setAbiertoJuegoGato] = useState(false)
   // Historial de paseos de los últimos 6 meses CALENDARIO. Se carga
   // aparte de `registros` (que son 30 días móviles) porque la tarjeta
   // "este mes" y la comparación mensual necesitan meses completos, no
@@ -169,7 +174,7 @@ export default function AnalisisPage() {
   async function cargarRegistros(mascotaId: string) {
     const desde = new Date()
     desde.setDate(desde.getDate() - 30)
-    const [{ data: r }, { data: enr }, { data: hist }] = await Promise.all([
+    const [{ data: r }, { data: enr }, { data: hist }, { data: enrHist }] = await Promise.all([
       supabase
         .from('registros_diarios').select('*')
         .eq('mascota_id', mascotaId)
@@ -191,10 +196,19 @@ export default function AnalisisPage() {
         .eq('mascota_id', mascotaId)
         .order('fecha', { ascending: true })
         .limit(2000),
+      // Historial COMPLETO de enriquecimiento (solo dos columnas):
+      // la racha de juego se cuenta sobre esto para no tener techo.
+      supabase
+        .from('enriquecimientos')
+        .select('fecha, actividad')
+        .eq('mascota_id', mascotaId)
+        .order('fecha', { ascending: true })
+        .limit(2000),
     ])
     setRegistros(r || [])
     setEnriqRegistros(enr || [])
     setPaseoHistorial(hist || [])
+    setEnriqHistorial(enrHist || [])
   }
 
   // Signos de alerta: trae TODO el historial de la mascota (no solo 30
@@ -838,6 +852,32 @@ export default function AnalisisPage() {
   }
   const { racha: rachaPaseo, enRiesgo: rachaEnRiesgo } = calcularRachaPaseo()
 
+  // --- Racha de juego (gatos) ---
+  // Solo cuentan las actividades donde el TUTOR participa. Ventana
+  // y rascador las hace el gato solo: son enriquecimiento, pero no
+  // vinculo, y la racha mide justamente eso.
+  const ACTIVIDADES_VINCULO = ['caza', 'entrenamiento_felino', 'olfato_felino', 'puzzle_comida']
+  function calcularRachaJuego(): { racha: number; enRiesgo: boolean } {
+    const hoyStr = fechaChile(new Date())
+    const fechasConJuego = new Set(
+      (enriqHistorial || [])
+        .filter((e: any) => ACTIVIDADES_VINCULO.includes(e.actividad))
+        .map((e: any) => e.fecha as string)
+    )
+    // Igual criterio que la racha de paseo: si hoy todavia no hay
+    // juego registrado, la racha no se rompe — se cuenta desde ayer
+    // y se marca en riesgo hasta que termine el dia.
+    const tieneHoy = fechasConJuego.has(hoyStr)
+    let cursor = tieneHoy ? hoyStr : diaAnteriorStr(hoyStr)
+    let racha = 0
+    while (fechasConJuego.has(cursor)) {
+      racha++
+      cursor = diaAnteriorStr(cursor)
+    }
+    return { racha, enRiesgo: !tieneHoy && racha > 0 }
+  }
+  const { racha: rachaJuego, enRiesgo: juegoEnRiesgo } = calcularRachaJuego()
+
   // --- Normalidad por categoría (últimos 30 días) ---
   const CATEGORIAS_NORMALIDAD = [
     { campo: 'energia', label: 'Energía', icon: '⚡', valoresPositivos: ['muy_alta', 'alta', 'normal'] },
@@ -1187,6 +1227,117 @@ export default function AnalisisPage() {
 
       </div>
       )}
+      {/* JUEGO Y VÍNCULO (solo gatos) — contenedor con fondo.
+          Equivalente felino de "Actividad física", pero con otro
+          marco: el gato de interior no necesita caminar, necesita
+          cazar y que su tutor juegue con él. */}
+      {mascota?.especie === 'Gato' && enriqRegistros.length > 0 && (() => {
+        const ACT_GATO: Record<string, { emoji: string; label: string }> = {
+          caza: { emoji: '🎣', label: 'Sesión de caza' },
+          puzzle_comida: { emoji: '🧩', label: 'Comida en puzzle' },
+          vertical: { emoji: '🪜', label: 'Alturas y rascador' },
+          entrenamiento_felino: { emoji: '🎓', label: 'Entrenamiento' },
+          olfato_felino: { emoji: '👃', label: 'Juegos de olfato' },
+          ventana: { emoji: '🪟', label: 'Ventana o mirador' },
+        }
+        const diasConJuego = new Set(enriqRegistros.map(e => e.fecha)).size
+        const porAct: Record<string, { sesiones: number; minutos: number }> = {}
+        for (const e of enriqRegistros) {
+          const a = (porAct[e.actividad] = porAct[e.actividad] || { sesiones: 0, minutos: 0 })
+          a.sesiones++
+          a.minutos += e.duracion_min || 0
+        }
+        const ordenadas = Object.entries(porAct).sort((x, y) => y[1].sesiones - x[1].sesiones)
+        // Lo que mas disfruta: el detalle mas repetido entre caza y
+        // olfato, que son los que hablan de preferencia real.
+        const gustos: Record<string, number> = {}
+        for (const e of enriqRegistros) {
+          if (e.actividad !== 'caza' && e.actividad !== 'olfato_felino') continue
+          for (const d of String(e.detalle || '').split(', ').filter(Boolean)) {
+            if (d === 'Otro') continue
+            gustos[d] = (gustos[d] || 0) + 1
+          }
+        }
+        const favorito = Object.entries(gustos).sort((x, y) => y[1] - x[1])[0]
+        // ¿Hubo caza en los últimos 7 días? De eso depende el consejo
+        // de la madrugada, que es el beneficio inmediato y concreto.
+        const hace7 = new Date(); hace7.setDate(hace7.getDate() - 7)
+        const desde7 = fechaChile(hace7)
+        const cazoEstaSemana = enriqRegistros.some(e => e.actividad === 'caza' && e.fecha >= desde7)
+        const fmtMinG = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h ${m % 60 > 0 ? (m % 60) + 'm' : ''}`.trim() : `${m} min`
+        return (
+          <div className="mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#FBEEDD' }}>
+            <div className="px-2 mb-2 pt-1">
+              <div className="flex items-center gap-2">
+                <img src="/chiqui/chiqui_juguetes.png" alt="" className="w-7 h-7 object-contain" />
+                <h2 className="text-sm font-bold text-[#8C572F] uppercase tracking-wider">Juego y vínculo</h2>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 mb-2">
+              <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-sm">🔥</span>
+                  <span className="text-[10px] text-[#8A7560]">Racha de juego</span>
+                </div>
+                <div className="font-bold text-lg text-[#3D2B1F]">{rachaJuego} {rachaJuego === 1 ? 'día' : 'días'}</div>
+                {juegoEnRiesgo && rachaJuego > 0 && (
+                  <p className="text-[10px] text-[#F07A30] mt-0.5 font-semibold">⚠️ Juega hoy para mantenerla</p>
+                )}
+              </div>
+              <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-sm">📅</span>
+                  <span className="text-[10px] text-[#8A7560]">Días con juego</span>
+                </div>
+                <div className="font-bold text-lg text-[#3D2B1F]">{diasConJuego} <span className="text-xs font-normal text-[#8A7560]">de 30</span></div>
+              </div>
+            </div>
+            {/* Consejo de la madrugada: el único beneficio inmediato
+                y para el tutor que tiene la app. Un gato es cazador
+                crepuscular; si no descarga esa energía en la tarde,
+                despierta a su tutor de madrugada. */}
+            {!cazoEstaSemana && (
+              <div className="rounded-2xl bg-[#FFFCF8] border border-[#EEE2D4] px-3 py-2.5 mb-2">
+                <p className="text-[11px] text-[#3D2B1F] leading-relaxed">
+                  🌙 ¿{mascota?.nombre} te despierta de madrugada? Los gatos cazan al amanecer. Una sesión de caza antes de dormir suele ayudar a que la noche sea más tranquila para los dos.
+                </p>
+              </div>
+            )}
+            <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
+              <button type="button" onClick={() => setAbiertoJuegoGato(v => !v)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
+                <span className="text-sm">🐾</span>
+                <p className="flex-1 text-[11px] font-bold text-[#8C572F]">Actividades de los últimos 30 días</p>
+                <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">{ordenadas.length}</span>
+                <span className="text-[#8C572F] text-sm font-bold">{abiertoJuegoGato ? '▲' : '▼'}</span>
+              </button>
+              {abiertoJuegoGato && (
+                <div className="px-4 pb-3 border-t border-[#EEE2D4] pt-2.5">
+                  <div className="space-y-1">
+                    {ordenadas.map(([act, datos]) => {
+                      const info = ACT_GATO[act] || { emoji: '🐾', label: act }
+                      return (
+                        <div key={act} className="flex items-center justify-between text-[11px]">
+                          <span className="text-[#3D2B1F]">{info.emoji} {info.label}</span>
+                          <span className="text-[#8A7560]">
+                            {datos.sesiones} {datos.sesiones === 1 ? 'vez' : 'veces'}{datos.minutos > 0 ? ` · ${fmtMinG(datos.minutos)}` : ''}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {favorito && favorito[1] >= 2 && (
+                    <div className="mt-2 pt-2 border-t border-[#EEE2D4]">
+                      <p className="text-[11px] text-[#3D2B1F]">
+                        🥇 <span className="font-semibold">Lo que más disfruta:</span> {favorito[0]} ({favorito[1]} {favorito[1] === 1 ? 'vez' : 'veces'})
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
       {/* ACTIVIDAD FÍSICA (solo perros) — contenedor con fondo */}
         {esPerro && (
           <div className="mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#FBEEDD' }}>
