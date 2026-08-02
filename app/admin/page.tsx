@@ -51,6 +51,15 @@ function fmtFecha(iso: string): string {
 }
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+const DIAS_SEM = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+const MESES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+
+// Se construye a MEDIODIA para que el cambio de horario de verano
+// no corra el dia de la semana.
+function fmtFechaLarga(iso: string): string {
+  const d = new Date(iso + 'T12:00:00')
+  return `${DIAS_SEM[d.getDay()]} ${d.getDate()} de ${MESES_LARGO[d.getMonth()]}`
+}
 
 // ---------- Piezas visuales ----------
 
@@ -184,6 +193,31 @@ export default async function AdminPage({ searchParams }: Props) {
   const nuevasCuentas = TODOS.filter((u: any) => (u.created_at || '').slice(0, 10) >= desde)
   const nuevasMascotas = masc.filter((m: any) => (m.created_at || '').slice(0, 10) >= desde)
 
+  // ---------- Quiénes registraron hoy ----------
+  // Replica la planilla que se lleva a mano. Es tambien la
+  // evidencia que pide Google Play para salir de closed testing:
+  // testers activos de verdad, dia a dia.
+  const nombrePorUsuario = new Map<string, string>(TODOS.map((u: any) => [u.id, u.nombre || u.email || '(sin nombre)']))
+  const ayer = restarDias(1)
+
+  const juntarPorUsuario = (fecha: string) => {
+    const mapa = new Map<string, string[]>()
+    for (const r of regs) {
+      if (r.fecha !== fecha) continue
+      const arr = mapa.get(r.user_id) || []
+      const mm = mascPorId.get(r.mascota_id)
+      if (mm && !arr.includes(mm.nombre)) arr.push(mm.nombre)
+      mapa.set(r.user_id, arr)
+    }
+    return mapa
+  }
+
+  const hoyPorUsuario = juntarPorUsuario(hoy)
+  const ayerPorUsuario = juntarPorUsuario(ayer)
+  const listaHoy = Array.from(hoyPorUsuario.entries())
+    .map(([uid, mascotasDia]) => ({ nombre: nombrePorUsuario.get(uid) || '(sin nombre)', mascotasDia }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+
   // ---------- Serie para el gráfico ----------
   const serie: { etiqueta: string; valor: number }[] = []
   if (periodo === 'anio') {
@@ -286,6 +320,28 @@ export default async function AdminPage({ searchParams }: Props) {
         <Tarjeta label="Mascotas nuevas" valor={nuevasMascotas.length} sub="en el período" />
       </div>
 
+      <Seccion titulo="Registros de hoy">
+        <p className="text-xs text-[#8A7560] capitalize">{fmtFechaLarga(hoy)}</p>
+        <p className="font-bold text-2xl mt-0.5" style={{ color: listaHoy.length > 0 ? '#4CAF7D' : '#B5A38F' }}>
+          {listaHoy.length} <span className="text-sm font-normal text-[#8A7560]">de {TODOS.length} usuarios</span>
+        </p>
+        {listaHoy.length === 0 ? (
+          <p className="text-xs text-[#8A7560] mt-2">Todavía nadie ha registrado hoy.</p>
+        ) : (
+          <div className="mt-3 space-y-1.5">
+            {listaHoy.map((f, i) => (
+              <div key={i} className="flex items-baseline justify-between gap-2">
+                <p className="text-xs text-[#3D2B1F] truncate">{f.nombre}</p>
+                <p className="text-[10px] text-[#8A7560] flex-shrink-0 truncate">🐾 {f.mascotasDia.join(', ')}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="text-[10px] text-[#8A7560] mt-3 pt-2 border-t border-[#EEE2D4]">
+          Ayer registraron {ayerPorUsuario.size} {ayerPorUsuario.size === 1 ? 'usuario' : 'usuarios'}
+        </p>
+      </Seccion>
+
       <Seccion titulo="Embudo de activación (histórico)">
         <PasoEmbudo label="Crearon cuenta" n={TODOS.length} total={TODOS.length} color="#8C572F" />
         <PasoEmbudo label="Crearon una mascota" n={conMascota.size} total={TODOS.length} color="#CD7421" />
@@ -333,8 +389,16 @@ export default async function AdminPage({ searchParams }: Props) {
         </p>
       </Seccion>
 
-      <Seccion titulo={`Usuarias (${filas.length})`}>
-        <div className="space-y-2.5">
+      <Seccion titulo={`Usuarios (${filas.length})`}>
+        {/* Desplegable: con dos docenas de filas, la lista abierta
+            empujaba todo lo demas fuera de la pantalla. <details> no
+            necesita JavaScript, asi que la pagina sigue siendo un
+            componente de servidor. */}
+        <details>
+          <summary className="text-xs font-semibold text-[#8C572F] cursor-pointer list-none mb-2">
+            Ver los {filas.length} usuarios ▼
+          </summary>
+          <div className="space-y-2.5">
           {filas.map((f, i) => {
             const color = f.sinRegistrar === null ? '#B5A38F'
               : f.sinRegistrar <= 1 ? '#4CAF7D'
@@ -358,7 +422,8 @@ export default async function AdminPage({ searchParams }: Props) {
               </div>
             )
           })}
-        </div>
+          </div>
+        </details>
       </Seccion>
 
       <p className="text-[10px] text-[#8A7560] text-center px-8 leading-relaxed">
