@@ -68,6 +68,26 @@ const CUIDADOS_RUTINA: { columna: string; label: string; emoji: string; grupo: s
 
 // Convierte un promedio de días en texto natural: "todos los días",
 // "día por medio" o "cada N días".
+// Adherencia: dosis REGISTRADAS sobre las que correspondian entre
+// la fecha de inicio y la de termino (o hoy, si sigue en curso).
+// Mismo calculo que usa la vista del veterinario.
+//
+// Las fechas se construyen a MEDIODIA para que los cambios de
+// horario de verano no desplacen el conteo de dias.
+function adherenciaMed(med: any): { esperadas: number; dadas: number; pct: number } | null {
+  if (!med.fecha_inicio) return null
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+  const finReal = med.fecha_fin && med.fecha_fin < hoy ? med.fecha_fin : hoy
+  const ini = new Date(med.fecha_inicio + 'T12:00:00')
+  const fin = new Date(finReal + 'T12:00:00')
+  const dias = Math.floor((fin.getTime() - ini.getTime()) / 86400000) + 1
+  if (dias <= 0) return null
+  const porDia = Math.max(1, Number(med.dosis_por_dia) || 1)
+  const esperadas = dias * porDia
+  if (esperadas <= 0) return null
+  return { esperadas, dadas: Number(med.tomas) || 0, pct: Math.round(((Number(med.tomas) || 0) / esperadas) * 100) }
+}
+
 function textoCada(dias: number): string {
   if (dias <= 1) return 'todos los días'
   if (dias === 2) return 'día por medio'
@@ -149,10 +169,10 @@ export default function AnalisisPage() {
   // enriqRegistros): la racha de juego de los gatos se cuenta
   // sobre el, para que no tenga un techo artificial de 30 dias.
   const [enriqHistorial, setEnriqHistorial] = useState<any[]>([])
-  // Cuantos tratamientos siguen vigentes hoy. La rutina de
-  // medicamentos lo necesita para no marcar como atraso los dias
-  // posteriores al fin de un tratamiento.
-  const [medsActivosCount, setMedsActivosCount] = useState(0)
+  // Tratamientos vigentes hoy, con sus dosis registradas. La
+  // seccion de medicamentos los muestra tal cual fueron recetados
+  // en vez de inferir una cadencia del historial.
+  const [medsVigentes, setMedsVigentes] = useState<any[]>([])
   const [abiertoJuegoGato, setAbiertoJuegoGato] = useState(false)
   // Historial de paseos de los últimos 6 meses CALENDARIO. Se carga
   // aparte de `registros` (que son 30 días móviles) porque la tarjeta
@@ -213,7 +233,7 @@ export default function AnalisisPage() {
       // actualiza solo cuando llega esa fecha.
       supabase
         .from('medicamentos')
-        .select('fecha_fin')
+        .select('id, nombre, dosis, frecuencia, dosis_por_dia, fecha_inicio, fecha_fin')
         .eq('mascota_id', mascotaId)
         .eq('estado', 'activo'),
     ])
@@ -225,9 +245,22 @@ export default function AnalisisPage() {
     // del veterinario: sin fecha_fin, o con fecha_fin de hoy o
     // futura.
     const hoyMedStr = fechaChile(new Date())
-    setMedsActivosCount(
-      (medsAct || []).filter((md: any) => !md.fecha_fin || md.fecha_fin >= hoyMedStr).length
-    )
+    const vigentes = (medsAct || []).filter((md: any) => !md.fecha_fin || md.fecha_fin >= hoyMedStr)
+    if (vigentes.length === 0) {
+      setMedsVigentes([])
+    } else {
+      // Dosis efectivamente registradas de cada tratamiento, para
+      // mostrar cumplimiento real en vez de una cadencia inventada.
+      const { data: tomasMed } = await supabase
+        .from('medicamento_tomas')
+        .select('medicamento_id')
+        .in('medicamento_id', vigentes.map((md: any) => md.id))
+      const conteo: Record<string, number> = {}
+      for (const t of ((tomasMed || []) as { medicamento_id: string }[])) {
+        conteo[t.medicamento_id] = (conteo[t.medicamento_id] || 0) + 1
+      }
+      setMedsVigentes(vigentes.map((md: any) => ({ ...md, tomas: conteo[md.id] || 0 })))
+    }
   }
 
   // Signos de alerta: trae TODO el historial de la mascota (no solo 30
@@ -1789,34 +1822,69 @@ export default function AnalisisPage() {
         // es un atraso. Solo los cuidados periódicos pueden estar
         // vencidos.
         const necesitaAtencion = (r: RutinaCalculada) => {
-          // Medicamentos sin tratamiento vigente nunca estan
-          // "pendientes": el tratamiento termino, no hay nada que
-          // hacer. Sin esta excepcion, la cadencia inferida del
-          // historial seguia marcando atraso para siempre.
-          if (r.columna === 'medicamento_hoy' && medsActivosCount === 0) return false
+          // Medicamentos NUNCA cuenta como pendiente aqui. La
+          // cadencia inferida no aplica a un tratamiento con pauta
+          // medica, y recordar la dosis de hoy ya es tarea del
+          // dashboard. Analisis muestra cumplimiento, no urgencia.
+          if (r.columna === 'medicamento_hoy') return false
           return !r.diario && (r.proximaEstimadaDias ?? 99999) <= 0
         }
         const renderRutina = (r: RutinaCalculada) => {
-          // Caso especial: medicamentos sin tratamiento vigente. La
-          // maquinaria de rutinas infiere "cada cuantos dias" del
-          // historial y marca atraso cuando se pasa de ese
-          // promedio. Para un medicamento eso es incorrecto: un
-          // tratamiento tiene fin, y los dias posteriores sin dosis
-          // son lo esperado, no un descuido.
-          if (r.columna === 'medicamento_hoy' && medsActivosCount === 0) {
+          // Medicamentos NO es una rutina. La maquinaria de rutinas
+          // infiere "cada cuantos dias" del historial, y eso para un
+          // medicamento es falso: la pauta la dio el veterinario, no
+          // la costumbre. Decir "cada 4 dias aprox." describe cada
+          // cuanto se abrio la app, y "te tocaria en 3 dias" puede
+          // contradecir la receta con apariencia de recomendacion.
+          //
+          // Se muestra el tratamiento tal cual existe: nombre,
+          // frecuencia recetada y cumplimiento real.
+          if (r.columna === 'medicamento_hoy') {
             return (
               <div key={r.columna} className="px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-base flex-shrink-0">{r.emoji}</span>
                   <p className="text-xs font-semibold text-[#3D2B1F] flex-1">{r.label}</p>
                 </div>
-                <p className="text-xs text-[#3D2B1F] leading-relaxed">
-                  Última dosis registrada: hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'}
-                </p>
-                <p className="text-[11px] text-[#8A7560] mt-0.5">{r.ocurrencias} dosis registradas en total</p>
-                <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#8A7560' }}>
-                  ✓ Sin tratamientos activos
-                </p>
+                {medsVigentes.length === 0 ? (
+                  <>
+                    <p className="text-xs text-[#3D2B1F] leading-relaxed">
+                      Última dosis registrada: hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'}
+                    </p>
+                    <p className="text-[11px] text-[#8A7560] mt-0.5">{r.ocurrencias} días con dosis registradas</p>
+                    <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#8A7560' }}>
+                      ✓ Sin tratamientos activos
+                    </p>
+                  </>
+                ) : (
+                  <div className="space-y-2.5">
+                    {medsVigentes.map((md: any) => {
+                      const adh = adherenciaMed(md)
+                      const colorAdh = !adh ? '#8A7560' : adh.pct >= 80 ? '#4CAF7D' : adh.pct >= 50 ? '#F5C842' : '#E05252'
+                      return (
+                        <div key={md.id}>
+                          <p className="text-xs font-semibold text-[#3D2B1F]">{md.nombre}</p>
+                          <p className="text-[11px] text-[#8A7560]">
+                            {md.dosis ? `${md.dosis} · ` : ''}{md.frecuencia || (Number(md.dosis_por_dia) > 1 ? `${md.dosis_por_dia} dosis al día` : '1 dosis al día')}
+                          </p>
+                          {adh && (
+                            <>
+                              <div className="h-1.5 rounded-full bg-[#EEE2D4] overflow-hidden mt-1">
+                                <div className="h-full rounded-full" style={{ width: `${Math.min(100, adh.pct)}%`, background: colorAdh }} />
+                              </div>
+                              <p className="text-[11px] mt-0.5" style={{ color: colorAdh }}>
+                                {adh.dadas} de {adh.esperadas} dosis registradas · {adh.pct}%
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )
+                    })}
+                    <p className="text-[10px] text-[#8A7560] italic leading-relaxed">
+                      Cuenta las dosis que registraste. Una dosis sin registrar no significa que no se haya dado.
+                    </p>
+                  </div>
+                )}
               </div>
             )
           }
