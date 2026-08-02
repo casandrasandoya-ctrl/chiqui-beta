@@ -206,7 +206,9 @@ export default async function AdminPage({ searchParams }: Props) {
   ] = await Promise.all([
     db.from('perfil_usuario').select('id, nombre, email, created_at'),
     db.from('mascotas').select('id, user_id, nombre, especie, archivada_en, created_at'),
-    db.from('registros_diarios').select('user_id, mascota_id, fecha').limit(50000),
+    // paseo y se_bano viven dentro del registro del dia, no en una
+    // tabla propia: por eso viajan aca y no en una consulta aparte.
+    db.from('registros_diarios').select('user_id, mascota_id, fecha, paseo, se_bano').limit(50000),
     db.from('links_veterinario').select('user_id, created_at'),
     db.from('mascota_cotutores').select('dueno_user_id, estado'),
     db.from('preferencias_usuario').select('user_id, notificaciones_activas'),
@@ -270,6 +272,7 @@ export default async function AdminPage({ searchParams }: Props) {
     { data: exams },
     { data: examsLab },
     { data: revis },
+    { data: tomas },
   ] = await Promise.all([
     db.from('vacunas').select('mascota_id, nombre, fecha_aplicacion'),
     db.from('antiparasitarios').select('mascota_id, nombre, fecha_aplicacion'),
@@ -279,6 +282,10 @@ export default async function AdminPage({ searchParams }: Props) {
     db.from('examenes').select('mascota_id, nombre, categoria, fecha'),
     db.from('examenes_lab').select('mascota_id, tipo, fecha'),
     db.from('revisiones_corporales').select('mascota_id, fecha'),
+    // Dosis efectivamente registradas. Dice mucho mas que cuantos
+    // tratamientos se crearon: un tratamiento son muchas dosis, y
+    // lo que importa es si se cumplieron.
+    db.from('medicamento_tomas').select('mascota_id, fecha').limit(50000),
   ])
 
   // ---------- Quiénes registraron cada día ----------
@@ -405,6 +412,38 @@ export default async function AdminPage({ searchParams }: Props) {
     }
   }
 
+  // ---------- Resumen de la comunidad ----------
+  // Que paso con la salud de estos animales en el periodo elegido.
+  // Se cuenta solo lo de mascotas conocidas (mascPorId), asi nada
+  // que quedara huerfano en la base infla los numeros.
+  const enPeriodo = (iso: any) => {
+    const f = String(iso || '').slice(0, 10)
+    return f >= desde && f <= hasta
+  }
+  const contarPorMascota = (lista: any[] | null, campoFecha: string) =>
+    (lista || []).filter((x: any) => mascPorId.has(x.mascota_id) && enPeriodo(x[campoFecha])).length
+  const contarPorUsuario = (lista: any[] | null, campoFecha: string) =>
+    (lista || []).filter((x: any) => ids.has(x.user_id) && enPeriodo(x[campoFecha])).length
+
+  const resumenComunidad: [string, string, number][] = [
+    ['📝', 'Registros diarios', regsPeriodo.length],
+    // 'no_paseo' es un valor real que significa que ese dia NO
+    // salio: contarlo como paseo seria mentir.
+    ['🐾', 'Paseos', regsPeriodo.filter((r: any) => r.paseo && r.paseo !== 'no_paseo').length],
+    ['💊', 'Dosis de medicamento', contarPorMascota(tomas, 'fecha')],
+    ['🦴', 'Enriquecimiento', contarPorMascota(enriq, 'fecha')],
+    ['💉', 'Vacunas', contarPorMascota(vacunas, 'fecha_aplicacion')],
+    ['🪱', 'Antiparasitarios', contarPorMascota(antis, 'fecha_aplicacion')],
+    ['🩺', 'Visitas al veterinario', contarPorUsuario(visitas, 'fecha')],
+    // Los dos tipos de examen se suman: para leer el resumen son
+    // lo mismo.
+    ['🧪', 'Exámenes', contarPorMascota(exams, 'fecha') + contarPorMascota(examsLab, 'fecha')],
+    ['👁️', 'Observaciones', contarPorMascota(obs, 'fecha_inicio')],
+    ['⚖️', 'Controles de peso', contarPorMascota(pesos, 'fecha')],
+    ['🚿', 'Baños', regsPeriodo.filter((r: any) => r.se_bano).length],
+    ['✨', 'Momentos', contarPorUsuario(momentos, 'fecha')],
+  ]
+
   // ---------- Funciones usadas ----------
   const usaronLink = new Set((links || []).filter((l: any) => ids.has(l.user_id)).map((l: any) => l.user_id))
   const usaronCotutor = new Set((cotutores || []).filter((c: any) => ids.has(c.dueno_user_id)).map((c: any) => c.dueno_user_id))
@@ -518,6 +557,23 @@ export default async function AdminPage({ searchParams }: Props) {
           <Barras datos={serie} />
         </Seccion>
       )}
+
+      {/* Resumen de la comunidad: no cuanta gente entro, sino que
+          paso con la salud de estos animales. Respeta el periodo
+          elegido arriba. */}
+      <Seccion titulo="Resumen de la comunidad">
+        <div className="grid grid-cols-2 gap-2.5">
+          {resumenComunidad.map(([emoji, label, n]) => (
+            <div key={label} className="bg-[#FBEAD9]/50 rounded-xl px-3 py-2.5">
+              <p className="text-[10px] text-[#8A7560] leading-tight">{emoji} {label}</p>
+              <p className="font-bold text-xl text-[#3D2B1F] mt-0.5" style={{ color: n > 0 ? '#3D2B1F' : '#B5A38F' }}>{n}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[10px] text-[#8A7560] mt-3 leading-relaxed italic">
+          Todo lo registrado en el período elegido. No es cuánta gente entró: es qué pasó con la salud de estos animales.
+        </p>
+      </Seccion>
 
       <Seccion titulo="Funciones usadas (histórico)">
         <div className="space-y-2">
