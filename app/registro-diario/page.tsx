@@ -968,11 +968,22 @@ function RegistroContenido() {
         const hoyStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
         const { data: medsRaw } = await supabase
           .from('medicamentos')
-          .select('id,nombre,frecuencia,fecha_fin,estado,dosis_por_dia')
+          .select('id,nombre,frecuencia,fecha_inicio,fecha_fin,estado,dosis_por_dia,intervalo_dias')
           .eq('mascota_id', mascotaId)
           .eq('estado', 'activo')
-        const activosBase = (medsRaw || [])
-          .filter((md: any) => !md.fecha_fin || md.fecha_fin >= hoyStr)
+        // Solo los tratamientos que YA EMPEZARON, aun no terminan, y
+        // que HOY les toca dosis. Antes se ofrecia marcar la dosis de
+        // un tratamiento que ni siquiera habia comenzado.
+        const activosBase = (medsRaw || []).filter((md: any) => {
+          if (md.fecha_inicio && md.fecha_inicio > hoyStr) return false
+          if (md.fecha_fin && md.fecha_fin < hoyStr) return false
+          const intervalo = Math.max(1, Number(md.intervalo_dias) || 1)
+          if (intervalo === 1 || !md.fecha_inicio) return true
+          const iniMd = new Date(md.fecha_inicio + 'T12:00:00')
+          const hoyMd = new Date(hoyStr + 'T12:00:00')
+          const diasMd = Math.round((hoyMd.getTime() - iniMd.getTime()) / 86400000)
+          return diasMd % intervalo === 0
+        })
         // Tomas de HOY para saber cuál dosis toca en cada medicamento.
         const idsAct = activosBase.map((a: any) => a.id)
         let tomasHoyPorMed: Record<string, number> = {}

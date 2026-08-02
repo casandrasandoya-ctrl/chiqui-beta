@@ -83,7 +83,12 @@ function adherenciaMed(med: any): { esperadas: number; dadas: number; pct: numbe
   const dias = Math.floor((fin.getTime() - ini.getTime()) / 86400000) + 1
   if (dias <= 0) return null
   const porDia = Math.max(1, Number(med.dosis_por_dia) || 1)
-  const esperadas = dias * porDia
+  // Cuantos DIAS del periodo llevaban dosis. Para un tratamiento
+  // dia por medio de 7 dias, son 4 dias con dosis y no 7: dividir
+  // por todos los dias dejaba a la persona en 50% haciendolo bien.
+  const intervalo = Math.max(1, Number(med.intervalo_dias) || 1)
+  const diasConDosis = Math.floor((dias - 1) / intervalo) + 1
+  const esperadas = diasConDosis * porDia
   if (esperadas <= 0) return null
   return { esperadas, dadas: Number(med.tomas) || 0, pct: Math.round(((Number(med.tomas) || 0) / esperadas) * 100) }
 }
@@ -233,7 +238,7 @@ export default function AnalisisPage() {
       // actualiza solo cuando llega esa fecha.
       supabase
         .from('medicamentos')
-        .select('id, nombre, dosis, frecuencia, dosis_por_dia, fecha_inicio, fecha_fin')
+        .select('id, nombre, dosis, frecuencia, dosis_por_dia, intervalo_dias, fecha_inicio, fecha_fin')
         .eq('mascota_id', mascotaId)
         .eq('estado', 'activo'),
     ])
@@ -1871,6 +1876,9 @@ export default function AnalisisPage() {
                           <p className="text-xs font-semibold text-[#3D2B1F]">{md.nombre}</p>
                           <p className="text-[11px] text-[#8A7560]">
                             {md.dosis ? `${md.dosis} · ` : ''}{md.frecuencia || (Number(md.dosis_por_dia) > 1 ? `${md.dosis_por_dia} dosis al día` : '1 dosis al día')}
+                            {Number(md.intervalo_dias) > 1 && (
+                              <span> · {Number(md.intervalo_dias) === 2 ? 'día por medio' : `cada ${md.intervalo_dias} días`}</span>
+                            )}
                           </p>
                           {adh && (
                             <>

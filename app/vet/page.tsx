@@ -294,7 +294,12 @@ function calcularAdherencia(med: any, dadas: number): { esperadas: number; dadas
   const dias = Math.floor((fin.getTime() - ini.getTime()) / 86400000) + 1
   if (dias <= 0) return null
   const porDia = Math.max(1, Number(med.dosis_por_dia) || 1)
-  const esperadas = dias * porDia
+  // Solo cuentan los dias que llevaban dosis. Un tratamiento dia
+  // por medio de 7 dias son 4 dias con dosis, no 7: dividir por
+  // todos mostraria al veterinario un incumplimiento inexistente.
+  const intervalo = Math.max(1, Number(med.intervalo_dias) || 1)
+  const diasConDosis = Math.floor((dias - 1) / intervalo) + 1
+  const esperadas = diasConDosis * porDia
   if (esperadas <= 0) return null
   return { esperadas, dadas, pct: Math.round((dadas / esperadas) * 100) }
 }

@@ -158,16 +158,28 @@ export default async function Dashboard({ searchParams }: Props) {
   // tratamiento terminó aunque el campo no se haya actualizado.
   const { data: medsActivosRaw } = await supabase
     .from('medicamentos')
-    .select('id,nombre,frecuencia,fecha_inicio,fecha_fin,dosis_por_dia')
+    .select('id,nombre,frecuencia,fecha_inicio,fecha_fin,dosis_por_dia,intervalo_dias')
     .eq('mascota_id', m.id)
     .eq('estado', 'activo')
-  // Un tratamiento esta activo si YA EMPEZO y AUN NO TERMINA.
-  // Antes solo se miraba el final, asi que uno que partia el 10 de
-  // agosto ya preguntaba por su dosis el dia 2.
-  const medsActivos = (medsActivosRaw || []).filter((med: any) =>
-    (!med.fecha_inicio || med.fecha_inicio <= hoy) &&
-    (!med.fecha_fin || med.fecha_fin >= hoy)
-  )
+  // Un tratamiento cuenta para HOY si ya empezo, aun no termina, y
+  // ademas HOY le toca dosis. Este ultimo punto faltaba: la app
+  // asumia que todo tratamiento era diario, asi que a quien tenia
+  // uno dia por medio le preguntaba todos los dias.
+  //
+  // Los dias con dosis se cuentan desde fecha_inicio. Saltarse una
+  // dosis no corre la pauta.
+  const medsActivos = (medsActivosRaw || []).filter((med: any) => {
+    if (med.fecha_inicio && med.fecha_inicio > hoy) return false
+    if (med.fecha_fin && med.fecha_fin < hoy) return false
+    const intervalo = Math.max(1, Number(med.intervalo_dias) || 1)
+    if (intervalo === 1 || !med.fecha_inicio) return true
+    // Mediodia: restar 24 horas sobre medianoche falla en los
+    // cambios de horario de verano.
+    const iniMed = new Date(med.fecha_inicio + 'T12:00:00')
+    const hoyMed = new Date(hoy + 'T12:00:00')
+    const diasPasados = Math.round((hoyMed.getTime() - iniMed.getTime()) / 86400000)
+    return diasPasados % intervalo === 0
+  })
   // Tomas de HOY por cada medicamento activo. Ahora que un
   // medicamento puede tener varias dosis por día, un medicamento se
   // considera "completo" solo cuando cumplió TODAS sus dosis del día.
