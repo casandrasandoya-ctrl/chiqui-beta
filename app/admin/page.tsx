@@ -208,7 +208,7 @@ export default async function AdminPage({ searchParams }: Props) {
     db.from('mascotas').select('id, user_id, nombre, especie, archivada_en, created_at'),
     // paseo y se_bano viven dentro del registro del dia, no en una
     // tabla propia: por eso viajan aca y no en una consulta aparte.
-    db.from('registros_diarios').select('user_id, mascota_id, fecha, paseo, se_bano').limit(50000),
+    db.from('registros_diarios').select('user_id, mascota_id, fecha, paseo, se_bano, corte_unas, limpieza_dental, limpieza_oidos, cambio_alimento, probo_alimento_nuevo, compro_alimento').limit(50000),
     db.from('links_veterinario').select('user_id, created_at'),
     db.from('mascota_cotutores').select('dueno_user_id, estado'),
     db.from('preferencias_usuario').select('user_id, notificaciones_activas'),
@@ -273,6 +273,7 @@ export default async function AdminPage({ searchParams }: Props) {
     { data: examsLab },
     { data: revis },
     { data: tomas },
+    { data: enfs },
   ] = await Promise.all([
     db.from('vacunas').select('mascota_id, nombre, fecha_aplicacion'),
     db.from('antiparasitarios').select('mascota_id, nombre, fecha_aplicacion'),
@@ -286,6 +287,7 @@ export default async function AdminPage({ searchParams }: Props) {
     // tratamientos se crearon: un tratamiento son muchas dosis, y
     // lo que importa es si se cumplieron.
     db.from('medicamento_tomas').select('mascota_id, fecha').limit(50000),
+    db.from('enfermedades').select('mascota_id, fecha_diagnostico'),
   ])
 
   // ---------- Quiénes registraron cada día ----------
@@ -425,23 +427,70 @@ export default async function AdminPage({ searchParams }: Props) {
   const contarPorUsuario = (lista: any[] | null, campoFecha: string) =>
     (lista || []).filter((x: any) => ids.has(x.user_id) && enPeriodo(x[campoFecha])).length
 
-  const resumenComunidad: [string, string, number][] = [
-    ['📝', 'Registros diarios', regsPeriodo.length],
-    // 'no_paseo' es un valor real que significa que ese dia NO
-    // salio: contarlo como paseo seria mentir.
-    ['🐾', 'Paseos', regsPeriodo.filter((r: any) => r.paseo && r.paseo !== 'no_paseo').length],
-    ['💊', 'Dosis de medicamento', contarPorMascota(tomas, 'fecha')],
-    ['🦴', 'Enriquecimiento', contarPorMascota(enriq, 'fecha')],
-    ['💉', 'Vacunas', contarPorMascota(vacunas, 'fecha_aplicacion')],
-    ['🪱', 'Antiparasitarios', contarPorMascota(antis, 'fecha_aplicacion')],
-    ['🩺', 'Visitas al veterinario', contarPorUsuario(visitas, 'fecha')],
-    // Los dos tipos de examen se suman: para leer el resumen son
-    // lo mismo.
-    ['🧪', 'Exámenes', contarPorMascota(exams, 'fecha') + contarPorMascota(examsLab, 'fecha')],
-    ['👁️', 'Observaciones', contarPorMascota(obs, 'fecha_inicio')],
-    ['⚖️', 'Controles de peso', contarPorMascota(pesos, 'fecha')],
-    ['🚿', 'Baños', regsPeriodo.filter((r: any) => r.se_bano).length],
-    ['✨', 'Momentos', contarPorUsuario(momentos, 'fecha')],
+  // Cuenta cuantos dias del periodo tienen marcada una columna del
+  // registro diario. Esos cuidados no tienen tabla propia: viven
+  // como booleanos dentro del registro del dia.
+  const contarMarca = (campo: string) => regsPeriodo.filter((r: any) => r[campo]).length
+
+  // Las areas siguen la misma division que la app, para que leer el
+  // panel se parezca a usarla.
+  const gruposResumen: { area: string; emoji: string; items: [string, string, number][] }[] = [
+    {
+      area: 'Observación', emoji: '📝',
+      items: [
+        ['📝', 'Registros diarios', regsPeriodo.length],
+        ['👁️', 'Observaciones', contarPorMascota(obs, 'fecha_inicio')],
+        ['🦠', 'Diagnósticos', contarPorMascota(enfs, 'fecha_diagnostico')],
+      ],
+    },
+    {
+      area: 'Prevención', emoji: '🛡️',
+      items: [
+        ['💉', 'Vacunas', contarPorMascota(vacunas, 'fecha_aplicacion')],
+        ['🪱', 'Antiparasitarios', contarPorMascota(antis, 'fecha_aplicacion')],
+        // Los dos tipos de examen se suman: para leer el resumen
+        // son lo mismo.
+        ['🧪', 'Exámenes', contarPorMascota(exams, 'fecha') + contarPorMascota(examsLab, 'fecha')],
+        ['⚖️', 'Controles de peso', contarPorMascota(pesos, 'fecha')],
+        ['🔍', 'Revisiones corporales', contarPorMascota(revis, 'fecha')],
+      ],
+    },
+    {
+      area: 'Tratamiento', emoji: '💊',
+      items: [
+        // Dosis registradas, no tratamientos creados: un tratamiento
+        // son muchas dosis, y lo que dice algo es si se cumplieron.
+        ['💊', 'Dosis de medicamento', contarPorMascota(tomas, 'fecha')],
+        ['🏥', 'Visitas al veterinario', contarPorUsuario(visitas, 'fecha')],
+      ],
+    },
+    {
+      area: 'Actividad', emoji: '🐾',
+      items: [
+        // 'no_paseo' es un valor real que significa que ese dia NO
+        // salio: contarlo como paseo seria mentir.
+        ['🐾', 'Paseos', regsPeriodo.filter((r: any) => r.paseo && r.paseo !== 'no_paseo').length],
+        ['🦴', 'Enriquecimiento', contarPorMascota(enriq, 'fecha')],
+        ['✨', 'Momentos', contarPorUsuario(momentos, 'fecha')],
+      ],
+    },
+    {
+      area: 'Cuidados', emoji: '🚿',
+      items: [
+        ['🚿', 'Baños', contarMarca('se_bano')],
+        ['✂️', 'Corte de uñas', contarMarca('corte_unas')],
+        ['🦷', 'Limpieza dental', contarMarca('limpieza_dental')],
+        ['👂', 'Limpieza de oídos', contarMarca('limpieza_oidos')],
+      ],
+    },
+    {
+      area: 'Alimentación', emoji: '🍽️',
+      items: [
+        ['🔄', 'Cambios de alimento', contarMarca('cambio_alimento')],
+        ['🆕', 'Probó algo nuevo', contarMarca('probo_alimento_nuevo')],
+        ['🛒', 'Compras de alimento', contarMarca('compro_alimento')],
+      ],
+    },
   ]
 
   // ---------- Funciones usadas ----------
@@ -562,14 +611,27 @@ export default async function AdminPage({ searchParams }: Props) {
           paso con la salud de estos animales. Respeta el periodo
           elegido arriba. */}
       <Seccion titulo="Resumen de la comunidad">
-        <div className="grid grid-cols-2 gap-2.5">
-          {resumenComunidad.map(([emoji, label, n]) => (
-            <div key={label} className="bg-[#FBEAD9]/50 rounded-xl px-3 py-2.5">
-              <p className="text-[10px] text-[#8A7560] leading-tight">{emoji} {label}</p>
-              <p className="font-bold text-xl text-[#3D2B1F] mt-0.5" style={{ color: n > 0 ? '#3D2B1F' : '#B5A38F' }}>{n}</p>
-            </div>
-          ))}
-        </div>
+        {gruposResumen.map(g => {
+          const totalArea = g.items.reduce((a, it) => a + it[2], 0)
+          return (
+            <details key={g.area} className="border-b border-[#EEE2D4] last:border-0">
+              <summary className="py-2.5 flex items-center gap-2 cursor-pointer list-none">
+                <span className="text-sm">{g.emoji}</span>
+                <p className="flex-1 text-xs font-semibold text-[#3D2B1F]">{g.area}</p>
+                <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">{totalArea}</span>
+                <span className="text-[#8C572F] text-sm font-bold">▼</span>
+              </summary>
+              <div className="grid grid-cols-2 gap-2.5 pb-3">
+                {g.items.map(([emoji, label, n]) => (
+                  <div key={label} className="bg-[#FBEAD9]/50 rounded-xl px-3 py-2.5">
+                    <p className="text-[10px] text-[#8A7560] leading-tight">{emoji} {label}</p>
+                    <p className="font-bold text-xl mt-0.5" style={{ color: n > 0 ? '#3D2B1F' : '#B5A38F' }}>{n}</p>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )
+        })}
         <p className="text-[10px] text-[#8A7560] mt-3 leading-relaxed italic">
           Todo lo registrado en el período elegido. No es cuánta gente entró: es qué pasó con la salud de estos animales.
         </p>
