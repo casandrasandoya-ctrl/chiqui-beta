@@ -202,6 +202,31 @@ export default async function AdminPage({ searchParams }: Props) {
   const nuevasCuentas = TODOS.filter((u: any) => (u.created_at || '').slice(0, 10) >= desde)
   const nuevasMascotas = masc.filter((m: any) => (m.created_at || '').slice(0, 10) >= desde)
 
+  // ---------- Otra actividad, más allá del registro diario ----------
+  // Todo lo que la gente guarda en la app y que no es el registro
+  // del día. Se usa la fecha del EVENTO (cuándo se puso la vacuna),
+  // no la de cuándo se escribió: es la que todas estas tablas
+  // guardan de forma confiable.
+  const [
+    { data: vacunas },
+    { data: antis },
+    { data: meds },
+    { data: pesos },
+    { data: obs },
+    { data: exams },
+    { data: examsLab },
+    { data: revis },
+  ] = await Promise.all([
+    db.from('vacunas').select('mascota_id, nombre, fecha_aplicacion'),
+    db.from('antiparasitarios').select('mascota_id, nombre, fecha_aplicacion'),
+    db.from('medicamentos').select('mascota_id, nombre, fecha_inicio'),
+    db.from('historial_peso').select('mascota_id, peso, fecha'),
+    db.from('observaciones').select('mascota_id, titulo, fecha_inicio'),
+    db.from('examenes').select('mascota_id, nombre, categoria, fecha'),
+    db.from('examenes_lab').select('mascota_id, tipo, fecha'),
+    db.from('revisiones_corporales').select('mascota_id, fecha'),
+  ])
+
   // ---------- Quiénes registraron cada día ----------
   // Replica la planilla que se lleva a mano. Es tambien la
   // evidencia que pide Google Play para salir de closed testing:
@@ -217,6 +242,50 @@ export default async function AdminPage({ searchParams }: Props) {
     const arr = regsPorFecha.get(r.fecha) || []
     arr.push(r)
     regsPorFecha.set(r.fecha, arr)
+  }
+
+  // Cada fuente se normaliza a la misma forma. Si una consulta
+  // fallara, su lista llega vacía y el resto sigue funcionando.
+  const otrosPorFecha = new Map<string, { emoji: string; label: string; quien: string; detalle: string }[]>()
+
+  const agregarOtro = (mascotaId: string, fecha: string | null, emoji: string, label: string, detalle: string) => {
+    if (!fecha) return
+    const mm = mascPorId.get(mascotaId)
+    if (!mm) return // mascota de otra cuenta o de la cuenta de pruebas
+    const f = String(fecha).slice(0, 10)
+    const arr = otrosPorFecha.get(f) || []
+    arr.push({
+      emoji,
+      label,
+      quien: `${nombrePorUsuario.get(mm.user_id) || '(sin nombre)'} · ${mm.nombre}`,
+      detalle,
+    })
+    otrosPorFecha.set(f, arr)
+  }
+
+  for (const v of (vacunas || [])) agregarOtro(v.mascota_id, v.fecha_aplicacion, '💉', 'vacuna', v.nombre || 'Vacuna')
+  for (const a of (antis || [])) agregarOtro(a.mascota_id, a.fecha_aplicacion, '🪱', 'antiparasitario', a.nombre || 'Antiparasitario')
+  for (const md of (meds || [])) agregarOtro(md.mascota_id, md.fecha_inicio, '💊', 'medicamento', md.nombre || 'Medicamento')
+  for (const pz of (pesos || [])) agregarOtro(pz.mascota_id, pz.fecha, '⚖️', 'peso', `Peso: ${pz.peso} kg`)
+  for (const o of (obs || [])) agregarOtro(o.mascota_id, o.fecha_inicio, '🔍', 'observación', o.titulo || 'Observación')
+  for (const ex of (exams || [])) agregarOtro(ex.mascota_id, ex.fecha, '📄', 'examen', ex.nombre || ex.categoria || 'Examen')
+  for (const el of (examsLab || [])) agregarOtro(el.mascota_id, el.fecha, '🧫', 'examen de lab', el.tipo || 'Examen de laboratorio')
+  for (const rv of (revis || [])) agregarOtro(rv.mascota_id, rv.fecha, '🩺', 'revisión corporal', 'Revisión corporal')
+
+  // Visitas y momentos vienen por user_id, no por mascota.
+  for (const vt of (visitas || [])) {
+    if (!ids.has(vt.user_id) || !vt.fecha) continue
+    const f = String(vt.fecha).slice(0, 10)
+    const arr = otrosPorFecha.get(f) || []
+    arr.push({ emoji: '🏥', label: 'visita al vet', quien: nombrePorUsuario.get(vt.user_id) || '(sin nombre)', detalle: 'Visita al veterinario' })
+    otrosPorFecha.set(f, arr)
+  }
+  for (const mo of (momentos || [])) {
+    if (!ids.has(mo.user_id) || !mo.fecha) continue
+    const f = String(mo.fecha).slice(0, 10)
+    const arr = otrosPorFecha.get(f) || []
+    arr.push({ emoji: '✨', label: 'momento', quien: nombrePorUsuario.get(mo.user_id) || '(sin nombre)', detalle: 'Momento registrado' })
+    otrosPorFecha.set(f, arr)
   }
 
   const diasPanel: DiaPanel[] = Array.from({ length: 60 }, (_, i) => {
@@ -239,6 +308,7 @@ export default async function AdminPage({ searchParams }: Props) {
           mascotas: mascotasDia,
         }))
         .sort((a, b) => a.nombre.localeCompare(b.nombre)),
+      otros: otrosPorFecha.get(f) || [],
     }
   })
 

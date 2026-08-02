@@ -10,14 +10,18 @@ import { useState } from 'react'
 // una vez los últimos 60 días ya calculados y el cambio de día es
 // puro estado local: instantáneo, sin ida y vuelta.
 //
-// Son 60 días de datos ya agrupados (no filas crudas), así que el peso
-// es mínimo y se evitan 60 consultas.
+// QUÉ MUESTRA
+//  1. Tira de 14 días con la cantidad de personas activas cada uno. Es
+//     la ventana que Google Play pide demostrar para salir de closed
+//     testing (12+ testers activos durante 14 días seguidos), así que
+//     sirve de navegación y de evidencia a la vez.
+//  2. Quiénes hicieron su REGISTRO DIARIO ese día, con sus mascotas.
+//  3. OTRA ACTIVIDAD de ese día: vacunas, visitas al veterinario,
+//     pesos, exámenes, momentos... todo lo que la gente guarda en la
+//     app y que no es el registro diario.
 //
-// LA TIRA DE 14 DÍAS
-// Muestra los 14 días que terminan en el elegido. Es la ventana que
-// Google Play pide demostrar para salir de closed testing: 12+ testers
-// activos durante 14 días seguidos. Sirve de navegación y de evidencia
-// a la vez. Verde desde 12, amarillo desde 6, naranjo con al menos 1.
+// Las dos listas van plegadas por defecto: con 24 usuarios ya ocupaban
+// media pantalla, y la idea es que esto siga sirviendo con 100.
 
 interface MascotaDia {
   nombre: string
@@ -27,9 +31,16 @@ interface UsuarioDia {
   nombre: string
   mascotas: MascotaDia[]
 }
+interface OtroRegistro {
+  emoji: string
+  label: string
+  quien: string
+  detalle: string
+}
 export interface DiaPanel {
   fecha: string
   usuarios: UsuarioDia[]
+  otros: OtroRegistro[]
 }
 
 const DIAS_SEM = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
@@ -55,6 +66,21 @@ function colorDia(n: number): string {
   return '#EEE2D4'
 }
 
+function Plegable({ titulo, n, children }: { titulo: string; n: number; children: React.ReactNode }) {
+  const [abierto, setAbierto] = useState(false)
+  if (n === 0) return null
+  return (
+    <div className="mt-3 pt-2.5 border-t border-[#EEE2D4]">
+      <button onClick={() => setAbierto(v => !v)} className="w-full flex items-center gap-2 text-left">
+        <p className="flex-1 text-[11px] font-bold text-[#8C572F]">{titulo}</p>
+        <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">{n}</span>
+        <span className="text-[#8C572F] text-sm font-bold">{abierto ? '▲' : '▼'}</span>
+      </button>
+      {abierto && <div className="mt-2.5">{children}</div>}
+    </div>
+  )
+}
+
 export default function PanelDia({ dias, totalUsuarios }: { dias: DiaPanel[]; totalUsuarios: number }) {
   // El último elemento es hoy: el servidor los manda en orden.
   const ultimo = dias.length - 1
@@ -70,9 +96,19 @@ export default function PanelDia({ dias, totalUsuarios }: { dias: DiaPanel[]; to
   const desde = Math.max(0, sel - 13)
   const tira = dias.slice(desde, sel + 1)
 
+  // Resumen de la otra actividad, agrupado por tipo, para mostrarlo
+  // como una línea corta sin tener que desplegar nada.
+  const porTipo = new Map<string, { emoji: string; n: number }>()
+  for (const o of dia.otros) {
+    const actual = porTipo.get(o.label) || { emoji: o.emoji, n: 0 }
+    actual.n++
+    porTipo.set(o.label, actual)
+  }
+  const resumenOtros = Array.from(porTipo.entries()).sort((a, b) => b[1].n - a[1].n)
+
   return (
     <div className="mx-4 mb-4">
-      <h2 className="text-xs font-bold text-[#8C572F] uppercase tracking-wider mb-2">Registros por día</h2>
+      <h2 className="text-xs font-bold text-[#8C572F] uppercase tracking-wider mb-2">Actividad por día</h2>
       <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
 
         <div className="flex gap-0.5 mb-3">
@@ -111,6 +147,7 @@ export default function PanelDia({ dias, totalUsuarios }: { dias: DiaPanel[]; to
             <p className="font-bold text-2xl mt-0.5" style={{ color: dia.usuarios.length > 0 ? '#4CAF7D' : '#B5A38F' }}>
               {dia.usuarios.length} <span className="text-sm font-normal text-[#8A7560]">de {totalUsuarios}</span>
             </p>
+            <p className="text-[10px] text-[#8A7560]">hicieron su registro diario</p>
           </div>
           <button
             onClick={() => setSel(s => Math.min(ultimo, s + 1))}
@@ -122,12 +159,14 @@ export default function PanelDia({ dias, totalUsuarios }: { dias: DiaPanel[]; to
           </button>
         </div>
 
-        {dia.usuarios.length === 0 ? (
+        {dia.usuarios.length === 0 && dia.otros.length === 0 && (
           <p className="text-xs text-[#8A7560] mt-2 text-center">
-            {esHoy ? 'Todavía nadie ha registrado hoy.' : 'Nadie registró ese día.'}
+            {esHoy ? 'Todavía no hay actividad hoy.' : 'Sin actividad ese día.'}
           </p>
-        ) : (
-          <div className="mt-3 space-y-1.5">
+        )}
+
+        <Plegable titulo="Quiénes registraron" n={dia.usuarios.length}>
+          <div className="space-y-1.5">
             {dia.usuarios.map((u, i) => (
               <div key={i} className="flex items-baseline justify-between gap-2">
                 <p className="text-xs text-[#3D2B1F] truncate">{u.nombre}</p>
@@ -137,7 +176,31 @@ export default function PanelDia({ dias, totalUsuarios }: { dias: DiaPanel[]; to
               </div>
             ))}
           </div>
+        </Plegable>
+
+        {/* Otra actividad: todo lo que la gente guarda en la app y que
+            NO es el registro diario. El resumen por tipo se ve sin
+            desplegar; el detalle de quién hizo qué, adentro. */}
+        {resumenOtros.length > 0 && (
+          <div className="mt-3 pt-2.5 border-t border-[#EEE2D4]">
+            <p className="text-[11px] text-[#3D2B1F] leading-relaxed">
+              {resumenOtros.map(([label, v]) => `${v.emoji} ${v.n} ${label}${v.n > 1 ? 's' : ''}`).join(' · ')}
+            </p>
+          </div>
         )}
+
+        <Plegable titulo="Detalle de la otra actividad" n={dia.otros.length}>
+          <div className="space-y-1.5">
+            {dia.otros.map((o, i) => (
+              <div key={i} className="flex items-baseline justify-between gap-2">
+                <p className="text-xs text-[#3D2B1F] truncate">
+                  {o.emoji} {o.detalle}
+                </p>
+                <p className="text-[10px] text-[#8A7560] flex-shrink-0 truncate">{o.quien}</p>
+              </div>
+            ))}
+          </div>
+        </Plegable>
 
         <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#EEE2D4]">
           <p className="text-[10px] text-[#8A7560]">
