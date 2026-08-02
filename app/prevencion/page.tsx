@@ -198,11 +198,15 @@ export default function PrevencionPage() {
       if (editandoId) {
         // Al editar, no se pisan campos que el usuario no tocó, y se
         // limpia fecha_fin si quedó vacía (para volver a activo).
-        const payload: Record<string, unknown> = { ...form, indicado_por_vet: !!form.indicado_por_vet, dosis_por_dia: Number(form.dosis_por_dia) || 1 }
+        const payload: Record<string, unknown> = { ...form, indicado_por_vet: !!form.indicado_por_vet, dosis_por_dia: Number(form.dosis_por_dia) || 1, intervalo_dias: Math.min(90, Math.max(1, Number(form.intervalo_dias) || 1)) }
         if (!payload.fecha_fin) payload.fecha_fin = null
         await supabase.from('medicamentos').update(payload).eq('id', editandoId)
       } else {
-        await supabase.from('medicamentos').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0], indicado_por_vet: !!form.indicado_por_vet, dosis_por_dia: Number(form.dosis_por_dia) || 1 })
+        // La fecha de hoy va con zona horaria de Chile. Antes se usaba
+        // toISOString(), que convierte a UTC: un tratamiento creado a
+        // las 22:00 quedaba guardado con la fecha de MAÑANA.
+        const hoyMed = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+        await supabase.from('medicamentos').insert({ ...base, ...form, fecha_inicio: form.fecha_inicio || hoyMed, indicado_por_vet: !!form.indicado_por_vet, dosis_por_dia: Number(form.dosis_por_dia) || 1, intervalo_dias: Math.min(90, Math.max(1, Number(form.intervalo_dias) || 1)) })
       }
     } else if (modal === 'enfermedad') {
       if (editandoId) {
@@ -1368,6 +1372,45 @@ export default function PrevencionPage() {
                   })}
                 </div>
                 <p className="text-[10px] text-[#8A7560] mt-1.5">Ej. "cada 12 horas" → 2 tomas al día.</p>
+              </div>
+              {/* Cada cuántos días toca. Hasta ahora la app asumía que
+                  todo tratamiento era diario, así que a quien tenía uno
+                  día por medio le preguntaba todos los días y su
+                  adherencia salía en 50% haciéndolo bien. */}
+              <div>
+                <label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Cada cuántos días</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[[1, 'Todos los días'], [2, 'Día por medio'], [3, 'Cada 3 días'], [7, 'Una vez por semana']].map(([n, etiqueta]) => {
+                    const activo = (Number(form.intervalo_dias) || 1) === n
+                    return (
+                      <button
+                        key={String(n)} type="button"
+                        onClick={() => u('intervalo_dias', String(n))}
+                        className="py-2.5 rounded-xl text-xs font-bold border transition-all"
+                        style={activo
+                          ? { background: '#4AABDB', borderColor: '#4AABDB', color: 'white', borderWidth: '1.5px' }
+                          : { background: '#FBEAD9', borderColor: '#EEE2D4', color: '#8A7560', borderWidth: '1.5px' }}
+                      >
+                        {etiqueta}
+                      </button>
+                    )
+                  })}
+                </div>
+                {/* Campo libre: un veterinario puede recetar cada 5 o
+                    cada 15 días, y obligar a elegir mal sería peor. */}
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[10px] text-[#8A7560] uppercase tracking-wider">Otro</span>
+                  <input
+                    type="number" min={1} max={90}
+                    className="w-20 bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-3 py-2 text-[#3D2B1F] text-sm focus:outline-none"
+                    value={String(form.intervalo_dias || '')}
+                    onChange={e => u('intervalo_dias', e.target.value)}
+                  />
+                  <span className="text-[10px] text-[#8A7560]">días</span>
+                </div>
+                <p className="text-[10px] text-[#8A7560] mt-1.5">
+                  Se cuenta desde la fecha de inicio: si empieza el 10 y es día por medio, toca los días 10, 12, 14...
+                </p>
               </div>
               <div><label className="text-xs text-[#8A7560] uppercase tracking-wider mb-1.5 block">Motivo</label>
                 <input className={IC} placeholder="ej. Infección de oído" value={form.motivo || ''} onChange={e => u('motivo', e.target.value)} /></div>
