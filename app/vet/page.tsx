@@ -272,8 +272,33 @@ function medicamentoEstaActivo(med: any): boolean {
   return med.fecha_fin >= hoy
 }
 
-function MedicamentoCard({ med }: { med: any }) {
+// Adherencia al tratamiento: cuantas dosis se REGISTRARON sobre
+// cuantas correspondian entre la fecha de inicio y la de termino
+// (o hoy, si el tratamiento sigue en curso).
+//
+// Las fechas se construyen a MEDIODIA para que los cambios de
+// horario de verano (Chile los tiene dos veces al año) no
+// desplacen el conteo de dias al restar 24 horas.
+function calcularAdherencia(med: any, dadas: number): { esperadas: number; dadas: number; pct: number } | null {
+  if (!med.fecha_inicio) return null
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+  const finReal = med.fecha_fin && med.fecha_fin < hoy ? med.fecha_fin : hoy
+  const ini = new Date(med.fecha_inicio + 'T12:00:00')
+  const fin = new Date(finReal + 'T12:00:00')
+  const dias = Math.floor((fin.getTime() - ini.getTime()) / 86400000) + 1
+  if (dias <= 0) return null
+  const porDia = Math.max(1, Number(med.dosis_por_dia) || 1)
+  const esperadas = dias * porDia
+  if (esperadas <= 0) return null
+  return { esperadas, dadas, pct: Math.round((dadas / esperadas) * 100) }
+}
+
+function MedicamentoCard({ med, tomas }: { med: any; tomas: number }) {
   const activo = medicamentoEstaActivo(med)
+  const adh = calcularAdherencia(med, tomas)
+  // Semaforo de salud del proyecto. El ancho de la barra se topa
+  // en 100 aunque se hayan registrado mas dosis de las esperadas.
+  const colorAdh = !adh ? '#8A7560' : adh.pct >= 80 ? '#4CAF7D' : adh.pct >= 50 ? '#F5C842' : '#E05252'
   return (
     <div className="pb-2 border-b border-[#EEE2D4] last:border-0 last:pb-0">
       <div className="flex items-center justify-between">
@@ -285,6 +310,17 @@ function MedicamentoCard({ med }: { med: any }) {
       {med.dosis && <p className="text-xs text-[#8A7560] mt-0.5">{med.dosis}{med.frecuencia ? ` · ${med.frecuencia}` : ''}</p>}
       <p className="text-xs text-[#8A7560] mt-0.5">Desde: {fmt(med.fecha_inicio)}{med.fecha_fin ? ` hasta ${fmt(med.fecha_fin)}` : ''}</p>
       {med.motivo && <p className="text-xs text-[#8A7560] mt-0.5">Motivo: {med.motivo}</p>}
+      {adh && (
+        <div className="mt-1.5">
+          <div className="h-1.5 rounded-full bg-[#EEE2D4] overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${Math.min(100, adh.pct)}%`, background: colorAdh }} />
+          </div>
+          <p className="text-xs mt-1" style={{ color: colorAdh }}>
+            <span className="font-bold">{adh.dadas} de {adh.esperadas} dosis registradas</span>
+            <span className="text-[#8A7560]"> · {adh.pct}%</span>
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -454,6 +490,21 @@ export default async function VetPage({ searchParams }: Props) {
 
   const medicamentosActivos = medicamentos.filter((m: any) => medicamentoEstaActivo(m))
   const medicamentosFinalizados = medicamentos.filter((m: any) => !medicamentoEstaActivo(m))
+
+  // Dosis registradas por medicamento. Se consultan SOLO por los
+  // ids que el RPC ya devolvio, es decir, medicamentos que el token
+  // del link ya autorizo: no se abre ningun acceso nuevo.
+  const tomasPorMed: Record<string, number> = {}
+  const idsMeds = medicamentos.map((md: any) => md.id).filter(Boolean)
+  if (idsMeds.length > 0) {
+    const { data: tomasVet } = await supabase
+      .from('medicamento_tomas')
+      .select('medicamento_id')
+      .in('medicamento_id', idsMeds)
+    for (const t of ((tomasVet || []) as { medicamento_id: string }[])) {
+      tomasPorMed[t.medicamento_id] = (tomasPorMed[t.medicamento_id] || 0) + 1
+    }
+  }
 
   const examenesConUrl = await Promise.all(
     examenes.map(async (ex: any) => {
@@ -825,9 +876,12 @@ export default async function VetPage({ searchParams }: Props) {
             finalizados detrás de un desplegable. */}
         {medicamentos.length > 0 && (
           <SeccionVet titulo={`🩹 Medicamentos (${medicamentos.length})`}>
+            <p className="text-xs text-[#8A7560] mb-3 leading-relaxed italic">
+              El porcentaje refleja las dosis que el tutor registró en la app. Una dosis sin registrar no significa necesariamente que no se haya administrado.
+            </p>
             {medicamentosActivos.length > 0 ? (
               <div className="space-y-2 mb-3">
-                {medicamentosActivos.map((med: any) => <MedicamentoCard key={med.id} med={med} />)}
+                {medicamentosActivos.map((med: any) => <MedicamentoCard key={med.id} med={med} tomas={tomasPorMed[med.id] || 0} />)}
               </div>
             ) : (
               <p className="text-xs text-[#8A7560] mb-3">Sin medicamentos activos.</p>
@@ -838,7 +892,7 @@ export default async function VetPage({ searchParams }: Props) {
                   Finalizados ({medicamentosFinalizados.length})
                 </summary>
                 <div className="space-y-2 mt-2">
-                  {medicamentosFinalizados.map((med: any) => <MedicamentoCard key={med.id} med={med} />)}
+                  {medicamentosFinalizados.map((med: any) => <MedicamentoCard key={med.id} med={med} tomas={tomasPorMed[med.id] || 0} />)}
                 </div>
               </details>
             )}
