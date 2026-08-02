@@ -1,4 +1,5 @@
 'use client'
+import InsigniaTutor from '@/components/InsigniaTutor'
 import ArchivarMascota from '@/components/ArchivarMascota'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -405,7 +406,10 @@ export default function PerfilPage() {
             <p className="text-xs text-[#8A7560]">Nombre</p>
             {!editandoNombre ? (
               <div className="flex items-center justify-between mt-0.5">
-                <p className="text-sm">{userNombre}</p>
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <p className="text-sm">{userNombre}</p>
+                  <InsigniaTutor />
+                </div>
                 <button
                   onClick={() => { setNombreInput(userNombre); setEditandoNombre(true) }}
                   className="text-xs font-bold text-[#FFBD59]"
