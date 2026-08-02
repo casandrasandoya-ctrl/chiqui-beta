@@ -97,7 +97,7 @@ export default async function Dashboard({ searchParams }: Props) {
     supabase.from('vacunas').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
     supabase.from('antiparasitarios').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
     supabase.from('observaciones').select('id,titulo,fecha_inicio').eq('mascota_id', m.id).eq('estado', 'activa').limit(10),
-    supabase.from('medicamentos').select('nombre,proximo_control').eq('mascota_id', m.id).gte('proximo_control', hoy).order('proximo_control').limit(2),
+    supabase.from('medicamentos').select('nombre,proximo_control,fecha_fin').eq('mascota_id', m.id).eq('estado', 'activo').gte('proximo_control', hoy).order('proximo_control').limit(5),
     supabase.from('enfermedades').select('diagnostico,proxima_revision').eq('mascota_id', m.id).gte('proxima_revision', hoy).order('proxima_revision').limit(2),
     supabase.from('visitas_veterinarias').select('id,fecha,tipo,motivo,veterinario').eq('mascota_id', m.id).gte('fecha', hoy).order('fecha').limit(5),
   ])
@@ -325,7 +325,12 @@ export default async function Dashboard({ searchParams }: Props) {
 
   const proximaVacuna = vacunas?.[0]
   const proximoAnti = antis?.[0]
-  const proximoMed = medsConControl?.[0]
+  // Mismo criterio DERIVADO que usa el resto de la app: no basta
+  // con estado='activo' en la base, porque ese campo no se
+  // actualiza solo. Si fecha_fin ya paso, el tratamiento termino.
+  // Sin este filtro, un medicamento terminado seguia apareciendo en
+  // "Proximos" solo porque tenia un control agendado a futuro.
+  const proximoMed = (medsConControl || []).find((md: any) => !md.fecha_fin || md.fecha_fin >= hoy)
   const proximaRevisionEnf = enfsConRevision?.[0]
 
   const etapa = calcularEtapaVida(m.fecha_nacimiento, m.especie)
