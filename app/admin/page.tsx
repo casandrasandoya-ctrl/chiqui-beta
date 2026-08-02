@@ -129,7 +129,7 @@ function Barras({ datos }: { datos: { etiqueta: string; valor: number }[] }) {
 // ---------- Página ----------
 
 interface Props {
-  searchParams: { p?: string; d?: string }
+  searchParams: { p?: string; m?: string; y?: string }
 }
 
 export default async function AdminPage({ searchParams }: Props) {
@@ -143,11 +143,54 @@ export default async function AdminPage({ searchParams }: Props) {
   // --- Capa 2: recién ahora, acceso completo a los datos
   const db = createVetClient()
 
+  const hoy = fechaChile()
   const periodo: Periodo =
     searchParams?.p === 'mes' ? 'mes' : searchParams?.p === 'anio' ? 'anio' : 'semana'
-  const diasPeriodo = periodo === 'semana' ? 7 : periodo === 'mes' ? 30 : 365
-  const desde = restarDias(diasPeriodo - 1)
-  const hoy = fechaChile()
+
+  // Mes y año son de CALENDARIO: julio 2026 empieza el 1 y termina
+  // el 31. La semana se deja como ventana movil (ultimos 7 dias),
+  // porque ahi lo util es "como venimos", no "la semana 31 del año".
+  //
+  // Los parametros se validan por formato y se limitan a no ser
+  // futuros; cualquier otra cosa cae de vuelta en el actual.
+  const mParam = searchParams?.m || ''
+  const yParam = searchParams?.y || ''
+  const mesSel = /^\d{4}-\d{2}$/.test(mParam) && mParam <= hoy.slice(0, 7) ? mParam : hoy.slice(0, 7)
+  const anioSel = /^\d{4}$/.test(yParam) && yParam <= hoy.slice(0, 4) ? yParam : hoy.slice(0, 4)
+
+  let desde: string
+  let hasta: string
+  if (periodo === 'mes') {
+    const [ay, am] = mesSel.split('-').map(Number)
+    // Ultimo dia del mes: nunca hardcodear 31. new Date(año, mes, 0)
+    // devuelve el ultimo dia del mes anterior al indice dado.
+    const ultimoDia = new Date(ay, am, 0).getDate()
+    desde = `${mesSel}-01`
+    hasta = `${mesSel}-${String(ultimoDia).padStart(2, '0')}`
+  } else if (periodo === 'anio') {
+    desde = `${anioSel}-01-01`
+    hasta = `${anioSel}-12-31`
+  } else {
+    desde = restarDias(6)
+    hasta = hoy
+  }
+
+  // Navegacion entre periodos
+  const desplazarMes = (ym: string, n: number) => {
+    const [a, m] = ym.split('-').map(Number)
+    const d = new Date(a, m - 1 + n, 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  }
+  const linkPeriodo = (n: number) =>
+    periodo === 'mes'
+      ? `/admin?p=mes&m=${desplazarMes(mesSel, n)}`
+      : `/admin?p=anio&y=${Number(anioSel) + n}`
+  const puedeAvanzar = periodo === 'mes'
+    ? desplazarMes(mesSel, 1) <= hoy.slice(0, 7)
+    : Number(anioSel) < Number(hoy.slice(0, 4))
+  const etiquetaPeriodo = periodo === 'mes'
+    ? `${MESES_LARGO[Number(mesSel.slice(5, 7)) - 1]} ${mesSel.slice(0, 4)}`
+    : anioSel
 
   const [
     { data: usuarios },
@@ -197,10 +240,17 @@ export default async function AdminPage({ searchParams }: Props) {
   const nucleo = conCinco.filter(u => activos7.includes(u))
 
   // ---------- Actividad del período ----------
-  const regsPeriodo = regs.filter((r: any) => r.fecha >= desde && r.fecha <= hoy)
+  // Ahora los tres filtros usan desde Y hasta. Antes solo miraban
+  // "desde", lo que estaba bien con ventanas moviles que siempre
+  // terminaban hoy, pero contaria de mas al mirar un mes pasado.
+  const regsPeriodo = regs.filter((r: any) => r.fecha >= desde && r.fecha <= hasta)
   const activosPeriodo = new Set(regsPeriodo.map((r: any) => r.user_id))
-  const nuevasCuentas = TODOS.filter((u: any) => (u.created_at || '').slice(0, 10) >= desde)
-  const nuevasMascotas = masc.filter((m: any) => (m.created_at || '').slice(0, 10) >= desde)
+  const enRango = (iso: string) => {
+    const f = (iso || '').slice(0, 10)
+    return f >= desde && f <= hasta
+  }
+  const nuevasCuentas = TODOS.filter((u: any) => enRango(u.created_at))
+  const nuevasMascotas = masc.filter((m: any) => enRango(m.created_at))
 
   // ---------- Otra actividad, más allá del registro diario ----------
   // Todo lo que la gente guarda en la app y que no es el registro
@@ -321,11 +371,10 @@ export default async function AdminPage({ searchParams }: Props) {
       if (!porMes.has(k)) porMes.set(k, new Set())
       porMes.get(k)!.add(r.user_id)
     }
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date()
-      d.setMonth(d.getMonth() - i)
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      serie.push({ etiqueta: MESES[d.getMonth()], valor: porMes.get(k)?.size || 0 })
+    // Los 12 meses del año elegido, de enero a diciembre.
+    for (let m = 1; m <= 12; m++) {
+      const k = `${anioSel}-${String(m).padStart(2, '0')}`
+      serie.push({ etiqueta: MESES[m - 1], valor: porMes.get(k)?.size || 0 })
     }
   } else {
     const porDia = new Map<string, Set<string>>()
@@ -333,10 +382,16 @@ export default async function AdminPage({ searchParams }: Props) {
       if (!porDia.has(r.fecha)) porDia.set(r.fecha, new Set())
       porDia.get(r.fecha)!.add(r.user_id)
     }
-    const paso = periodo === 'semana' ? 1 : 3
-    for (let i = diasPeriodo - 1; i >= 0; i -= paso) {
-      const f = restarDias(i)
-      serie.push({ etiqueta: fmtFecha(f), valor: porDia.get(f)?.size || 0 })
+    // Una barra por cada dia del periodo, recorriendo de desde a
+    // hasta. En la semana se rotula con dia/mes; en el mes basta el
+    // numero del dia, o no cabe.
+    let f = desde
+    while (f <= hasta) {
+      serie.push({
+        etiqueta: periodo === 'semana' ? fmtFecha(f) : String(Number(f.slice(8, 10))),
+        valor: porDia.get(f)?.size || 0,
+      })
+      f = sumarDias(f, 1)
     }
   }
 
@@ -381,7 +436,7 @@ export default async function AdminPage({ searchParams }: Props) {
 
   const Tab = ({ v, label }: { v: Periodo; label: string }) => (
     <a
-      href={`/admin?p=${v}`}
+      href={`/admin?p=${v}&m=${mesSel}&y=${anioSel}`}
       className="flex-1 text-center py-2 rounded-xl text-xs font-bold"
       style={periodo === v
         ? { background: '#FFBD59', color: '#1A1200' }
@@ -406,6 +461,20 @@ export default async function AdminPage({ searchParams }: Props) {
         <Tab v="mes" label="Mes" />
         <Tab v="anio" label="Año" />
       </div>
+
+      {/* Navegacion de periodo. La semana no la lleva: es una
+          ventana movil, no un periodo de calendario. */}
+      {periodo !== 'semana' && (
+        <div className="flex items-center justify-between mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] px-2 py-2">
+          <a href={linkPeriodo(-1)} className="text-lg text-[#8C572F] px-3">◀</a>
+          <p className="text-sm font-bold text-[#3D2B1F] capitalize">{etiquetaPeriodo}</p>
+          {puedeAvanzar ? (
+            <a href={linkPeriodo(1)} className="text-lg text-[#8C572F] px-3">▶</a>
+          ) : (
+            <span className="text-lg text-[#EEE2D4] px-3">▶</span>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2.5 mx-4 mb-4">
         <Tarjeta label="Activas" valor={activosPeriodo.size} sub={`de ${TODOS.length} registradas`} color="#4CAF7D" />
