@@ -932,9 +932,19 @@ export default function AnalisisPage() {
   // color, sin necesidad de leer todo el texto.
   function estadoProxima(dias: number | null): { texto: string; color: string; icono: string } {
     if (dias === null) return { texto: '', color: '#8A7560', icono: '' }
-    if (dias <= -3) return { texto: `Hace ${Math.abs(dias)} días estaba pendiente`, color: '#E05252', icono: '🔴' }
-    if (dias < 0) return { texto: `Estaba pendiente hace ${Math.abs(dias)} ${Math.abs(dias) === 1 ? 'día' : 'días'}`, color: '#F07A30', icono: '🟠' }
-    if (dias === 0) return { texto: 'Corresponde realizarla hoy', color: '#F07A30', icono: '🟠' }
+    // Atraso. Antes decia "Hace N dias estaba pendiente", en pasado,
+    // lo que se lee como algo que ya ocurrio y se resolvio. Significa
+    // lo contrario: sigue sin hacerse. Los dos tramos comparten ahora
+    // la misma frase y se distinguen solo por color, para que el
+    // estado se entienda de un vistazo.
+    if (dias < 0) {
+      const n = Math.abs(dias)
+      const texto = `Van ${n} ${n === 1 ? 'día' : 'días'} de atraso`
+      return dias <= -3
+        ? { texto, color: '#E05252', icono: '🔴' }
+        : { texto, color: '#F07A30', icono: '🟠' }
+    }
+    if (dias === 0) return { texto: 'Corresponde hoy', color: '#F07A30', icono: '🟠' }
     if (dias === 1) return { texto: 'Te tocaría mañana', color: '#F5C842', icono: '🟡' }
     if (dias <= 3) return { texto: `Te tocaría en ${dias} días`, color: '#F5C842', icono: '🟡' }
     return { texto: `Te tocaría de nuevo en ${dias} días`, color: '#4CAF7D', icono: '🟢' }
