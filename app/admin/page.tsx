@@ -553,6 +553,9 @@ export default async function AdminPage({ searchParams }: Props) {
         <p className="text-xs text-white/70 mt-1">
           Actualizado al {fmtFecha(hoy)} · Incluye tu cuenta
         </p>
+        <a href="/dashboard" className="inline-block mt-3 text-xs font-bold text-[#FFBD59]">
+          ← Volver a la app
+        </a>
       </div>
 
       <div className="flex gap-2 mx-4 my-4">

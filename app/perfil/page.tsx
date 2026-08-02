@@ -1,4 +1,5 @@
 'use client'
+import AccesoPanel from '@/components/AccesoPanel'
 import InsigniaTutor from '@/components/InsigniaTutor'
 import ArchivarMascota from '@/components/ArchivarMascota'
 import { useState, useEffect } from 'react'
@@ -466,6 +467,10 @@ export default function PerfilPage() {
           totalActivas={mascotas.length}
         />
       )}
+
+      {/* Solo se dibuja si el servidor confirma que la sesion es la
+          de la administradora. Para el resto no existe. */}
+      <AccesoPanel />
 
       <div className="mx-4 mb-4 bg-[#FBEAD9] border border-[#EEE2D4] rounded-2xl p-4">
         <p className="text-xs text-[#8A7560] leading-relaxed text-center">
