@@ -1,0 +1,370 @@
+import { notFound } from 'next/navigation'
+import { createClient } from '@/utils/supabase/server'
+import { createVetClient } from '@/utils/supabase/vet-client'
+
+// ============================================================
+// PANEL DE ADMINISTRACIÓN — solo Casandra
+// ============================================================
+// QUÉ MIDE Y QUÉ NO
+// Este panel mide lo que la gente CREA (filas en la base), no lo que
+// MIRA. La app no registra visitas a pantallas, así que no existe el
+// dato de "cuántas veces se abrió Análisis". A cambio, todo lo que sí
+// mide funciona de forma retroactiva sobre todo el historial, sin
+// haber tenido que instrumentar nada antes.
+//
+// SEGURIDAD
+// Dos capas. Primero exige sesión iniciada y que el id del usuario
+// coincida con ADMIN_USER_ID (variable de entorno de Vercel, nunca en
+// el código: así el repositorio puede ser público). Si no coincide
+// devuelve 404 — no "acceso denegado" — para no revelar siquiera que
+// la página existe.
+//
+// Recién después de esa comprobación se usa el cliente con service
+// role, el mismo de /vet, que es lo que permite ver datos de todas las
+// usuarias saltándose RLS.
+//
+// La cuenta de la propia Casandra se EXCLUYE de todas las métricas:
+// es la cuenta de pruebas y distorsiona cada número (llegó a tener 52
+// links de veterinario generados).
+
+export const dynamic = 'force-dynamic'
+export const metadata = {
+  title: 'Panel',
+  robots: { index: false, follow: false },
+}
+
+type Periodo = 'semana' | 'mes' | 'anio'
+
+function fechaChile(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d)
+}
+
+function restarDias(dias: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - dias)
+  return fechaChile(d)
+}
+
+function fmtFecha(iso: string): string {
+  const [a, m, d] = iso.split('-')
+  return `${d}/${m}`
+}
+
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+// ---------- Piezas visuales ----------
+
+function Tarjeta({ label, valor, sub, color }: { label: string; valor: string | number; sub?: string; color?: string }) {
+  return (
+    <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
+      <p className="text-[10px] text-[#8A7560] uppercase tracking-wider">{label}</p>
+      <p className="font-bold text-2xl mt-0.5" style={{ color: color || '#3D2B1F' }}>{valor}</p>
+      {sub && <p className="text-[10px] text-[#8A7560] mt-0.5">{sub}</p>}
+    </div>
+  )
+}
+
+function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div className="mx-4 mb-4">
+      <h2 className="text-xs font-bold text-[#8C572F] uppercase tracking-wider mb-2">{titulo}</h2>
+      <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">{children}</div>
+    </div>
+  )
+}
+
+// Barra del embudo. El ancho es relativo al primer escalón, para que se
+// vea de un vistazo dónde se cae la gente.
+function PasoEmbudo({ label, n, total, color }: { label: string; n: number; total: number; color: string }) {
+  const pct = total > 0 ? Math.round((n / total) * 100) : 0
+  return (
+    <div className="mb-2.5 last:mb-0">
+      <div className="flex items-baseline justify-between mb-1">
+        <p className="text-xs text-[#3D2B1F]">{label}</p>
+        <p className="text-xs"><span className="font-bold" style={{ color }}>{n}</span> <span className="text-[#8A7560]">· {pct}%</span></p>
+      </div>
+      <div className="h-2 rounded-full bg-[#EEE2D4] overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+      </div>
+    </div>
+  )
+}
+
+function Barras({ datos }: { datos: { etiqueta: string; valor: number }[] }) {
+  const max = Math.max(1, ...datos.map(d => d.valor))
+  return (
+    <div className="flex items-end gap-1 h-28">
+      {datos.map((d, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
+          <span className="text-[9px] text-[#8A7560] mb-0.5">{d.valor > 0 ? d.valor : ''}</span>
+          <div
+            className="w-full rounded-t"
+            style={{ height: `${Math.max(2, (d.valor / max) * 80)}%`, background: d.valor > 0 ? '#FFBD59' : '#EEE2D4' }}
+          />
+          <span className="text-[8px] text-[#8A7560] mt-1 truncate w-full text-center">{d.etiqueta}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ---------- Página ----------
+
+interface Props {
+  searchParams: { p?: string }
+}
+
+export default async function AdminPage({ searchParams }: Props) {
+  // --- Capa 1: sesión iniciada y que sea la cuenta autorizada
+  const sesion = await createClient()
+  const { data: { user } } = await sesion.auth.getUser()
+  const adminId = process.env.ADMIN_USER_ID
+
+  if (!user || !adminId || user.id !== adminId) notFound()
+
+  // --- Capa 2: recién ahora, acceso completo a los datos
+  const db = createVetClient()
+
+  const periodo: Periodo =
+    searchParams?.p === 'mes' ? 'mes' : searchParams?.p === 'anio' ? 'anio' : 'semana'
+  const diasPeriodo = periodo === 'semana' ? 7 : periodo === 'mes' ? 30 : 365
+  const desde = restarDias(diasPeriodo - 1)
+  const hoy = fechaChile()
+
+  const [
+    { data: usuarios },
+    { data: mascotas },
+    { data: registros },
+    { data: links },
+    { data: cotutores },
+    { data: prefs },
+    { data: visitas },
+    { data: momentos },
+    { data: enriq },
+  ] = await Promise.all([
+    db.from('perfil_usuario').select('id, nombre, email, created_at'),
+    db.from('mascotas').select('id, user_id, nombre, especie, archivada_en, created_at'),
+    db.from('registros_diarios').select('user_id, mascota_id, fecha').limit(50000),
+    db.from('links_veterinario').select('user_id, created_at'),
+    db.from('mascota_cotutores').select('dueno_user_id, estado'),
+    db.from('preferencias_usuario').select('user_id, notificaciones_activas'),
+    db.from('visitas_veterinarias').select('user_id, fecha'),
+    db.from('momentos').select('user_id, fecha'),
+    db.from('enriquecimientos').select('mascota_id, fecha'),
+  ])
+
+  // La cuenta propia se excluye de TODO: es la de pruebas.
+  const TODOS: any[] = (usuarios || []).filter((u: any) => u.id !== adminId)
+  const ids = new Set(TODOS.map(u => u.id))
+
+  const masc: any[] = (mascotas || []).filter((m: any) => ids.has(m.user_id))
+  const regs: any[] = (registros || []).filter((r: any) => ids.has(r.user_id))
+  const mascPorId = new Map(masc.map((m: any) => [m.id, m]))
+
+  // ---------- Embudo de activación (histórico completo) ----------
+  const regsPorUsuario = new Map<string, any[]>()
+  for (const r of regs) {
+    const arr = regsPorUsuario.get(r.user_id) || []
+    arr.push(r)
+    regsPorUsuario.set(r.user_id, arr)
+  }
+  const hace7 = restarDias(7)
+
+  const conMascota = new Set(masc.map((m: any) => m.user_id))
+  const conUnRegistro = new Set(regsPorUsuario.keys())
+  const conCinco = Array.from(regsPorUsuario.entries()).filter(([, v]) => v.length >= 5).map(([k]) => k)
+  const activos7 = Array.from(regsPorUsuario.entries())
+    .filter(([, v]) => v.some((r: any) => r.fecha >= hace7))
+    .map(([k]) => k)
+  const nucleo = conCinco.filter(u => activos7.includes(u))
+
+  // ---------- Actividad del período ----------
+  const regsPeriodo = regs.filter((r: any) => r.fecha >= desde && r.fecha <= hoy)
+  const activosPeriodo = new Set(regsPeriodo.map((r: any) => r.user_id))
+  const nuevasCuentas = TODOS.filter((u: any) => (u.created_at || '').slice(0, 10) >= desde)
+  const nuevasMascotas = masc.filter((m: any) => (m.created_at || '').slice(0, 10) >= desde)
+
+  // ---------- Serie para el gráfico ----------
+  const serie: { etiqueta: string; valor: number }[] = []
+  if (periodo === 'anio') {
+    const porMes = new Map<string, Set<string>>()
+    for (const r of regsPeriodo) {
+      const k = r.fecha.slice(0, 7)
+      if (!porMes.has(k)) porMes.set(k, new Set())
+      porMes.get(k)!.add(r.user_id)
+    }
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date()
+      d.setMonth(d.getMonth() - i)
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      serie.push({ etiqueta: MESES[d.getMonth()], valor: porMes.get(k)?.size || 0 })
+    }
+  } else {
+    const porDia = new Map<string, Set<string>>()
+    for (const r of regsPeriodo) {
+      if (!porDia.has(r.fecha)) porDia.set(r.fecha, new Set())
+      porDia.get(r.fecha)!.add(r.user_id)
+    }
+    const paso = periodo === 'semana' ? 1 : 3
+    for (let i = diasPeriodo - 1; i >= 0; i -= paso) {
+      const f = restarDias(i)
+      serie.push({ etiqueta: fmtFecha(f), valor: porDia.get(f)?.size || 0 })
+    }
+  }
+
+  // ---------- Funciones usadas ----------
+  const usaronLink = new Set((links || []).filter((l: any) => ids.has(l.user_id)).map((l: any) => l.user_id))
+  const usaronCotutor = new Set((cotutores || []).filter((c: any) => ids.has(c.dueno_user_id)).map((c: any) => c.dueno_user_id))
+  const conNotif = new Set((prefs || []).filter((p: any) => ids.has(p.user_id) && p.notificaciones_activas).map((p: any) => p.user_id))
+  const usaronVisitas = new Set((visitas || []).filter((v: any) => ids.has(v.user_id)).map((v: any) => v.user_id))
+  const usaronMomentos = new Set((momentos || []).filter((mo: any) => ids.has(mo.user_id)).map((mo: any) => mo.user_id))
+  const enriqValidos = (enriq || []).filter((e: any) => mascPorId.has(e.mascota_id))
+
+  const perros = masc.filter((m: any) => m.especie === 'Perro')
+  const gatos = masc.filter((m: any) => m.especie === 'Gato')
+
+  const nucleoPorEspecie = (lista: any[]) => {
+    const idsMasc = new Set(lista.map(m => m.id))
+    const porMasc = new Map<string, number>()
+    for (const r of regs) {
+      if (!idsMasc.has(r.mascota_id)) continue
+      porMasc.set(r.mascota_id, (porMasc.get(r.mascota_id) || 0) + 1)
+    }
+    const recientes = new Set(regs.filter((r: any) => r.fecha >= hace7).map((r: any) => r.mascota_id))
+    return Array.from(porMasc.entries()).filter(([k, v]) => v >= 5 && recientes.has(k)).length
+  }
+
+  // ---------- Tabla de usuarias ----------
+  const filas = TODOS.map((u: any) => {
+    const rs = regsPorUsuario.get(u.id) || []
+    const ultima = rs.length ? rs.map((r: any) => r.fecha).sort().slice(-1)[0] : null
+    const sinRegistrar = ultima
+      ? Math.round((new Date(hoy + 'T12:00:00').getTime() - new Date(ultima + 'T12:00:00').getTime()) / 86400000)
+      : null
+    return {
+      nombre: u.nombre || '(sin nombre)',
+      email: u.email || '',
+      mascotas: masc.filter((m: any) => m.user_id === u.id).map((m: any) => m.nombre).join(', ') || '—',
+      registros: rs.length,
+      ultima,
+      sinRegistrar,
+    }
+  }).sort((a, b) => b.registros - a.registros)
+
+  const Tab = ({ v, label }: { v: Periodo; label: string }) => (
+    <a
+      href={`/admin?p=${v}`}
+      className="flex-1 text-center py-2 rounded-xl text-xs font-bold"
+      style={periodo === v
+        ? { background: '#FFBD59', color: '#1A1200' }
+        : { background: '#FFFCF8', color: '#8A7560', border: '1px solid #EEE2D4' }}
+    >
+      {label}
+    </a>
+  )
+
+  return (
+    <div className="min-h-screen bg-[#F5EDE3] text-[#3D2B1F] pb-16">
+      <div className="bg-[#8C572F] text-white px-5 pt-8 pb-5">
+        <p className="text-xs font-bold text-[#FFBD59] tracking-widest uppercase">CHIQUI · Panel interno</p>
+        <h1 className="text-xl font-bold mt-1">Uso de la app</h1>
+        <p className="text-xs text-white/70 mt-1">
+          Actualizado al {fmtFecha(hoy)} · Sin tu cuenta de pruebas
+        </p>
+      </div>
+
+      <div className="flex gap-2 mx-4 my-4">
+        <Tab v="semana" label="Semana" />
+        <Tab v="mes" label="Mes" />
+        <Tab v="anio" label="Año" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5 mx-4 mb-4">
+        <Tarjeta label="Activas" valor={activosPeriodo.size} sub={`de ${TODOS.length} registradas`} color="#4CAF7D" />
+        <Tarjeta label="Registros" valor={regsPeriodo.length} sub="en el período" />
+        <Tarjeta label="Cuentas nuevas" valor={nuevasCuentas.length} sub="en el período" />
+        <Tarjeta label="Mascotas nuevas" valor={nuevasMascotas.length} sub="en el período" />
+      </div>
+
+      <Seccion titulo="Embudo de activación (histórico)">
+        <PasoEmbudo label="Crearon cuenta" n={TODOS.length} total={TODOS.length} color="#8C572F" />
+        <PasoEmbudo label="Crearon una mascota" n={conMascota.size} total={TODOS.length} color="#CD7421" />
+        <PasoEmbudo label="Registraron al menos 1 día" n={conUnRegistro.size} total={TODOS.length} color="#FFBD59" />
+        <PasoEmbudo label="Llegaron a 5 registros" n={conCinco.length} total={TODOS.length} color="#F5C842" />
+        <PasoEmbudo label="Núcleo: 5+ y activas esta semana" n={nucleo.length} total={TODOS.length} color="#4CAF7D" />
+        <p className="text-[10px] text-[#8A7560] mt-3 leading-relaxed italic">
+          El escalón donde más cae el porcentaje es dónde se está perdiendo la gente. Ese es el número a mover.
+        </p>
+      </Seccion>
+
+      <Seccion titulo={periodo === 'anio' ? 'Personas activas por mes' : 'Personas activas por día'}>
+        <Barras datos={serie} />
+      </Seccion>
+
+      <Seccion titulo="Funciones usadas (histórico)">
+        <div className="space-y-2">
+          {[
+            ['Notificaciones activas', conNotif.size, '#4CAF7D'],
+            ['Generaron link al veterinario', usaronLink.size, '#CD7421'],
+            ['Registraron una visita al vet', usaronVisitas.size, '#CD7421'],
+            ['Registraron momentos', usaronMomentos.size, '#FFBD59'],
+            ['Generaron código de co-tutor', usaronCotutor.size, '#8C572F'],
+          ].map(([label, n, color]) => (
+            <PasoEmbudo key={String(label)} label={String(label)} n={Number(n)} total={TODOS.length} color={String(color)} />
+          ))}
+        </div>
+      </Seccion>
+
+      <Seccion titulo="Perros y gatos">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="text-xs text-[#8A7560]">🐶 Perros</p>
+            <p className="font-bold text-xl">{perros.length}</p>
+            <p className="text-[10px] text-[#8A7560]">{nucleoPorEspecie(perros)} en el núcleo</p>
+          </div>
+          <div>
+            <p className="text-xs text-[#8A7560]">🐱 Gatos</p>
+            <p className="font-bold text-xl">{gatos.length}</p>
+            <p className="text-[10px] text-[#8A7560]">{nucleoPorEspecie(gatos)} en el núcleo</p>
+          </div>
+        </div>
+        <p className="text-[10px] text-[#8A7560] mt-3">
+          {enriqValidos.length} actividades de enriquecimiento registradas en total
+        </p>
+      </Seccion>
+
+      <Seccion titulo={`Usuarias (${filas.length})`}>
+        <div className="space-y-2.5">
+          {filas.map((f, i) => {
+            const color = f.sinRegistrar === null ? '#B5A38F'
+              : f.sinRegistrar <= 1 ? '#4CAF7D'
+              : f.sinRegistrar <= 3 ? '#F5C842'
+              : f.sinRegistrar <= 7 ? '#F07A30' : '#E05252'
+            return (
+              <div key={i} className="pb-2.5 border-b border-[#EEE2D4] last:border-0 last:pb-0">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-xs font-semibold text-[#3D2B1F] truncate">{f.nombre}</p>
+                  <p className="text-[11px] font-bold flex-shrink-0" style={{ color }}>
+                    {f.sinRegistrar === null ? 'Nunca registró'
+                      : f.sinRegistrar === 0 ? 'Hoy'
+                      : f.sinRegistrar === 1 ? 'Ayer'
+                      : `Hace ${f.sinRegistrar} días`}
+                  </p>
+                </div>
+                <p className="text-[10px] text-[#8A7560] truncate">{f.email}</p>
+                <p className="text-[10px] text-[#8A7560]">
+                  🐾 {f.mascotas} · {f.registros} {f.registros === 1 ? 'registro' : 'registros'}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      </Seccion>
+
+      <p className="text-[10px] text-[#8A7560] text-center px-8 leading-relaxed">
+        Este panel mide lo que las personas registran en la base de datos.
+        No mide visitas a pantallas: la app no las guarda.
+      </p>
+    </div>
+  )
+}
