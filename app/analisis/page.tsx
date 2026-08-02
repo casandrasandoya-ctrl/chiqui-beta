@@ -149,6 +149,10 @@ export default function AnalisisPage() {
   // enriqRegistros): la racha de juego de los gatos se cuenta
   // sobre el, para que no tenga un techo artificial de 30 dias.
   const [enriqHistorial, setEnriqHistorial] = useState<any[]>([])
+  // Cuantos tratamientos siguen vigentes hoy. La rutina de
+  // medicamentos lo necesita para no marcar como atraso los dias
+  // posteriores al fin de un tratamiento.
+  const [medsActivosCount, setMedsActivosCount] = useState(0)
   const [abiertoJuegoGato, setAbiertoJuegoGato] = useState(false)
   // Historial de paseos de los últimos 6 meses CALENDARIO. Se carga
   // aparte de `registros` (que son 30 días móviles) porque la tarjeta
@@ -174,7 +178,7 @@ export default function AnalisisPage() {
   async function cargarRegistros(mascotaId: string) {
     const desde = new Date()
     desde.setDate(desde.getDate() - 30)
-    const [{ data: r }, { data: enr }, { data: hist }, { data: enrHist }] = await Promise.all([
+    const [{ data: r }, { data: enr }, { data: hist }, { data: enrHist }, { data: medsAct }] = await Promise.all([
       supabase
         .from('registros_diarios').select('*')
         .eq('mascota_id', mascotaId)
@@ -204,11 +208,26 @@ export default function AnalisisPage() {
         .eq('mascota_id', mascotaId)
         .order('fecha', { ascending: true })
         .limit(2000),
+      // Tratamientos marcados como activos. La fecha de termino se
+      // filtra despues, en codigo, porque el campo estado no se
+      // actualiza solo cuando llega esa fecha.
+      supabase
+        .from('medicamentos')
+        .select('fecha_fin')
+        .eq('mascota_id', mascotaId)
+        .eq('estado', 'activo'),
     ])
     setRegistros(r || [])
     setEnriqRegistros(enr || [])
     setPaseoHistorial(hist || [])
     setEnriqHistorial(enrHist || [])
+    // Misma regla derivada que Prevencion, el dashboard y la vista
+    // del veterinario: sin fecha_fin, o con fecha_fin de hoy o
+    // futura.
+    const hoyMedStr = fechaChile(new Date())
+    setMedsActivosCount(
+      (medsAct || []).filter((md: any) => !md.fecha_fin || md.fecha_fin >= hoyMedStr).length
+    )
   }
 
   // Signos de alerta: trae TODO el historial de la mascota (no solo 30
@@ -1759,8 +1778,39 @@ export default function AnalisisPage() {
         // "pendientes": alimentar una o dos veces al día es normal y no
         // es un atraso. Solo los cuidados periódicos pueden estar
         // vencidos.
-        const necesitaAtencion = (r: RutinaCalculada) => !r.diario && (r.proximaEstimadaDias ?? 99999) <= 0
-        const renderRutina = (r: RutinaCalculada) => (
+        const necesitaAtencion = (r: RutinaCalculada) => {
+          // Medicamentos sin tratamiento vigente nunca estan
+          // "pendientes": el tratamiento termino, no hay nada que
+          // hacer. Sin esta excepcion, la cadencia inferida del
+          // historial seguia marcando atraso para siempre.
+          if (r.columna === 'medicamento_hoy' && medsActivosCount === 0) return false
+          return !r.diario && (r.proximaEstimadaDias ?? 99999) <= 0
+        }
+        const renderRutina = (r: RutinaCalculada) => {
+          // Caso especial: medicamentos sin tratamiento vigente. La
+          // maquinaria de rutinas infiere "cada cuantos dias" del
+          // historial y marca atraso cuando se pasa de ese
+          // promedio. Para un medicamento eso es incorrecto: un
+          // tratamiento tiene fin, y los dias posteriores sin dosis
+          // son lo esperado, no un descuido.
+          if (r.columna === 'medicamento_hoy' && medsActivosCount === 0) {
+            return (
+              <div key={r.columna} className="px-4 py-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base flex-shrink-0">{r.emoji}</span>
+                  <p className="text-xs font-semibold text-[#3D2B1F] flex-1">{r.label}</p>
+                </div>
+                <p className="text-xs text-[#3D2B1F] leading-relaxed">
+                  Última dosis registrada: hace {r.diasDesdeUltima} {r.diasDesdeUltima === 1 ? 'día' : 'días'}
+                </p>
+                <p className="text-[11px] text-[#8A7560] mt-0.5">{r.ocurrencias} dosis registradas en total</p>
+                <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#8A7560' }}>
+                  ✓ Sin tratamientos activos
+                </p>
+              </div>
+            )
+          }
+          return (
           <div key={r.columna} className="px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-base flex-shrink-0">{r.emoji}</span>
@@ -1830,7 +1880,8 @@ export default function AnalisisPage() {
               </p>
             )}
           </div>
-        )
+          )
+        }
         // Nombre corto y emoji para el encabezado de cada grupo.
         const GRUPO_INFO: Record<string, { emoji: string; label: string }> = {
           'Veterinario y salud': { emoji: '🩺', label: 'Veterinario y salud' },
