@@ -267,6 +267,12 @@ function AntiCard({ a }: { a: any }) {
 // tratamiento terminó. Misma regla que usan Prevención y el dashboard.
 function medicamentoEstaActivo(med: any): boolean {
   if (med.estado !== 'activo') return false
+  // Un tratamiento que empieza el 10 no esta activo el 2. Sin esta
+  // comprobacion, el veterinario veia "Activo · 0 de 8 dosis" en un
+  // tratamiento que aun no comienza, y podia concluir que el tutor
+  // no estaba cumpliendo.
+  const hoyInicio = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+  if (med.fecha_inicio && med.fecha_inicio > hoyInicio) return false
   if (!med.fecha_fin) return true
   const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
   return med.fecha_fin >= hoy

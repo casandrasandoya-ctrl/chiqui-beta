@@ -245,7 +245,12 @@ export default function AnalisisPage() {
     // del veterinario: sin fecha_fin, o con fecha_fin de hoy o
     // futura.
     const hoyMedStr = fechaChile(new Date())
-    const vigentes = (medsAct || []).filter((md: any) => !md.fecha_fin || md.fecha_fin >= hoyMedStr)
+    // Vigente = ya empezo y aun no termina. La condicion de inicio
+    // faltaba: un tratamiento futuro se contaba como en curso.
+    const vigentes = (medsAct || []).filter((md: any) =>
+      (!md.fecha_inicio || md.fecha_inicio <= hoyMedStr) &&
+      (!md.fecha_fin || md.fecha_fin >= hoyMedStr)
+    )
     if (vigentes.length === 0) {
       setMedsVigentes([])
     } else {

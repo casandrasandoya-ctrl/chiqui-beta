@@ -158,11 +158,15 @@ export default async function Dashboard({ searchParams }: Props) {
   // tratamiento terminó aunque el campo no se haya actualizado.
   const { data: medsActivosRaw } = await supabase
     .from('medicamentos')
-    .select('id,nombre,frecuencia,fecha_fin,dosis_por_dia')
+    .select('id,nombre,frecuencia,fecha_inicio,fecha_fin,dosis_por_dia')
     .eq('mascota_id', m.id)
     .eq('estado', 'activo')
+  // Un tratamiento esta activo si YA EMPEZO y AUN NO TERMINA.
+  // Antes solo se miraba el final, asi que uno que partia el 10 de
+  // agosto ya preguntaba por su dosis el dia 2.
   const medsActivos = (medsActivosRaw || []).filter((med: any) =>
-    !med.fecha_fin || med.fecha_fin >= hoy
+    (!med.fecha_inicio || med.fecha_inicio <= hoy) &&
+    (!med.fecha_fin || med.fecha_fin >= hoy)
   )
   // Tomas de HOY por cada medicamento activo. Ahora que un
   // medicamento puede tener varias dosis por día, un medicamento se
