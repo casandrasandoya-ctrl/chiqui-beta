@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { createVetClient } from '@/utils/supabase/vet-client'
+import PanelDia, { type DiaPanel } from '@/components/PanelDia'
 
 // ============================================================
 // PANEL DE ADMINISTRACIÓN — solo Casandra
@@ -201,51 +202,45 @@ export default async function AdminPage({ searchParams }: Props) {
   const nuevasCuentas = TODOS.filter((u: any) => (u.created_at || '').slice(0, 10) >= desde)
   const nuevasMascotas = masc.filter((m: any) => (m.created_at || '').slice(0, 10) >= desde)
 
-  // ---------- Quiénes registraron hoy ----------
+  // ---------- Quiénes registraron cada día ----------
   // Replica la planilla que se lleva a mano. Es tambien la
   // evidencia que pide Google Play para salir de closed testing:
   // testers activos de verdad, dia a dia.
   const nombrePorUsuario = new Map<string, string>(TODOS.map((u: any) => [u.id, u.nombre || u.email || '(sin nombre)']))
-  const ayer = restarDias(1)
 
-  const juntarPorUsuario = (fecha: string) => {
-    const mapa = new Map<string, string[]>()
-    for (const r of regs) {
-      if (r.fecha !== fecha) continue
+  // Los ultimos 60 dias, ya agrupados, para que el selector de dia
+  // funcione sin recargar la pagina ni volver al servidor.
+  // Se agrupan los registros por fecha UNA vez y despues se recorren
+  // los 60 dias, en vez de filtrar la lista completa 60 veces.
+  const regsPorFecha = new Map<string, any[]>()
+  for (const r of regs) {
+    const arr = regsPorFecha.get(r.fecha) || []
+    arr.push(r)
+    regsPorFecha.set(r.fecha, arr)
+  }
+
+  const diasPanel: DiaPanel[] = Array.from({ length: 60 }, (_, i) => {
+    const f = sumarDias(hoy, -(59 - i))
+    const mapa = new Map<string, { nombre: string; especie: string }[]>()
+    for (const r of (regsPorFecha.get(f) || [])) {
       const arr = mapa.get(r.user_id) || []
       const mm = mascPorId.get(r.mascota_id)
-      if (mm && !arr.includes(mm.nombre)) arr.push(mm.nombre)
+      // Una persona puede registrar varias mascotas el mismo dia.
+      if (mm && !arr.some(x => x.nombre === mm.nombre)) {
+        arr.push({ nombre: mm.nombre, especie: mm.especie || '' })
+      }
       mapa.set(r.user_id, arr)
     }
-    return mapa
-  }
-
-  // Dia elegido desde la URL. Se valida el formato y que no sea
-  // futuro; cualquier otra cosa cae de vuelta en hoy.
-  const dParam = searchParams?.d || ''
-  const dValido = /^\d{4}-\d{2}-\d{2}$/.test(dParam) && dParam <= hoy
-  const diaSel = dValido ? dParam : hoy
-  const esHoy = diaSel === hoy
-
-  const diaPorUsuario = juntarPorUsuario(diaSel)
-  const ayerPorUsuario = juntarPorUsuario(sumarDias(diaSel, -1))
-  const listaDia = Array.from(diaPorUsuario.entries())
-    .map(([uid, mascotasDia]) => ({ nombre: nombrePorUsuario.get(uid) || '(sin nombre)', mascotasDia }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre))
-
-  // Tira de 14 dias terminando en el elegido: es la ventana que
-  // Google Play pide demostrar para salir de closed testing.
-  const activosPorFecha = new Map<string, Set<string>>()
-  for (const r of regs) {
-    if (!activosPorFecha.has(r.fecha)) activosPorFecha.set(r.fecha, new Set())
-    activosPorFecha.get(r.fecha)!.add(r.user_id)
-  }
-  const tira = Array.from({ length: 14 }, (_, i) => {
-    const f = sumarDias(diaSel, -(13 - i))
-    return { fecha: f, dia: Number(f.slice(8, 10)), n: activosPorFecha.get(f)?.size || 0 }
+    return {
+      fecha: f,
+      usuarios: Array.from(mapa.entries())
+        .map(([uid, mascotasDia]) => ({
+          nombre: nombrePorUsuario.get(uid) || '(sin nombre)',
+          mascotas: mascotasDia,
+        }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    }
   })
-  const colorDia = (n: number) => n >= 12 ? '#4CAF7D' : n >= 6 ? '#F5C842' : n >= 1 ? '#F07A30' : '#EEE2D4'
-  const linkDia = (f: string) => `/admin?p=${periodo}&d=${f}`
 
   // ---------- Serie para el gráfico ----------
   const serie: { etiqueta: string; valor: number }[] = []
@@ -316,7 +311,7 @@ export default async function AdminPage({ searchParams }: Props) {
 
   const Tab = ({ v, label }: { v: Periodo; label: string }) => (
     <a
-      href={`/admin?p=${v}&d=${diaSel}`}
+      href={`/admin?p=${v}`}
       className="flex-1 text-center py-2 rounded-xl text-xs font-bold"
       style={periodo === v
         ? { background: '#FFBD59', color: '#1A1200' }
@@ -349,61 +344,8 @@ export default async function AdminPage({ searchParams }: Props) {
         <Tarjeta label="Mascotas nuevas" valor={nuevasMascotas.length} sub="en el período" />
       </div>
 
-      <Seccion titulo="Registros por día">
-        {/* Tira de 14 días: navegación y, a la vez, la evidencia
-            que Google Play pide (12+ testers activos por 14 días
-            seguidos). Verde desde 12, amarillo desde 6. */}
-        <div className="flex gap-0.5 mb-3">
-          {tira.map(t => (
-            <a key={t.fecha} href={linkDia(t.fecha)} className="flex-1 text-center rounded-lg py-1"
-              style={t.fecha === diaSel
-                ? { background: colorDia(t.n), border: '2px solid #3D2B1F' }
-                : { background: colorDia(t.n) }}>
-              <span className="block text-[8px] text-[#3D2B1F]/70">{t.dia}</span>
-              <span className="block text-[11px] font-bold text-[#3D2B1F]">{t.n}</span>
-            </a>
-          ))}
-        </div>
+      <PanelDia dias={diasPanel} totalUsuarios={TODOS.length} />
 
-        <div className="flex items-center justify-between gap-2">
-          <a href={linkDia(sumarDias(diaSel, -1))} className="text-lg text-[#8C572F] px-2">◀</a>
-          <div className="text-center flex-1">
-            <p className="text-xs text-[#8A7560] capitalize">{fmtFechaLarga(diaSel)}{esHoy ? ' · hoy' : ''}</p>
-            <p className="font-bold text-2xl mt-0.5" style={{ color: listaDia.length > 0 ? '#4CAF7D' : '#B5A38F' }}>
-              {listaDia.length} <span className="text-sm font-normal text-[#8A7560]">de {TODOS.length}</span>
-            </p>
-          </div>
-          {esHoy ? (
-            <span className="text-lg text-[#EEE2D4] px-2">▶</span>
-          ) : (
-            <a href={linkDia(sumarDias(diaSel, 1))} className="text-lg text-[#8C572F] px-2">▶</a>
-          )}
-        </div>
-
-        {listaDia.length === 0 ? (
-          <p className="text-xs text-[#8A7560] mt-2 text-center">
-            {esHoy ? 'Todavía nadie ha registrado hoy.' : 'Nadie registró ese día.'}
-          </p>
-        ) : (
-          <div className="mt-3 space-y-1.5">
-            {listaDia.map((f, i) => (
-              <div key={i} className="flex items-baseline justify-between gap-2">
-                <p className="text-xs text-[#3D2B1F] truncate">{f.nombre}</p>
-                <p className="text-[10px] text-[#8A7560] flex-shrink-0 truncate">🐾 {f.mascotasDia.join(', ')}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#EEE2D4]">
-          <p className="text-[10px] text-[#8A7560]">
-            El día anterior: {ayerPorUsuario.size} {ayerPorUsuario.size === 1 ? 'usuario' : 'usuarios'}
-          </p>
-          {!esHoy && (
-            <a href={linkDia(hoy)} className="text-[10px] font-bold text-[#CD7421]">Volver a hoy</a>
-          )}
-        </div>
-      </Seccion>
 
       <Seccion titulo="Embudo de activación (histórico)">
         <PasoEmbudo label="Crearon cuenta" n={TODOS.length} total={TODOS.length} color="#8C572F" />
