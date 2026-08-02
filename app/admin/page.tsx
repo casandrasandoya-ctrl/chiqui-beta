@@ -215,8 +215,11 @@ export default async function AdminPage({ searchParams }: Props) {
     db.from('enriquecimientos').select('mascota_id, fecha'),
   ])
 
-  // La cuenta propia se excluye de TODO: es la de pruebas.
-  const TODOS: any[] = (usuarios || []).filter((u: any) => u.id !== adminId)
+  // La cuenta propia SI cuenta: es una usuaria real, con una mascota
+  // real y registro diario. Antes estaba excluida por sus mascotas de
+  // prueba, pero eso la borraba de su propia app. Se incluye y se
+  // marca en la lista para saber leer el numero.
+  const TODOS: any[] = usuarios || []
   const ids = new Set(TODOS.map(u => u.id))
 
   const masc: any[] = (mascotas || []).filter((m: any) => ids.has(m.user_id))
@@ -433,6 +436,7 @@ export default async function AdminPage({ searchParams }: Props) {
       : null
     return {
       nombre: u.nombre || '(sin nombre)',
+      esAdmin: u.id === adminId,
       email: u.email || '',
       mascotas: masc.filter((m: any) => m.user_id === u.id).map((m: any) => m.nombre).join(', ') || '—',
       registros: rs.length,
@@ -459,7 +463,7 @@ export default async function AdminPage({ searchParams }: Props) {
         <p className="text-xs font-bold text-[#FFBD59] tracking-widest uppercase">CHIQUI · Panel interno</p>
         <h1 className="text-xl font-bold mt-1">Uso de la app</h1>
         <p className="text-xs text-white/70 mt-1">
-          Actualizado al {fmtFecha(hoy)} · Sin tu cuenta de pruebas
+          Actualizado al {fmtFecha(hoy)} · Incluye tu cuenta
         </p>
       </div>
 
@@ -565,7 +569,14 @@ export default async function AdminPage({ searchParams }: Props) {
             return (
               <div key={i} className="pb-2.5 border-b border-[#EEE2D4] last:border-0 last:pb-0">
                 <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-xs font-semibold text-[#3D2B1F] truncate">{f.nombre}</p>
+                  <p className="text-xs font-semibold text-[#3D2B1F] truncate">
+                    {f.nombre}
+                    {f.esAdmin && (
+                      <span className="ml-1.5 text-[9px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-1.5 py-0.5 align-middle">
+                        tú
+                      </span>
+                    )}
+                  </p>
                   <p className="text-[11px] font-bold flex-shrink-0" style={{ color }}>
                     {f.sinRegistrar === null ? 'Nunca registró'
                       : f.sinRegistrar === 0 ? 'Hoy'
