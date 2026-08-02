@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { createVetClient } from '@/utils/supabase/vet-client'
 import PanelDia, { type DiaPanel } from '@/components/PanelDia'
+import PanelSemanas from '@/components/PanelSemanas'
 
 // ============================================================
 // PANEL DE ADMINISTRACIÓN — solo Casandra
@@ -364,6 +365,10 @@ export default async function AdminPage({ searchParams }: Props) {
 
   // ---------- Serie para el gráfico ----------
   const serie: { etiqueta: string; valor: number }[] = []
+  // Lo mismo que serie, pero con la fecha completa: el desglose por
+  // semanas necesita saber que dia de la semana es cada uno, y la
+  // etiqueta del grafico solo guarda el numero.
+  const diasDetalle: { fecha: string; valor: number }[] = []
   if (periodo === 'anio') {
     const porMes = new Map<string, Set<string>>()
     for (const r of regsPeriodo) {
@@ -387,10 +392,12 @@ export default async function AdminPage({ searchParams }: Props) {
     // numero del dia, o no cabe.
     let f = desde
     while (f <= hasta) {
+      const valor = porDia.get(f)?.size || 0
       serie.push({
         etiqueta: periodo === 'semana' ? fmtFecha(f) : String(Number(f.slice(8, 10))),
-        valor: porDia.get(f)?.size || 0,
+        valor,
       })
+      diasDetalle.push({ fecha: f, valor })
       f = sumarDias(f, 1)
     }
   }
@@ -497,9 +504,16 @@ export default async function AdminPage({ searchParams }: Props) {
         </p>
       </Seccion>
 
-      <Seccion titulo={periodo === 'anio' ? 'Personas activas por mes' : 'Personas activas por día'}>
-        <Barras datos={serie} />
-      </Seccion>
+      {/* El mes se desglosa en semanas plegables: 31 barras juntas
+          no se leen en un teléfono. La semana y el año conservan su
+          gráfico, que ahí sí se entiende. */}
+      {periodo === 'mes' ? (
+        <PanelSemanas dias={diasDetalle} />
+      ) : (
+        <Seccion titulo={periodo === 'anio' ? 'Personas activas por mes' : 'Personas activas por día'}>
+          <Barras datos={serie} />
+        </Seccion>
+      )}
 
       <Seccion titulo="Funciones usadas (histórico)">
         <div className="space-y-2">
