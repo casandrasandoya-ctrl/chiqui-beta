@@ -61,6 +61,14 @@ function fmtFechaLarga(iso: string): string {
   return `${DIAS_SEM[d.getDay()]} ${d.getDate()} de ${MESES_LARGO[d.getMonth()]}`
 }
 
+// Mediodia otra vez: sumar o restar 24 horas sobre medianoche se
+// cae en los cambios de horario de verano.
+function sumarDias(iso: string, n: number): string {
+  const d = new Date(iso + 'T12:00:00')
+  d.setDate(d.getDate() + n)
+  return fechaChile(d)
+}
+
 // ---------- Piezas visuales ----------
 
 function Tarjeta({ label, valor, sub, color }: { label: string; valor: string | number; sub?: string; color?: string }) {
@@ -120,7 +128,7 @@ function Barras({ datos }: { datos: { etiqueta: string; valor: number }[] }) {
 // ---------- Página ----------
 
 interface Props {
-  searchParams: { p?: string }
+  searchParams: { p?: string; d?: string }
 }
 
 export default async function AdminPage({ searchParams }: Props) {
@@ -212,11 +220,32 @@ export default async function AdminPage({ searchParams }: Props) {
     return mapa
   }
 
-  const hoyPorUsuario = juntarPorUsuario(hoy)
-  const ayerPorUsuario = juntarPorUsuario(ayer)
-  const listaHoy = Array.from(hoyPorUsuario.entries())
+  // Dia elegido desde la URL. Se valida el formato y que no sea
+  // futuro; cualquier otra cosa cae de vuelta en hoy.
+  const dParam = searchParams?.d || ''
+  const dValido = /^\d{4}-\d{2}-\d{2}$/.test(dParam) && dParam <= hoy
+  const diaSel = dValido ? dParam : hoy
+  const esHoy = diaSel === hoy
+
+  const diaPorUsuario = juntarPorUsuario(diaSel)
+  const ayerPorUsuario = juntarPorUsuario(sumarDias(diaSel, -1))
+  const listaDia = Array.from(diaPorUsuario.entries())
     .map(([uid, mascotasDia]) => ({ nombre: nombrePorUsuario.get(uid) || '(sin nombre)', mascotasDia }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre))
+
+  // Tira de 14 dias terminando en el elegido: es la ventana que
+  // Google Play pide demostrar para salir de closed testing.
+  const activosPorFecha = new Map<string, Set<string>>()
+  for (const r of regs) {
+    if (!activosPorFecha.has(r.fecha)) activosPorFecha.set(r.fecha, new Set())
+    activosPorFecha.get(r.fecha)!.add(r.user_id)
+  }
+  const tira = Array.from({ length: 14 }, (_, i) => {
+    const f = sumarDias(diaSel, -(13 - i))
+    return { fecha: f, dia: Number(f.slice(8, 10)), n: activosPorFecha.get(f)?.size || 0 }
+  })
+  const colorDia = (n: number) => n >= 12 ? '#4CAF7D' : n >= 6 ? '#F5C842' : n >= 1 ? '#F07A30' : '#EEE2D4'
+  const linkDia = (f: string) => `/admin?p=${periodo}&d=${f}`
 
   // ---------- Serie para el gráfico ----------
   const serie: { etiqueta: string; valor: number }[] = []
@@ -287,7 +316,7 @@ export default async function AdminPage({ searchParams }: Props) {
 
   const Tab = ({ v, label }: { v: Periodo; label: string }) => (
     <a
-      href={`/admin?p=${v}`}
+      href={`/admin?p=${v}&d=${diaSel}`}
       className="flex-1 text-center py-2 rounded-xl text-xs font-bold"
       style={periodo === v
         ? { background: '#FFBD59', color: '#1A1200' }
@@ -320,16 +349,44 @@ export default async function AdminPage({ searchParams }: Props) {
         <Tarjeta label="Mascotas nuevas" valor={nuevasMascotas.length} sub="en el período" />
       </div>
 
-      <Seccion titulo="Registros de hoy">
-        <p className="text-xs text-[#8A7560] capitalize">{fmtFechaLarga(hoy)}</p>
-        <p className="font-bold text-2xl mt-0.5" style={{ color: listaHoy.length > 0 ? '#4CAF7D' : '#B5A38F' }}>
-          {listaHoy.length} <span className="text-sm font-normal text-[#8A7560]">de {TODOS.length} usuarios</span>
-        </p>
-        {listaHoy.length === 0 ? (
-          <p className="text-xs text-[#8A7560] mt-2">Todavía nadie ha registrado hoy.</p>
+      <Seccion titulo="Registros por día">
+        {/* Tira de 14 días: navegación y, a la vez, la evidencia
+            que Google Play pide (12+ testers activos por 14 días
+            seguidos). Verde desde 12, amarillo desde 6. */}
+        <div className="flex gap-0.5 mb-3">
+          {tira.map(t => (
+            <a key={t.fecha} href={linkDia(t.fecha)} className="flex-1 text-center rounded-lg py-1"
+              style={t.fecha === diaSel
+                ? { background: colorDia(t.n), border: '2px solid #3D2B1F' }
+                : { background: colorDia(t.n) }}>
+              <span className="block text-[8px] text-[#3D2B1F]/70">{t.dia}</span>
+              <span className="block text-[11px] font-bold text-[#3D2B1F]">{t.n}</span>
+            </a>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <a href={linkDia(sumarDias(diaSel, -1))} className="text-lg text-[#8C572F] px-2">◀</a>
+          <div className="text-center flex-1">
+            <p className="text-xs text-[#8A7560] capitalize">{fmtFechaLarga(diaSel)}{esHoy ? ' · hoy' : ''}</p>
+            <p className="font-bold text-2xl mt-0.5" style={{ color: listaDia.length > 0 ? '#4CAF7D' : '#B5A38F' }}>
+              {listaDia.length} <span className="text-sm font-normal text-[#8A7560]">de {TODOS.length}</span>
+            </p>
+          </div>
+          {esHoy ? (
+            <span className="text-lg text-[#EEE2D4] px-2">▶</span>
+          ) : (
+            <a href={linkDia(sumarDias(diaSel, 1))} className="text-lg text-[#8C572F] px-2">▶</a>
+          )}
+        </div>
+
+        {listaDia.length === 0 ? (
+          <p className="text-xs text-[#8A7560] mt-2 text-center">
+            {esHoy ? 'Todavía nadie ha registrado hoy.' : 'Nadie registró ese día.'}
+          </p>
         ) : (
           <div className="mt-3 space-y-1.5">
-            {listaHoy.map((f, i) => (
+            {listaDia.map((f, i) => (
               <div key={i} className="flex items-baseline justify-between gap-2">
                 <p className="text-xs text-[#3D2B1F] truncate">{f.nombre}</p>
                 <p className="text-[10px] text-[#8A7560] flex-shrink-0 truncate">🐾 {f.mascotasDia.join(', ')}</p>
@@ -337,9 +394,15 @@ export default async function AdminPage({ searchParams }: Props) {
             ))}
           </div>
         )}
-        <p className="text-[10px] text-[#8A7560] mt-3 pt-2 border-t border-[#EEE2D4]">
-          Ayer registraron {ayerPorUsuario.size} {ayerPorUsuario.size === 1 ? 'usuario' : 'usuarios'}
-        </p>
+
+        <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#EEE2D4]">
+          <p className="text-[10px] text-[#8A7560]">
+            El día anterior: {ayerPorUsuario.size} {ayerPorUsuario.size === 1 ? 'usuario' : 'usuarios'}
+          </p>
+          {!esHoy && (
+            <a href={linkDia(hoy)} className="text-[10px] font-bold text-[#CD7421]">Volver a hoy</a>
+          )}
+        </div>
       </Seccion>
 
       <Seccion titulo="Embudo de activación (histórico)">
