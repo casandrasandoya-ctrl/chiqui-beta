@@ -48,6 +48,11 @@ export default function ConfiguracionNotificaciones() {
       }
 
       const { data: { user } } = await supabase.auth.getUser()
+      // La base guarda la INTENCIÓN de la persona. El navegador
+      // guarda la suscripción técnica, que se puede perder sola
+      // (por ejemplo cada vez que se reinstala el service worker,
+      // o sea en cada despliegue). Hay que mirar las dos cosas.
+      let prefActiva = false
       if (user) {
         const { data: prefs } = await supabase
           .from('preferencias_usuario')
@@ -55,11 +60,23 @@ export default function ConfiguracionNotificaciones() {
           .eq('user_id', user.id)
           .maybeSingle()
         if (prefs?.hora_recordatorio) setHora(prefs.hora_recordatorio)
+        prefActiva = prefs?.notificaciones_activas === true
       }
 
       if (soporta) {
-        const suscrito = await tieneSuscripcionActiva()
-        setActiva(suscrito)
+        const permisoOk = typeof Notification !== 'undefined' && Notification.permission === 'granted'
+        let suscrito = await tieneSuscripcionActiva()
+
+        // Recuperación silenciosa: la persona ya dijo que sí y el
+        // permiso sigue dado, pero el navegador perdió la
+        // suscripción. Se rehace sin molestarla — antes esto se
+        // veía como "desactivada" y había que activar de nuevo.
+        if (!suscrito && prefActiva && permisoOk) {
+          const recuperado = await activarNotificaciones()
+          suscrito = recuperado.exito
+        }
+
+        setActiva(suscrito && permisoOk)
       }
 
       setCargando(false)

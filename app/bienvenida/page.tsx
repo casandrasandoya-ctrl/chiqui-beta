@@ -48,10 +48,13 @@ export default function BienvenidaPage() {
     // co-tutor.
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
+      // La columna es 'id', no 'user_id': asi la usan el callback de
+      // Google y Novedades. Con 'user_id' este guardado fallaba en
+      // silencio y el nombre nunca llegaba a la base.
       await supabase.from('perfil_usuario').upsert({
-        user_id: user.id,
+        id: user.id,
         nombre: n,
-      }, { onConflict: 'user_id' })
+      }, { onConflict: 'id' })
     }
 
     return true

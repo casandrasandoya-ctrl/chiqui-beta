@@ -171,7 +171,21 @@ export async function desactivarNotificaciones(): Promise<void> {
 export async function tieneSuscripcionActiva(): Promise<boolean> {
   if (!notificacionesSoportadas()) return false
   try {
-    const registration = await navigator.serviceWorker.ready
+    // Mismo trato que al activar: despertar el service worker y no
+    // esperar para siempre. Antes, si ready no resolvia, esta
+    // funcion se colgaba y el componente —que devuelve null
+    // mientras carga— hacia DESAPARECER toda la sección de
+    // recordatorio de la pantalla.
+    try {
+      await navigator.serviceWorker.register('/sw.js')
+    } catch { /* ya registrado o rechazado: seguimos */ }
+
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>(resolver => setTimeout(() => resolver(null), 8000)),
+    ])
+    if (!registration) return false
+
     const subscription = await registration.pushManager.getSubscription()
     return !!subscription
   } catch {
