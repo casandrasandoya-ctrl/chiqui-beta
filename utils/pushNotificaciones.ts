@@ -40,6 +40,20 @@ export function estaInstalada(): boolean {
 // Pide permiso de notificaciones, se suscribe ante el navegador, y
 // guarda la suscripcion en Supabase para poder usarla despues desde el
 // servidor.
+// Traduce el error del navegador a algo que la persona pueda
+// entender y, si corresponde, resolver.
+function manejarErrorSubscribe(e: any): { exito: boolean; error?: string } {
+    // Mensajes distintos segun el fallo, para que la persona sepa
+    // si puede hacer algo o no.
+    const nombre = String(e?.name || '')
+    if (nombre === 'NotAllowedError') {
+      return { exito: false, error: 'Tu teléfono bloqueó las notificaciones para CHIQUI. Actívalas desde Configuración → Apps → CHIQUI → Notificaciones.' }
+    }
+    if (nombre === 'AbortError' || nombre === 'NotSupportedError') {
+      return { exito: false, error: 'Este navegador no pudo registrar las notificaciones. Si estás en iPhone, agrega CHIQUI a la pantalla de inicio y ábrela desde ahí.' }
+    }
+    return { exito: false, error: 'No se pudo activar (' + (nombre || 'error desconocido') + '). Intenta de nuevo en unos minutos.' }
+}
 export async function activarNotificaciones(): Promise<{ exito: boolean; error?: string }> {
   if (!notificacionesSoportadas()) {
     return { exito: false, error: 'Este navegador no soporta notificaciones.' }
@@ -50,9 +64,18 @@ export async function activarNotificaciones(): Promise<{ exito: boolean; error?:
     return { exito: false, error: 'No diste permiso para las notificaciones.' }
   }
 
-  // navigator.serviceWorker.ready puede no resolverse NUNCA si el
-  // service worker no llega a activarse. Ese await dejaba el boton
-  // en "Activando..." para siempre, sin error ni pista.
+  // CAUSA 1: al desplegar una versión nueva, el service worker se
+  // reinstala. En esa primera visita puede estar aún instalándose y
+  // serviceWorker.ready no responde — por eso el fallo se arreglaba
+  // solo al recargar. Registrarlo explícitamente lo despierta.
+  // register() es idempotente: si ya existe, devuelve el mismo.
+  try {
+    await navigator.serviceWorker.register('/sw.js')
+  } catch {
+    // Si ya estaba registrado o el navegador lo rechaza, seguimos:
+    // el ready de abajo dirá si hay algo utilizable.
+  }
+
   const registration = await Promise.race([
     navigator.serviceWorker.ready,
     new Promise<null>(resolver => setTimeout(() => resolver(null), 12000)),
@@ -66,25 +89,52 @@ export async function activarNotificaciones(): Promise<{ exito: boolean; error?:
     return { exito: false, error: 'Falta configuración del servidor.' }
   }
 
-  // Sin este try/catch, un fallo aca rompia la promesa entera y el
-  // componente se quedaba congelado en "Activando...".
-  let subscription: PushSubscription
-  try {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-    })
-  } catch (e: any) {
-    // Mensajes distintos segun el fallo, para que la persona sepa
-    // si puede hacer algo o no.
-    const nombre = String(e?.name || '')
-    if (nombre === 'NotAllowedError') {
-      return { exito: false, error: 'Tu teléfono bloqueó las notificaciones para CHIQUI. Actívalas desde Configuración → Apps → CHIQUI → Notificaciones.' }
+  const opcionesSub: PushSubscriptionOptionsInit = {
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+  }
+
+  // CAUSA 2: si ya hay una suscripción de un intento anterior, se
+  // reutiliza. Crear otra encima lanzaría InvalidStateError y el
+  // problema se volvería permanente, no pasajero.
+  let subscription: PushSubscription | null = await registration.pushManager.getSubscription()
+
+  if (!subscription) {
+    try {
+      subscription = await registration.pushManager.subscribe(opcionesSub)
+    } catch (primerError: any) {
+      const primerNombre = String(primerError?.name || '')
+
+      // Suscripción vieja con OTRA clave VAPID: hay que cancelarla
+      // antes de poder crear la nueva. Sin esto, falla para siempre.
+      if (primerNombre === 'InvalidStateError') {
+        try {
+          const vieja = await registration.pushManager.getSubscription()
+          if (vieja) await vieja.unsubscribe()
+        } catch { /* si no se puede cancelar, el reintento dirá */ }
+      }
+
+      // CAUSA 3: fallo pasajero justo después de un despliegue. Un
+      // solo reintento: si falla dos veces seguidas, es un problema
+      // real y hay que decirlo en vez de insistir.
+      if (primerNombre === 'InvalidStateError' || primerNombre === 'AbortError' || primerNombre === '') {
+        await new Promise(resolver => setTimeout(resolver, 1500))
+        try {
+          subscription = await registration.pushManager.subscribe(opcionesSub)
+        } catch { subscription = null }
+      }
+
+      if (!subscription) {
+        const e: any = primerError
+        return manejarErrorSubscribe(e)
+      }
     }
-    if (nombre === 'AbortError' || nombre === 'NotSupportedError') {
-      return { exito: false, error: 'Este navegador no pudo registrar las notificaciones. Si estás en iPhone, agrega CHIQUI a la pantalla de inicio y ábrela desde ahí.' }
-    }
-    return { exito: false, error: 'No se pudo activar (' + (nombre || 'error desconocido') + '). Intenta de nuevo en unos minutos.' }
+  }
+
+  // Red de seguridad y, de paso, lo que TypeScript necesita para
+  // saber que aqui subscription ya no puede ser null.
+  if (!subscription) {
+    return { exito: false, error: 'No se pudo crear la suscripción. Cierra la app e intenta de nuevo.' }
   }
 
   const subscriptionJson = subscription.toJSON()
