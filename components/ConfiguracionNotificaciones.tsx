@@ -70,20 +70,27 @@ export default function ConfiguracionNotificaciones() {
   async function manejarActivar() {
     setProcesando(true)
     setError('')
-    const resultado = await activarNotificaciones()
-    if (!resultado.exito) {
-      // Si el navegador devuelve el permiso como denegado justo en este
-      // intento, actualizamos el aviso persistente también.
-      if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
-        setPermisoDenegado(true)
+    // El finally es lo importante: antes, si algo lanzaba un error,
+    // setProcesando(false) nunca se ejecutaba y el botón quedaba en
+    // "Activando..." para siempre, sin decir qué pasó.
+    try {
+      const resultado = await activarNotificaciones()
+      if (!resultado.exito) {
+        // Si el navegador devuelve el permiso como denegado justo en
+        // este intento, actualizamos el aviso persistente también.
+        if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+          setPermisoDenegado(true)
+        }
+        setError(resultado.error || 'No se pudo activar.')
+        return
       }
-      setError(resultado.error || 'No se pudo activar.')
+      await guardarPreferencia(true, hora)
+      setActiva(true)
+    } catch (e: any) {
+      setError('Ocurrió un error inesperado (' + String(e?.name || 'desconocido') + '). Cierra la app por completo e intenta de nuevo.')
+    } finally {
       setProcesando(false)
-      return
     }
-    await guardarPreferencia(true, hora)
-    setActiva(true)
-    setProcesando(false)
   }
 
   async function manejarDesactivar() {

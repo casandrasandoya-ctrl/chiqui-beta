@@ -50,16 +50,42 @@ export async function activarNotificaciones(): Promise<{ exito: boolean; error?:
     return { exito: false, error: 'No diste permiso para las notificaciones.' }
   }
 
-  const registration = await navigator.serviceWorker.ready
+  // navigator.serviceWorker.ready puede no resolverse NUNCA si el
+  // service worker no llega a activarse. Ese await dejaba el boton
+  // en "Activando..." para siempre, sin error ni pista.
+  const registration = await Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<null>(resolver => setTimeout(() => resolver(null), 12000)),
+  ])
+  if (!registration) {
+    return { exito: false, error: 'La app no terminó de prepararse. Cierra CHIQUI por completo, vuelve a abrirla e intenta de nuevo.' }
+  }
+
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   if (!vapidPublicKey) {
     return { exito: false, error: 'Falta configuración del servidor.' }
   }
 
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-  })
+  // Sin este try/catch, un fallo aca rompia la promesa entera y el
+  // componente se quedaba congelado en "Activando...".
+  let subscription: PushSubscription
+  try {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+    })
+  } catch (e: any) {
+    // Mensajes distintos segun el fallo, para que la persona sepa
+    // si puede hacer algo o no.
+    const nombre = String(e?.name || '')
+    if (nombre === 'NotAllowedError') {
+      return { exito: false, error: 'Tu teléfono bloqueó las notificaciones para CHIQUI. Actívalas desde Configuración → Apps → CHIQUI → Notificaciones.' }
+    }
+    if (nombre === 'AbortError' || nombre === 'NotSupportedError') {
+      return { exito: false, error: 'Este navegador no pudo registrar las notificaciones. Si estás en iPhone, agrega CHIQUI a la pantalla de inicio y ábrela desde ahí.' }
+    }
+    return { exito: false, error: 'No se pudo activar (' + (nombre || 'error desconocido') + '). Intenta de nuevo en unos minutos.' }
+  }
 
   const subscriptionJson = subscription.toJSON()
   const supabase = createClient()
