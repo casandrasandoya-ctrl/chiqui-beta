@@ -81,7 +81,27 @@ export default function ConfiguracionNotificaciones() {
           suscrito = recuperado.exito
         }
 
-        setActiva(suscrito && permisoOk)
+        // El servidor decide a quien mandarle mirando la BASE, no este
+        // navegador. Si hay preferencia activa y una suscripcion
+        // guardada, la persona SI va a recibir sus recordatorios,
+        // aunque este dispositivo haya perdido su copia local.
+        //
+        // Mostrar "activar" en ese caso la hacia intentar de nuevo y
+        // chocar con la suscripcion que ya existia — el error que
+        // reportaron las usuarias.
+        const { data: { user: usuarioActual } } = await supabase.auth.getUser()
+        let haySuscripcionGuardada = false
+        if (usuarioActual) {
+          const { count } = await supabase
+            .from('suscripciones_push')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', usuarioActual.id)
+          haySuscripcionGuardada = (count || 0) > 0
+        }
+
+        // El permiso si tiene que seguir concedido: sin el, el telefono
+        // no mostraria la notificacion aunque llegara.
+        setActiva(permisoOk && (suscrito || (prefActiva && haySuscripcionGuardada)))
 
         // Foto de los tres estados, para poder mirarla si algo falla.
         setDiag({
