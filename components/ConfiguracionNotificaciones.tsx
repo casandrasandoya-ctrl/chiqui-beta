@@ -25,6 +25,11 @@ export default function ConfiguracionNotificaciones() {
   // nueva). Si el usuario ya lo rechazó, el navegador NO deja volver a
   // pedirlo con un clic -- hay que avisarle que vaya a Configuración.
   const [permisoDenegado, setPermisoDenegado] = useState(false)
+  // Diagnóstico visible: los tres estados que tienen que estar bien
+  // para que llegue una notificación. Se muestra solo cuando el
+  // recordatorio está apagado, para poder ver cuál de los tres falla
+  // en vez de adivinar.
+  const [diag, setDiag] = useState<{ permiso: string; navegador: boolean; base: boolean } | null>(null)
 
   useEffect(() => {
     async function init() {
@@ -77,6 +82,13 @@ export default function ConfiguracionNotificaciones() {
         }
 
         setActiva(suscrito && permisoOk)
+
+        // Foto de los tres estados, para poder mirarla si algo falla.
+        setDiag({
+          permiso: typeof Notification !== 'undefined' ? Notification.permission : 'sin soporte',
+          navegador: suscrito,
+          base: prefActiva,
+        })
       }
 
       setCargando(false)
@@ -101,7 +113,14 @@ export default function ConfiguracionNotificaciones() {
         setError(resultado.error || 'No se pudo activar.')
         return
       }
-      await guardarPreferencia(true, hora)
+      // Si la preferencia no llega a la base, el cron nunca va a
+      // encontrar a esta persona. Marcarla como activa en pantalla
+      // sería mentirle.
+      const guardado = await guardarPreferencia(true, hora)
+      if (!guardado.ok) {
+        setError(guardado.error || 'No se pudo guardar la preferencia.')
+        return
+      }
       setActiva(true)
     } catch (e: any) {
       setError('Ocurrió un error inesperado (' + String(e?.name || 'desconocido') + '). Cierra la app por completo e intenta de nuevo.')
@@ -123,14 +142,24 @@ export default function ConfiguracionNotificaciones() {
     if (activa) await guardarPreferencia(true, nuevaHora)
   }
 
-  async function guardarPreferencia(activas: boolean, horaElegida: string) {
+  // Devuelve si el guardado funcionó DE VERDAD. Antes no se revisaba
+  // el error: si la base rechazaba el cambio, la app decía "listo"
+  // igual y al volver a entrar el recordatorio aparecía apagado.
+  async function guardarPreferencia(activas: boolean, horaElegida: string): Promise<{ ok: boolean; error?: string }> {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase.from('preferencias_usuario').upsert({
+    if (!user) return { ok: false, error: 'No se pudo verificar tu sesión.' }
+    const { error: errPref } = await supabase.from('preferencias_usuario').upsert({
       user_id: user.id,
       hora_recordatorio: horaElegida,
       notificaciones_activas: activas,
     }, { onConflict: 'user_id' })
+    if (errPref) {
+      // El mensaje de Postgres viaja tal cual: es la única forma de
+      // saber si falta la restricción única, la política de UPDATE,
+      // o algo que todavía no hemos visto.
+      return { ok: false, error: 'No se pudo guardar la preferencia: ' + (errPref.message || 'error desconocido') }
+    }
+    return { ok: true }
   }
 
   if (cargando) return null
@@ -161,6 +190,16 @@ export default function ConfiguracionNotificaciones() {
           </div>
         )}
 
+        {/* Diagnóstico: solo cuando el recordatorio está apagado.
+            Permite mandar una captura que dice cuál de los tres
+            eslabones falla, en vez de "no me funciona". */}
+        {soportado && !activa && diag && (
+          <p className="text-[10px] text-[#B5A38F] mb-2 leading-relaxed">
+            Estado: permiso {diag.permiso === 'granted' ? '✓' : diag.permiso === 'denied' ? '✕ bloqueado' : '— sin pedir'}
+            {' · '}navegador {diag.navegador ? '✓' : '✕'}
+            {' · '}base {diag.base ? '✓' : '✕'}
+          </p>
+        )}
         {soportado && !iosNoInstalado && permisoDenegado && (
           <div className="bg-[#F07A30]/10 rounded-xl p-3 text-xs text-[#8C572F] leading-relaxed">
             <p className="font-semibold mb-1">🔕 Las notificaciones están bloqueadas</p>
