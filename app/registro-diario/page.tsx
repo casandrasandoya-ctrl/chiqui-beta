@@ -506,6 +506,13 @@ function RegistroContenido() {
   // Modal que aparece tras "Todo normal": ofrece guardar al toque o
   // seguir editando (algunas usuarias creían que marcar ya guardaba).
   const [confirmarGuardado, setConfirmarGuardado] = useState(false)
+  // Aviso de salida con cambios sin guardar. Guarda a dónde quería
+  // ir la persona, para llevarla ahí después de decidir.
+  // '__atras__' es el botón de volver, que no tiene URL.
+  const [salidaPendiente, setSalidaPendiente] = useState<string | null>(null)
+  // Firma del formulario al terminar de cargar. Comparar contra
+  // ella evita avisar a quien solo entró a mirar.
+  const [firmaInicial, setFirmaInicial] = useState<string | null>(null)
   const [mascotaNombre, setMascotaNombre] = useState('')
   const [especie, setEspecie] = useState('')
   // Fecha de nacimiento de la mascota activa: determina si la sección
@@ -891,6 +898,70 @@ function RegistroContenido() {
 
   const CATS = getCategorias(especie)
 
+  // --- Aviso de salida con cambios sin guardar ---
+  // Firma de todo lo que la persona puede haber tocado. Si difiere
+  // de la que había al cargar, hay algo sin guardar.
+  const firmaFormulario = JSON.stringify({
+    sel, det, nota, paseoMinutos, signoOtroTexto,
+    cuidados: Array.from(cuidados).sort(),
+    signos: Array.from(signos).sort(),
+    franjas: Array.from(franjasAlimento).sort(),
+    enriq: enriqDatos,
+  })
+
+  useEffect(() => {
+    // Mientras carga —y al cambiar de mascota— se descarta la firma
+    // vieja. La nueva se toma en cuanto el formulario queda listo.
+    if (cargando) { setFirmaInicial(null); return }
+    if (firmaInicial === null) setFirmaInicial(firmaFormulario)
+  }, [cargando, firmaFormulario, firmaInicial])
+
+  const hayCambiosSinGuardar = firmaInicial !== null && firmaFormulario !== firmaInicial
+
+  // Intercepta el toque en enlaces internos (menú de abajo, selector
+  // de mascota). Se escucha en fase de CAPTURA porque Next no deja
+  // cancelar una navegación ya iniciada: hay que detenerla antes de
+  // que el enlace haga lo suyo.
+  useEffect(() => {
+    if (!hayCambiosSinGuardar) return
+    function alTocar(e: MouseEvent) {
+      const destino = (e.target as HTMLElement)?.closest?.('a[href]') as HTMLAnchorElement | null
+      if (!destino) return
+      const href = destino.getAttribute('href') || ''
+      // Solo enlaces internos, y no los que se quedan en esta misma
+      // pantalla.
+      if (!href.startsWith('/') || href.startsWith('/registro-diario')) return
+      e.preventDefault()
+      e.stopPropagation()
+      setSalidaPendiente(href)
+    }
+    document.addEventListener('click', alTocar, true)
+    return () => document.removeEventListener('click', alTocar, true)
+  }, [hayCambiosSinGuardar])
+
+  // Cerrar o recargar la pestaña. El aviso lo dibuja el navegador
+  // con su propio texto: no se puede personalizar, pero es mejor
+  // que perder el registro en silencio.
+  useEffect(() => {
+    if (!hayCambiosSinGuardar) return
+    function antesDeSalir(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', antesDeSalir)
+    return () => window.removeEventListener('beforeunload', antesDeSalir)
+  }, [hayCambiosSinGuardar])
+
+  // Salir de verdad: se iguala la firma para desactivar el aviso y
+  // recién ahí se navega.
+  function salirSinGuardar() {
+    const destino = salidaPendiente
+    setFirmaInicial(firmaFormulario)
+    setSalidaPendiente(null)
+    if (destino === '__atras__') router.back()
+    else if (destino) router.push(destino)
+  }
+
   // Marca todas las categorias de sintomas (CATS) como "normal" de una
   // sola vez, EXCEPTO Paseo (que no tiene una opcion "normal", son rangos
   // de duracion) y Cuidados (que es multi-seleccion aparte, no tiene
@@ -1216,6 +1287,34 @@ function RegistroContenido() {
 
   return (
     <div className="min-h-screen pb-24 fade-in">
+      {/* Aviso al salir con cambios sin guardar. Mismo estilo que el
+          de "Todo normal" para que se sienta conocido. */}
+      {salidaPendiente && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-8" style={{ background: 'rgba(61,43,31,0.45)' }} onClick={() => setSalidaPendiente(null)}>
+          <div className="bg-[#FFFCF8] rounded-2xl w-full max-w-xs p-5 text-center" onClick={e => e.stopPropagation()}>
+            <img src="/chiqui/chiqui_amor.png" alt="" className="w-14 h-14 object-contain mx-auto mb-2" />
+            <p className="font-bold text-sm text-[#3D2B1F] mb-1">¿Guardar antes de salir?</p>
+            <p className="text-xs text-[#8A7560] mb-4">Marcaste cosas de {mascotaNombre} que aún no se han guardado. Si sales ahora, se pierden.</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => { setSalidaPendiente(null); guardar() }}
+                disabled={loading || !puedeGuardar}
+                className="w-full py-2.5 rounded-xl text-sm font-bold text-[#1A1200] bg-[#FFBD59] disabled:opacity-50">
+                {loading ? 'Guardando...' : 'Guardar y salir'}
+              </button>
+              <button onClick={() => setSalidaPendiente(null)} className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#8A7560] bg-[#F0E2CE]">
+                Seguir aquí
+              </button>
+              <button onClick={salirSinGuardar} className="w-full py-1.5 text-xs text-[#8A7560]">
+                Salir sin guardar
+              </button>
+            </div>
+            {!puedeGuardar && (
+              <p className="text-[10px] text-[#8A7560] mt-2">Marca al menos una categoría para poder guardar.</p>
+            )}
+          </div>
+        </div>
+      )}
       {/* Modal tras "Todo normal": guardar al toque o seguir editando */}
       {confirmarGuardado && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-8" style={{ background: 'rgba(61,43,31,0.45)' }} onClick={() => setConfirmarGuardado(false)}>
@@ -1239,7 +1338,10 @@ function RegistroContenido() {
       )}
       <div className="px-5 pt-6 pb-3 sticky top-0 bg-[#F5EDE3] z-10 border-b border-[#EEE2D4]">
         <div className="flex items-center gap-3 mb-2">
-          <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg flex-shrink-0">←</button>
+          <button
+            onClick={() => { if (hayCambiosSinGuardar) setSalidaPendiente('__atras__'); else router.back() }}
+            className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg flex-shrink-0"
+          >←</button>
           <div className="flex-1">
             <p className="text-xs text-[#8A7560] capitalize">
               {fechaRegistro && new Date(fechaRegistro + 'T00:00:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'})}
