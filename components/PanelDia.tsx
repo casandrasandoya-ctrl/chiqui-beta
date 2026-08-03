@@ -174,12 +174,15 @@ export default function PanelDia({ dias, totalUsuarios }: { dias: DiaPanel[]; to
             {dia.usuarios.map((u, i) => (
               <div
                 key={i}
-                className="px-4 py-1.5 flex items-baseline gap-2"
+                className="px-4 py-1.5 grid grid-cols-[7rem_1fr] items-baseline"
                 style={{ background: i % 2 === 0 ? '#FBEAD9' : 'transparent' }}
               >
-                <p className="text-xs text-[#3D2B1F] flex-shrink-0">{u.nombre}</p>
-                <span className="text-[#D6C3AC] text-xs flex-shrink-0">|</span>
-                <p className="text-[11px] text-[#8A7560] truncate">
+                <p className="text-xs text-[#3D2B1F] truncate pr-2">{u.nombre}</p>
+                {/* El separador es un BORDE, no un carácter: un "|"
+                    queda sujeto a la línea base del texto y se ve
+                    torcido entre filas; el borde recorre la fila
+                    completa y queda recto. */}
+                <p className="text-[11px] text-[#8A7560] truncate border-l border-[#E0CDB6] pl-2.5">
                   {u.mascotas.map(m => `${emojiEspecie(m.especie)} ${m.nombre}`).join(' · ')}
                 </p>
               </div>
@@ -205,12 +208,13 @@ export default function PanelDia({ dias, totalUsuarios }: { dias: DiaPanel[]; to
             {dia.otros.map((o, i) => (
               <div
                 key={i}
-                className="px-4 py-1.5 flex items-baseline gap-2"
+                className="px-4 py-1.5 grid grid-cols-[1fr_8rem] items-baseline"
                 style={{ background: i % 2 === 0 ? '#FBEAD9' : 'transparent' }}
               >
-                <p className="text-xs text-[#3D2B1F] flex-shrink-0">{o.emoji} {o.detalle}</p>
-                <span className="text-[#D6C3AC] text-xs flex-shrink-0">|</span>
-                <p className="text-[11px] text-[#8A7560] truncate">{o.quien}</p>
+                {/* Aquí la columna fija va a la DERECHA: lo que más
+                    varía de largo es la descripción, no el nombre. */}
+                <p className="text-xs text-[#3D2B1F] truncate pr-2">{o.emoji} {o.detalle}</p>
+                <p className="text-[11px] text-[#8A7560] truncate border-l border-[#E0CDB6] pl-2.5">{o.quien}</p>
               </div>
             ))}
           </div>
