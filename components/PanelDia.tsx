@@ -166,11 +166,20 @@ export default function PanelDia({ dias, totalUsuarios }: { dias: DiaPanel[]; to
         )}
 
         <Plegable titulo="Quiénes registraron" n={dia.usuarios.length}>
-          <div className="space-y-1.5">
+          {/* Filas alternadas y el nombre de la mascota junto al de
+              la persona: con veinte nombres seguidos, cruzar el ancho
+              para emparejar cada línea cansa y se pierde el hilo.
+              El -mx-4 lleva la banda hasta el borde de la tarjeta. */}
+          <div className="-mx-4">
             {dia.usuarios.map((u, i) => (
-              <div key={i} className="flex items-baseline justify-between gap-2">
-                <p className="text-xs text-[#3D2B1F] truncate">{u.nombre}</p>
-                <p className="text-[10px] text-[#8A7560] flex-shrink-0 truncate">
+              <div
+                key={i}
+                className="px-4 py-1.5 flex items-baseline gap-2"
+                style={{ background: i % 2 === 0 ? '#FBEAD9' : 'transparent' }}
+              >
+                <p className="text-xs text-[#3D2B1F] flex-shrink-0">{u.nombre}</p>
+                <span className="text-[#D6C3AC] text-xs flex-shrink-0">|</span>
+                <p className="text-[11px] text-[#8A7560] truncate">
                   {u.mascotas.map(m => `${emojiEspecie(m.especie)} ${m.nombre}`).join(' · ')}
                 </p>
               </div>
@@ -190,13 +199,18 @@ export default function PanelDia({ dias, totalUsuarios }: { dias: DiaPanel[]; to
         )}
 
         <Plegable titulo="Detalle de la otra actividad" n={dia.otros.length}>
-          <div className="space-y-1.5">
+          {/* Mismo tratamiento que la lista de arriba, para que las
+              dos se lean igual. */}
+          <div className="-mx-4">
             {dia.otros.map((o, i) => (
-              <div key={i} className="flex items-baseline justify-between gap-2">
-                <p className="text-xs text-[#3D2B1F] truncate">
-                  {o.emoji} {o.detalle}
-                </p>
-                <p className="text-[10px] text-[#8A7560] flex-shrink-0 truncate">{o.quien}</p>
+              <div
+                key={i}
+                className="px-4 py-1.5 flex items-baseline gap-2"
+                style={{ background: i % 2 === 0 ? '#FBEAD9' : 'transparent' }}
+              >
+                <p className="text-xs text-[#3D2B1F] flex-shrink-0">{o.emoji} {o.detalle}</p>
+                <span className="text-[#D6C3AC] text-xs flex-shrink-0">|</span>
+                <p className="text-[11px] text-[#8A7560] truncate">{o.quien}</p>
               </div>
             ))}
           </div>
