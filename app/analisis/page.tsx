@@ -496,6 +496,35 @@ export default function AnalisisPage() {
   const rojos = registros.filter(r => r.estado_dia === 'rojo').length
   const pctBien = total > 0 ? Math.round((verdes / total) * 100) : 0
 
+  // --- Días realmente cubiertos por los registros ---
+  // La consulta trae una ventana de 30 días y eso está bien, pero
+  // el texto decía "durante los últimos 30 días" incluso a quien
+  // empezó ayer. Se mide desde el primer registro que hay hasta hoy.
+  // Las fechas se construyen a mediodía para que los cambios de
+  // horario de verano no corran el conteo.
+  const diasCubiertos = (() => {
+    if (registros.length === 0) return 0
+    const fechas = registros.map(r => r.fecha).filter(Boolean).sort()
+    const primera = new Date(fechas[0] + 'T12:00:00')
+    const hoyD = new Date(fechaChile(new Date()) + 'T12:00:00')
+    const d = Math.round((hoyD.getTime() - primera.getTime()) / 86400000) + 1
+    return Math.max(1, Math.min(30, d))
+  })()
+
+  // Con "los" delante, para frases tipo "Durante ___".
+  const textoPeriodo =
+    diasCubiertos === 0 ? 'el período'
+    : diasCubiertos === 1 ? 'el único día registrado'
+    : diasCubiertos >= 30 ? 'los últimos 30 días'
+    : `los últimos ${diasCubiertos} días`
+
+  // Sin "los", para el encabezado junto al nombre de la mascota.
+  const textoPeriodoCorto =
+    diasCubiertos === 0 ? 'sin registros aún'
+    : diasCubiertos === 1 ? '1 día registrado'
+    : diasCubiertos >= 30 ? 'últimos 30 días'
+    : `últimos ${diasCubiertos} días`
+
   // Frecuencia por categoría
   function contarValor(campo: string, valor: string) {
     return registros.filter(r => r[campo] === valor).length
@@ -530,9 +559,9 @@ export default function AnalisisPage() {
   if (total === 0) {
     insights.push({ icon: '🐶', text: `Aún no hay registros. Empieza a registrar las señales de ${mascota?.nombre} para ver tendencias aquí.`, tipo: 'info' })
   } else {
-    if (signosUltimos30 > 0) insights.push({ icon: '🚨', text: `${signosUltimos30} día${signosUltimos30 === 1 ? '' : 's'} con signos de alerta en los últimos 30 días. Revisa el detalle más abajo y coméntalo con tu veterinario.`, tipo: 'warn' })
+    if (signosUltimos30 > 0) insights.push({ icon: '🚨', text: `${signosUltimos30} día${signosUltimos30 === 1 ? '' : 's'} con signos de alerta en ${textoPeriodo}. Revisa el detalle más abajo y coméntalo con tu veterinario.`, tipo: 'warn' })
     if (pctBien >= 80) insights.push({ icon: '✅', text: `Energía y ánimo normales o positivos en el ${pctBien}% de los días registrados.`, tipo: 'good' })
-    if (naranjos > 0 || rojos > 0) insights.push({ icon: '👁', text: `Se detectaron ${naranjos + rojos} días con síntomas notables en los últimos ${periodo} días. Vale la pena observar.`, tipo: 'warn' })
+    if (naranjos > 0 || rojos > 0) insights.push({ icon: '👁', text: `Se detectaron ${naranjos + rojos} días con síntomas notables en ${textoPeriodo}. Vale la pena observar.`, tipo: 'warn' })
     const modaEnerg = modaCampo('energia')
     if (modaEnerg) insights.push({ icon: '⚡', text: `La señal de energía más frecuente fue "${modaEnerg.val.replace(/_/g,' ')}" (${modaEnerg.count} de ${total} días).`, tipo: 'info' })
     const vomitos = contarValor('digestion', 'vomito')
@@ -584,13 +613,13 @@ export default function AnalisisPage() {
     // viven en las tarjetas de abajo y no queremos repetirlas aquí.
     const partes: string[] = []
     if (signosUltimos30 > 0 || naranjos + rojos >= 3) {
-      partes.push(`Durante los últimos ${periodo} días se registraron varios episodios relevantes en ${nombreM}.`)
+      partes.push(`Durante ${textoPeriodo} se registraron varios episodios relevantes en ${nombreM}.`)
     } else if (pctBien >= 80) {
-      partes.push(`Durante los últimos ${periodo} días, ${nombreM} se mantuvo estable: energía y ánimo normales o positivos en el ${pctBien}% de los días registrados.`)
+      partes.push(`Durante ${textoPeriodo}, ${nombreM} se mantuvo estable: energía y ánimo normales o positivos en el ${pctBien}% de los días registrados.`)
     } else if (pctBien >= 50) {
-      partes.push(`Durante los últimos ${periodo} días, ${nombreM} tuvo altibajos: alrededor del ${pctBien}% de los días se registraron con normalidad.`)
+      partes.push(`Durante ${textoPeriodo}, ${nombreM} tuvo altibajos: alrededor del ${pctBien}% de los días se registraron con normalidad.`)
     } else {
-      partes.push(`Durante los últimos ${periodo} días, la mayoría de los registros de ${nombreM} incluyeron señales que vale la pena revisar.`)
+      partes.push(`Durante ${textoPeriodo}, la mayoría de los registros de ${nombreM} incluyeron señales que vale la pena revisar.`)
     }
     // Cuantificar síntomas y signos si los hubo
     const detallesNum: string[] = []
@@ -1005,7 +1034,7 @@ export default function AnalisisPage() {
         <img src="/chiqui/chiqui_analisis.png" alt="CHIQUI" className="w-9 h-9 object-contain" />
         <div>
           <h1 className="font-heading text-xl font-extrabold">Análisis</h1>
-          <p className="text-xs text-[#8A7560]">{mascota?.nombre} · últimos 30 días</p>
+          <p className="text-xs text-[#8A7560]">{mascota?.nombre} · {textoPeriodoCorto}</p>
         </div>
       </div>
       {/* Selector de mascota */}
@@ -1020,7 +1049,7 @@ export default function AnalisisPage() {
             <img src="/chiqui/chiqui_ia.png" alt="Chiqui" className="w-9 h-9 object-contain flex-shrink-0" />
             <div>
               <p className="text-sm font-bold text-[#3D2B1F]">🧠 Lo que Chiqui aprendió este mes</p>
-              <p className="text-xs text-[#8A7560]">Sobre los últimos {periodo} días</p>
+              <p className="text-xs text-[#8A7560]">Sobre {textoPeriodo}</p>
             </div>
           </div>
           <div className="px-4 py-3">
