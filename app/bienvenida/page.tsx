@@ -40,6 +40,20 @@ export default function BienvenidaPage() {
     }
     setErrorNombre('')
     await supabase.auth.updateUser({ data: { nombre: n } })
+
+    // También en perfil_usuario, igual que hace guardarNombre() en el
+    // Perfil. Antes solo se guardaba en la metadata de la cuenta, y
+    // quien entraba por acá quedaba sin nombre en la base: invisible
+    // o anónimo en el panel, en la vista del veterinario y en
+    // co-tutor.
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await supabase.from('perfil_usuario').upsert({
+        user_id: user.id,
+        nombre: n,
+      }, { onConflict: 'user_id' })
+    }
+
     return true
   }
 
@@ -126,12 +140,16 @@ export default function BienvenidaPage() {
             className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none focus:border-[#FFBD59]/60"
           />
           {errorNombre && <p className="text-xs text-[#E05252] mt-1.5">{errorNombre}</p>}
+          {!errorNombre && !nombreTutor.trim() && (
+            <p className="text-xs text-[#8A7560] mt-1.5">Escribe tu nombre para continuar.</p>
+          )}
         </div>
 
         {/* Opción 1: Agregar mi mascota */}
         <button
           onClick={async () => { if (await guardarNombreTutor()) router.push('/mascota/nueva') }}
-          className="w-full bg-[#FFBD59] rounded-2xl p-5 text-left flex items-center gap-4"
+          disabled={!nombreTutor.trim()}
+          className="w-full bg-[#FFBD59] rounded-2xl p-5 text-left flex items-center gap-4 disabled:opacity-40"
         >
           <span className="text-3xl flex-shrink-0">🐾</span>
           <div>
@@ -145,7 +163,8 @@ export default function BienvenidaPage() {
         {/* Opción 2: Tengo un código */}
         <button
           onClick={async () => { if (await guardarNombreTutor()) setPaso('codigo') }}
-          className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-5 text-left flex items-center gap-4"
+          disabled={!nombreTutor.trim()}
+          className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-5 text-left flex items-center gap-4 disabled:opacity-40"
         >
           <span className="text-3xl flex-shrink-0">🔑</span>
           <div>
