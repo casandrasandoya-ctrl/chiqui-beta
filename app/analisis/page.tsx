@@ -878,7 +878,7 @@ export default function AnalisisPage() {
   // usa en el resumen de Chiqui con tono cuidadoso: nunca afirma que el
   // perro "está sedentario" (medimos lo registrado, no lo real, y la
   // poca actividad puede ser síntoma de dolor, no pereza del tutor).
-  const actividadChiqui: { promedioDia: number; min: number; ideal: string; suficiente: boolean } | null = (() => {
+  const actividadChiqui: { promedioDia: number; min: number; ideal: string; suficiente: boolean; datosSuficientes: boolean } | null = (() => {
     if (!esPerro) return null
     const MIN_PASEO: Record<string, number> = { '10_30min': 20, '30min_1h': 45, '1_2h': 90, '2_4h': 180 }
     const minP = (r: any) => r.paseo === 'tiempo_exacto' && typeof r.paseo_minutos_exactos === 'number'
@@ -886,7 +886,11 @@ export default function AnalisisPage() {
     const inicio30 = (() => { const d = new Date(); d.setDate(d.getDate() - 29); return fechaChile(d) })()
     const totalP = paseoHistorial.filter(r => r.fecha >= inicio30).reduce((a, r) => a + minP(r), 0)
     const totalE = enriqRegistros.filter(e => e.fecha >= inicio30).reduce((a, e) => a + (e.duracion_min || 0), 0)
-    const promedioDia = Math.round((totalP + totalE) / 30)
+    // Dividir por los días que REALMENTE cubren los registros, no
+    // por 30 fijos. Con 2 días de uso, dividir por 30 daba un
+    // promedio 15 veces más bajo que el real.
+    const diasParaPromedio = Math.max(1, diasCubiertos)
+    const promedioDia = Math.round((totalP + totalE) / diasParaPromedio)
     // Rango orientativo por edad y tamaño (minutos/día). Basado en
     // guías generales de ejercicio canino; NO es un estándar clínico
     // rígido — por eso el mensaje siempre deja espacio a la duda.
@@ -912,7 +916,12 @@ export default function AnalisisPage() {
       else if (t === 'grande' || t === 'gigante') { min = 60; ideal = '1 a 2 horas' }
       else { min = 30; ideal = '30 a 90 minutos' }
     }
-    return { promedioDia, min, ideal, suficiente: promedioDia >= min }
+    // Aunque el promedio ya quede bien calculado, con 2 o 3 días
+    // sigue siendo ruido: un fin de semana sin salir lo parte a la
+    // mitad. Bajo 7 días se muestra el número pero no se compara
+    // con lo recomendado. Siete es lo mínimo para que entre una
+    // semana completa, con días laborales y fin de semana.
+    return { promedioDia, min, ideal, suficiente: promedioDia >= min, datosSuficientes: diasCubiertos >= 7 }
   })()
 
   function diaAnteriorStr(f: string): string {
@@ -1063,7 +1072,11 @@ export default function AnalisisPage() {
                 baja, deja espacio a que sea salud o registro incompleto
                 — nunca acusa de sedentarismo. */}
             {actividadChiqui && actividadChiqui.promedioDia > 0 && (
-              actividadChiqui.suficiente ? (
+              !actividadChiqui.datosSuficientes ? (
+                <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2">
+                  🐾 Según lo que registraste, {nombreM} se movió un promedio de <span className="font-semibold">{actividadChiqui.promedioDia} min al día</span>. Llevas {diasCubiertos} {diasCubiertos === 1 ? 'día' : 'días'} de registro: todavía es pronto para compararlo con lo recomendado. En unos días te cuento mejor.
+                </p>
+              ) : actividadChiqui.suficiente ? (
                 <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2">
                   🐾 Según lo que registraste, {nombreM} se movió un promedio de <span className="font-semibold">{actividadChiqui.promedioDia} min al día</span> — acorde a lo esperable para su tamaño y edad ({actividadChiqui.ideal}). ¡Muy bien!
                 </p>

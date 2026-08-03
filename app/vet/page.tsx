@@ -458,10 +458,34 @@ export default async function VetPage({ searchParams }: Props) {
       .filter((r: any) => r.fecha >= inicio)
       .reduce((acc: number, r: any) => acc + minPaseoVet(r), 0)
     const totalEnr = (enriqVet || []).reduce((acc: number, e: any) => acc + (e.duracion_min || 0), 0)
-    actividadPromedioDia = Math.round((totalPaseo + totalEnr) / 30)
+
+    // Días REALMENTE cubiertos por los registros, no 30 fijos. Antes,
+    // un tutor con pocos días de uso aparecía como "Bajo" aunque
+    // paseara su perro una hora diaria — un dato falso sobre el que
+    // un veterinario podría decidir.
+    const fechasVet = registros
+      .filter((r: any) => r.fecha >= inicio)
+      .map((r: any) => r.fecha as string)
+      .sort()
+    const hoyVetStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+    let diasVet = 30
+    if (fechasVet.length > 0) {
+      const primeraVet = new Date(fechasVet[0] + 'T12:00:00')
+      const hoyVet = new Date(hoyVetStr + 'T12:00:00')
+      const d = Math.round((hoyVet.getTime() - primeraVet.getTime()) / 86400000) + 1
+      diasVet = Math.max(1, Math.min(30, d))
+    }
+
+    actividadPromedioDia = Math.round((totalPaseo + totalEnr) / diasVet)
     // Rangos orientativos de actividad diaria para un perro adulto.
     // No son un estándar clínico rígido; ayudan a leer el número.
-    if (actividadPromedioDia >= 60) nivelActividad = { label: 'Activo', color: '#4CAF7D' }
+    //
+    // Con menos de una semana de registros NO se etiqueta: el
+    // promedio existe pero es ruido, y una etiqueta clínica sobre
+    // ruido es peor que ninguna etiqueta.
+    if (diasVet < 7) {
+      nivelActividad = { label: `Pocos datos (${diasVet} ${diasVet === 1 ? 'día' : 'días'})`, color: '#8A7560' }
+    } else if (actividadPromedioDia >= 60) nivelActividad = { label: 'Activo', color: '#4CAF7D' }
     else if (actividadPromedioDia >= 30) nivelActividad = { label: 'Moderado', color: '#F5C842' }
     else nivelActividad = { label: 'Bajo', color: '#F07A30' }
   }
