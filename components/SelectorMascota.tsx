@@ -1,6 +1,5 @@
 'use client'
-import { useState } from 'react'
-import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { guardarMascotaActivaId } from '@/utils/mascotaActiva'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
@@ -14,18 +13,24 @@ interface Mascota {
   foto_url?: string
 }
 
-// Chip verde "Perfil activo": se muestra tanto en la tarjeta cerrada
-// como en la mascota seleccionada del desplegable, generando
-// continuidad visual — el tutor siempre sabe con qué mascota está
-// trabajando, incluso antes de abrir el selector.
-function ChipActivo() {
-  return (
-    <span className="inline-flex items-center gap-1 bg-[#4CAF7D]/12 rounded-full px-1.5 py-0.5 flex-shrink-0">
-      <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF7D]" />
-      <span className="text-[9px] font-bold text-[#3A8A62]">Perfil activo</span>
-    </span>
-  )
-}
+// ============================================================
+// SELECTOR DE MASCOTA — fila de círculos
+// ============================================================
+// Antes era un desplegable: había que tocar para ver quién más había, y
+// cambiar de mascota costaba dos toques. Ahora están todas a la vista y
+// cambiar cuesta uno.
+//
+// La activa lleva un aro verde; las demás quedan en blanco y negro. Esa
+// combinación se entiende sin leer nada, incluso para quien nunca vio
+// la app. El gris no es solo decorativo: dice "esta no es la que estás
+// mirando", que es justo lo que la gente necesita saber.
+//
+// El nombre y los datos ya no van aquí: viven en la tarjeta de abajo,
+// donde se ven más grandes. Repetirlos era ruido.
+//
+// El botón + abre "Agrandar familia", con los dos caminos posibles:
+// crear una mascota propia o unirse a una con código. Antes esas dos
+// opciones estaban escondidas al final del desplegable.
 
 export default function SelectorMascota({
   mascotas,
@@ -37,112 +42,101 @@ export default function SelectorMascota({
   onCambiar: (mascota: Mascota) => void
 }) {
   const router = useRouter()
-  const [abierto, setAbierto] = useState(false)
+  const [modalFamilia, setModalFamilia] = useState(false)
+
+  // Bloqueo del scroll de fondo mientras el modal está abierto, igual
+  // que el resto de los modales de la app.
+  useEffect(() => {
+    if (modalFamilia) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [modalFamilia])
 
   function elegir(m: Mascota) {
+    if (m.id === mascotaActiva.id) return
     guardarMascotaActivaId(m.id)
     onCambiar(m)
-    setAbierto(false)
   }
 
   const icono = iconoPorEspecie
 
   return (
-    <div className="px-4 pb-3 relative">
-      <button
-        onClick={() => setAbierto(a => !a)}
-        className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-3 py-2.5 flex items-center gap-2.5"
-      >
-        {/* Avatar con más presencia: la foto es la forma más rápida de
-            reconocer a la mascota */}
-        <div className="w-10 h-10 rounded-full bg-[#FBEAD9] flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
-          {mascotaActiva.foto_url ? (
-            <img src={mascotaActiva.foto_url} alt={mascotaActiva.nombre} className="w-full h-full object-cover" />
-          ) : (
-            icono(mascotaActiva.especie)
-          )}
-        </div>
-        <div className="flex-1 min-w-0 text-left">
-          <p className="font-bold text-[15px] text-[#3D2B1F] truncate">{mascotaActiva.nombre}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <ChipActivo />
-            <p className="text-[11px] text-[#8A7560] truncate">
-              {mascotaActiva.especie}{mascotaActiva.raza ? ` · ${mascotaActiva.raza}` : ''}
-            </p>
-          </div>
-        </div>
-
-        {/* Flecha SIEMPRE visible: aunque haya una sola mascota, el
-            desplegable da acceso a "Editar perfil". La flecha le indica
-            al usuario que la tarjeta es tocable. */}
-        <span className={`text-[#8C572F] text-base font-bold transition-transform flex-shrink-0 ${abierto ? 'rotate-180' : ''}`}>▼</span>
-      </button>
-
-      {abierto && (
-        <>
-          {/* Capa invisible para cerrar el menu al tocar fuera */}
-          <div className="fixed inset-0 z-30" onClick={() => setAbierto(false)} />
-          <div className="absolute left-4 right-4 mt-1.5 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl overflow-hidden z-40 shadow-sm">
-            {/* Encabezado simple: la mascota activa YA se ve en la
-                tarjeta superior y en la lista — repetirla aquí por
-                tercera vez era redundancia visual. En su lugar, la
-                acción de perfil gana protagonismo. */}
-            <Link href="/perfil" onClick={() => setAbierto(false)}
-              className="w-full px-3 py-2.5 flex items-center justify-between border-b border-[#EEE2D4] bg-[#FBEAD9]">
-              <span className="text-xs font-semibold text-[#8A7560]">Mi compañero/a</span>
-              <span className="text-xs font-bold text-[#CD7421]">Editar perfil →</span>
-            </Link>
-            {/* Lista de mascotas: la ACTIVA destaca con borde dorado de
-                2px, fondo cálido, insignia "Perfil activo" y check en
-                círculo verde sólido. El resto queda neutro para que el
-                contraste haga el trabajo. */}
-            <div className="p-2 space-y-1.5">
-              {mascotas.map(m => {
-                const activa = m.id === mascotaActiva.id
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => elegir(m)}
-                    className="w-full px-2.5 py-2.5 flex items-center gap-2.5 text-left rounded-xl"
-                    style={activa
-                      ? { border: '2px solid #FFBD59', background: '#FBEAD9' }
-                      : { border: '2px solid transparent', background: 'transparent' }}
-                  >
-                    <div className={`${activa ? 'w-10 h-10' : 'w-9 h-9'} rounded-full bg-[#FBEAD9] flex items-center justify-center text-base flex-shrink-0 overflow-hidden`}>
-                      {m.foto_url ? (
-                        <img src={m.foto_url} alt={m.nombre} className="w-full h-full object-cover" />
-                      ) : (
-                        icono(m.especie)
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`${activa ? 'font-bold text-[15px]' : 'font-semibold text-[13px]'} text-[#3D2B1F] truncate`}>{m.nombre}</p>
-                      <p className="text-[11px] text-[#8A7560] truncate">
-                        {m.especie}{m.raza ? ` · ${m.raza}` : ''}
-                      </p>
-                    </div>
-                    {activa && (
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <ChipActivo />
-                        <span className="w-5 h-5 rounded-full bg-[#4CAF7D] text-white flex items-center justify-center text-[11px] font-bold">✓</span>
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+    <div className="px-4 pb-3">
+      {/* Scroll horizontal para cuando hay varias mascotas. La barra se
+          oculta por CSS global, así que se desliza sin verse. */}
+      <div className="flex items-center gap-3 overflow-x-auto">
+        {mascotas.map(m => {
+          const activa = m.id === mascotaActiva.id
+          return (
             <button
-              onClick={() => router.push('/mascota/nueva')}
-              className="w-full px-3 py-2.5 flex items-center gap-2.5 text-left border-t border-[#EEE2D4]"
+              key={m.id}
+              onClick={() => elegir(m)}
+              aria-label={`Cambiar a ${m.nombre}`}
+              className="flex-shrink-0 rounded-full"
             >
-              <div className="w-8 h-8 rounded-full bg-[#FFBD59] flex items-center justify-center text-base flex-shrink-0 text-white">+</div>
-              <span className="font-semibold text-[13px] text-[#8C572F]">Agregar otra mascota</span>
+              <div
+                className="w-[68px] h-[68px] rounded-full overflow-hidden flex items-center justify-center text-3xl"
+                style={activa
+                  ? { border: '3px solid #4CAF7D', background: '#FBEAD9' }
+                  : { border: '3px solid transparent', background: '#FBEAD9', filter: 'grayscale(1)', opacity: 0.7 }}
+              >
+                {m.foto_url ? (
+                  <img src={m.foto_url} alt={m.nombre} className="w-full h-full object-cover" />
+                ) : (
+                  icono(m.especie)
+                )}
+              </div>
             </button>
-            <div className="px-3 pb-3">
-              <UnirseComoCotutor />
+          )
+        })}
+
+        <button
+          onClick={() => setModalFamilia(true)}
+          aria-label="Agrandar familia"
+          className="flex-shrink-0 w-[68px] h-[68px] rounded-full bg-[#FFBD59] flex items-center justify-center text-white text-3xl font-bold"
+        >
+          +
+        </button>
+      </div>
+
+      {modalFamilia && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center px-6"
+          style={{ background: 'rgba(61,43,31,0.5)' }}
+          onClick={() => setModalFamilia(false)}
+        >
+          <div
+            className="bg-[#8C572F] rounded-3xl w-full max-w-xs p-4 relative overflow-y-auto"
+            style={{ maxHeight: 'calc(100vh - 80px)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setModalFamilia(false)}
+              aria-label="Cerrar"
+              className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#3D2B1F] text-white flex items-center justify-center text-base font-bold"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center gap-2.5 mb-3 pr-6">
+              <img src="/chiqui/chiqui_familia.png" alt="" className="w-12 h-12 object-contain flex-shrink-0" />
+              <p className="font-heading text-lg font-extrabold text-[#FFBD59]">Agrandar familia</p>
             </div>
+
+            <button
+              onClick={() => { setModalFamilia(false); router.push('/mascota/nueva') }}
+              className="w-full bg-[#FFFCF8] rounded-xl px-3 py-3 flex items-center gap-2.5 text-left mb-2"
+            >
+              <span className="w-7 h-7 rounded-full bg-[#FFBD59] text-white flex items-center justify-center text-base font-bold flex-shrink-0">+</span>
+              <span className="text-sm font-semibold text-[#3D2B1F]">Agregar otra mascota</span>
+            </button>
+
+            {/* El componente de código ya trae su propio botón y su
+                formulario: se reusa tal cual en vez de duplicar la
+                lógica de validación del código. */}
+            <UnirseComoCotutor />
           </div>
-        </>
+        </div>
       )}
     </div>
   )
