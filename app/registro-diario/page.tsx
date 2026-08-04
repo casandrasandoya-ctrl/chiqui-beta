@@ -170,7 +170,18 @@ function getCategorias(especie: string): Categoria[] {
       {value:'no_orino',emoji:'🚨',label:'No orinó en todo el día'},
     ]}
 
-  const tiposZonaCuerpo = [{value:'orejas',emoji:'👂',label:'Orejas'},{value:'patas',emoji:'🐾',label:'Patas'},{value:'barriga',emoji:'🫃',label:'Barriga'},{value:'lomo',emoji:'🐕',label:'Lomo'},{value:'cara',emoji:'🐶',label:'Cara'},{value:'general',emoji:'🔄',label:'General'}]
+  // Zonas del cuerpo. La comparten tres opciones de Pelaje y piel
+  // (caída excesiva, se rasca, se lame en exceso), y por eso se había
+  // escapado del ajuste por especie: 'Lomo' y 'Cara' mostraban un
+  // perro incluso a quien tiene gato. Las demás ya eran neutrales.
+  const tiposZonaCuerpo = [
+    {value:'orejas',emoji:'👂',label:'Orejas'},
+    {value:'patas',emoji:'🐾',label:'Patas'},
+    {value:'barriga',emoji:'🫃',label:'Barriga'},
+    {value:'lomo',emoji: esGato ? '🐈' : '🐕',label:'Lomo'},
+    {value:'cara',emoji: esGato ? '🐱' : '🐶',label:'Cara'},
+    {value:'general',emoji:'🔄',label:'General'},
+  ]
 
   // Pelaje y piel: en gato separamos "se lame en exceso" (acicalamiento
   // compulsivo, señal de estrés o dolor) de "se rasca" (más asociado a
