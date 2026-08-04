@@ -69,7 +69,16 @@ export default function ConfiguracionNotificaciones() {
       }
 
       if (soporta) {
-        const permisoOk = typeof Notification !== 'undefined' && Notification.permission === 'granted'
+        // En la app instalada desde Google Play el permiso vive a
+        // nivel de Android, y esta API puede seguir diciendo
+        // 'default' aunque las notificaciones funcionen. Exigir
+        // 'granted' dejaba a esas personas viendo "Activar" para
+        // siempre, aunque su suscripcion existiera.
+        //
+        // Solo 'denied' es un no real: significa que la persona (o
+        // el sistema) las bloqueo a proposito.
+        const permisoBloqueado = typeof Notification !== 'undefined' && Notification.permission === 'denied'
+        const permisoOk = !permisoBloqueado
         let suscrito = await tieneSuscripcionActiva()
 
         // Recuperación silenciosa: la persona ya dijo que sí y el

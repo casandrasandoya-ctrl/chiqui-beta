@@ -60,8 +60,14 @@ export async function activarNotificaciones(): Promise<{ exito: boolean; error?:
   }
 
   const permiso = await Notification.requestPermission()
-  if (permiso !== 'granted') {
-    return { exito: false, error: 'No diste permiso para las notificaciones.' }
+  // Solo 'denied' es un no definitivo. En la app instalada desde
+  // Google Play el permiso se concede a nivel de Android y esta API
+  // puede devolver 'default' aunque todo funcione: si es asi, se
+  // intenta suscribir igual y que el navegador diga la ultima
+  // palabra. Cortar aqui impedia activar a cualquiera que llegara
+  // por la tienda.
+  if (permiso === 'denied') {
+    return { exito: false, error: 'Tu teléfono tiene bloqueadas las notificaciones para CHIQUI. Actívalas desde Configuración → Apps → CHIQUI → Notificaciones.' }
   }
 
   // CAUSA 1: al desplegar una versión nueva, el service worker se
