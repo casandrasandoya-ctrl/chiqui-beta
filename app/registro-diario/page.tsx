@@ -103,6 +103,17 @@ function getCategorias(especie: string): Categoria[] {
       {value:'normal',emoji:'✅',label:'Normal'},
       {value:'gases',emoji:'💨',label:'Gases'},
       {value:'nauseas',emoji:'🤢',label:'Náuseas'},
+      // El mal aliento de un día no dice casi nada; el que lleva
+      // semanas sí. Por eso se pregunta desde cuándo: convierte un
+      // dato suelto en una tendencia, que es lo que un veterinario
+      // puede usar.
+      {value:'mal_aliento',emoji:'😷',label:'Mal aliento',detalle:[
+        {titulo:'¿Desde cuándo lo notas?',opciones:[
+          {value:'hoy',emoji:'📅',label:'Hoy solo'},
+          {value:'varios',emoji:'📆',label:'Varios días'},
+          {value:'semanas',emoji:'🗓',label:'Hace semanas'},
+        ]},
+      ]},
       {value:'vomito',emoji:'🤮',label:'Vómito',detalle:[
         {titulo:'¿Qué tipo de vómito?',opciones:tiposVomito},
         {titulo:'¿Cuántas veces?',opciones:[
