@@ -209,7 +209,7 @@ export default function DashboardContenido({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="font-heading text-2xl font-extrabold leading-none text-[#FFFCF8] truncate">{m.nombre}</div>
-              <span className="text-[13px] font-bold text-[#FFBD59] flex-shrink-0 pt-0.5">Ver Perfil ▶</span>
+              <span className="text-[13px] font-extrabold text-[#FFBD59] flex-shrink-0 pt-0.5">Ver Perfil ▶</span>
             </div>
             {/* Dos líneas de datos con círculos de separación. Antes
                 edad, peso y esterilización vivían en una grilla al pie
@@ -231,16 +231,19 @@ export default function DashboardContenido({
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-[#FFFCF8]/20 flex items-center gap-2 flex-wrap">
-          <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold" style={{ background: `${color}26`, border: `1.5px solid ${color}`, color: '#FFFCF8' }}>
-            <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+        {/* gap-1.5 y chips de 11px para que los tres entren en una
+            sola linea. flex-wrap queda como red de seguridad: si un
+            texto crece, bajan en vez de desbordarse. */}
+        <div className="mt-4 pt-4 border-t border-[#FFFCF8]/20 flex items-center gap-1.5 flex-wrap">
+          <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: `${color}26`, border: `1.5px solid ${color}`, color: '#FFFCF8' }}>
+            <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
             {estadoLabel}
           </div>
 
           {/* Racha: indicador permanente, no una celebración. Solo
               aparece si hay al menos un día. */}
           {rachaRegistros > 0 && (
-            <div className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-bold" style={{ background: '#FFBD5926', border: '1.5px solid #FFBD59', color: '#FFFCF8' }}>
+            <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: '#FFBD5926', border: '1.5px solid #FFBD59', color: '#FFFCF8' }}>
               🔥 {rachaRegistros} {rachaRegistros === 1 ? 'día' : 'días'}
             </div>
           )}
@@ -263,7 +266,7 @@ export default function DashboardContenido({
               return `${anios} ${anios === 1 ? 'año' : 'años'} juntos`
             })()
             return (
-              <div className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold" style={{ background: '#E88FB826', border: '1.5px solid #E88FB8', color: '#FFFCF8' }}>
+              <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: '#E88FB826', border: '1.5px solid #E88FB8', color: '#FFFCF8' }}>
                 {juntos ? `💕 ${juntos}` : '💕 ¿Cuándo llegó?'}
               </div>
             )

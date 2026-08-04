@@ -106,7 +106,7 @@ export default function SelectorMascota({
           onClick={() => setModalFamilia(false)}
         >
           <div
-            className="bg-[#8C572F] rounded-3xl w-full max-w-xs p-4 relative overflow-y-auto"
+            className="bg-[#FBEAD9] rounded-3xl w-full max-w-xs p-4 relative overflow-y-auto"
             style={{ maxHeight: 'calc(100vh - 80px)' }}
             onClick={e => e.stopPropagation()}
           >
@@ -117,14 +117,19 @@ export default function SelectorMascota({
                  eso recorta lo que sobresalga. Con -top-2 -right-2 el
                  botón quedaba cortado por la mitad. */
               className="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#3D2B1F] text-white flex items-center justify-center text-base font-bold z-10"
-              style={{ border: '1.5px solid rgba(255,252,248,0.35)' }}
+              style={{ border: '1.5px solid rgba(61,43,31,0.15)' }}
             >
               ✕
             </button>
 
             <div className="flex items-center gap-2.5 mb-3 pr-10">
-              <img src="/chiqui/chiqui_mascotas.png" alt="" className="w-12 h-12 object-contain flex-shrink-0" />
-              <p className="font-heading text-lg font-extrabold text-[#FFBD59]">Agrandar familia</p>
+              {/* 80px en vez de 48: es el elemento con mas caracter
+                  de esta ventana y quedaba perdido. */}
+              <img src="/chiqui/chiqui_mascotas.png" alt="" className="w-20 h-20 object-contain flex-shrink-0" />
+              {/* Cafe sobre beige. El dorado se leia bien sobre el
+                  fondo oscuro anterior, pero sobre beige casi
+                  desaparece: el contraste se mueve con el fondo. */}
+              <p className="font-heading text-lg font-extrabold text-[#8C572F]">Agrandar familia</p>
             </div>
 
             <button
