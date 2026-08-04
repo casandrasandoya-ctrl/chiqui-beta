@@ -142,14 +142,36 @@ export async function activarNotificaciones(): Promise<{ exito: boolean; error?:
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { exito: false, error: 'Sesión no encontrada.' }
 
-  const { error } = await supabase.from('suscripciones_push').upsert({
+  // ¿Ya está guardada esta misma suscripción? Entonces no hay nada
+  // que escribir. Volver a hacer upsert obliga a un UPDATE, y si
+  // falta la política RLS de UPDATE eso falla — aunque el dato en la
+  // base ya sea correcto. Ese era el error que veían las usuarias al
+  // intentar activar por segunda vez.
+  const { data: yaGuardada } = await supabase
+    .from('suscripciones_push')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('endpoint', subscriptionJson.endpoint!)
+    .maybeSingle()
+
+  if (yaGuardada) return { exito: true }
+
+  // No existe: INSERT limpio. No hay nada que actualizar, así que no
+  // hace falta el upsert. Tener varias filas por persona es correcto
+  // y esperado: una por dispositivo. Las que mueren las limpia el
+  // cron cuando el envío devuelve 404 o 410.
+  const { error } = await supabase.from('suscripciones_push').insert({
     user_id: user.id,
     endpoint: subscriptionJson.endpoint!,
     p256dh: subscriptionJson.keys!.p256dh,
     auth: subscriptionJson.keys!.auth,
-  }, { onConflict: 'endpoint' })
+  })
 
-  if (error) return { exito: false, error: 'No se pudo guardar la suscripción.' }
+  if (error) {
+    // El mensaje real de Postgres viaja tal cual. La frase genérica
+    // de antes nos tuvo cuatro rondas adivinando la causa.
+    return { exito: false, error: 'No se pudo guardar la suscripción: ' + (error.message || 'error desconocido') }
+  }
 
   return { exito: true }
 }
