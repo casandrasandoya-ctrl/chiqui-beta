@@ -113,12 +113,16 @@ export default function SelectorMascota({
             <button
               onClick={() => setModalFamilia(false)}
               aria-label="Cerrar"
-              className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#3D2B1F] text-white flex items-center justify-center text-base font-bold"
+              /* DENTRO del borde: la tarjeta tiene overflow-y-auto y
+                 eso recorta lo que sobresalga. Con -top-2 -right-2 el
+                 botón quedaba cortado por la mitad. */
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#3D2B1F] text-white flex items-center justify-center text-base font-bold z-10"
+              style={{ border: '1.5px solid rgba(255,252,248,0.35)' }}
             >
               ✕
             </button>
 
-            <div className="flex items-center gap-2.5 mb-3 pr-6">
+            <div className="flex items-center gap-2.5 mb-3 pr-10">
               <img src="/chiqui/chiqui_mascotas.png" alt="" className="w-12 h-12 object-contain flex-shrink-0" />
               <p className="font-heading text-lg font-extrabold text-[#FFBD59]">Agrandar familia</p>
             </div>
