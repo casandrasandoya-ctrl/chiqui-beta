@@ -119,7 +119,7 @@ export default function SelectorMascota({
             </button>
 
             <div className="flex items-center gap-2.5 mb-3 pr-6">
-              <img src="/chiqui/chiqui_familia.png" alt="" className="w-12 h-12 object-contain flex-shrink-0" />
+              <img src="/chiqui/chiqui_mascotas.png" alt="" className="w-12 h-12 object-contain flex-shrink-0" />
               <p className="font-heading text-lg font-extrabold text-[#FFBD59]">Agrandar familia</p>
             </div>
 

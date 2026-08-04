@@ -195,11 +195,7 @@ export default function DashboardContenido({
 
 
       {/* HERO */}
-      <Link href="/perfil" className="relative mx-4 mb-4 bg-[#8C572F] rounded-2xl p-5 overflow-hidden block">
-        {/* Indicador clickeable — esquina superior derecha */}
-        <span className="absolute top-3.5 right-4 text-[11px] font-semibold text-[#FFBD59]/90">
-          Mi perfil →
-        </span>
+      <Link href="/perfil" className="relative mx-4 mb-4 bg-[#8C572F] rounded-3xl p-5 overflow-hidden block">
         <div className="flex items-start gap-3.5">
           {m.foto_url ? (
             <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[#FFFCF8]/40 flex-shrink-0">
@@ -210,58 +206,68 @@ export default function DashboardContenido({
               {iconoPorEspecie(m.especie)}
             </div>
           )}
-          <div className="flex-1 pt-0.5">
-            <div className="font-heading text-lg font-extrabold leading-none text-[#FFFCF8]">{m.nombre}</div>
-            <div className="text-xs text-[#F0DEC8] mt-1 mb-2">
-              {m.especie}{m.raza ? ` · ${m.raza}` : ''}{m.sexo ? ` · ${m.sexo}` : ''}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="font-heading text-2xl font-extrabold leading-none text-[#FFFCF8] truncate">{m.nombre}</div>
+              <span className="text-[13px] font-bold text-[#FFBD59] flex-shrink-0 pt-0.5">Ver Perfil ▶</span>
+            </div>
+            {/* Dos líneas de datos con círculos de separación. Antes
+                edad, peso y esterilización vivían en una grilla al pie
+                de la tarjeta; acá caben en el mismo lugar y dejan ese
+                espacio para los chips. */}
+            <p className="text-[13px] text-[#F0DEC8] mt-2 truncate">
+              {[m.especie, m.raza, m.sexo].filter(Boolean).join('  ○  ')}
+            </p>
+            <p className="text-[13px] text-[#F0DEC8] mt-0.5 truncate">
               {(() => {
                 const etapa = calcularEtapaVida(m.fecha_nacimiento, m.especie)
-                if (!etapa) return null
-                return ` · ${formatearEdad(etapa)} · ${etapa.nombre}`
+                const partes: string[] = []
+                if (etapa) partes.push(formatearEdad(etapa))
+                if (m.peso_actual) partes.push(`${m.peso_actual} kg`)
+                if (m.castrado) partes.push('Esterilizado/a')
+                return partes.join('  ○  ')
               })()}
-            </div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: `${color}26`, border: `1px solid ${color}4D`, color: '#FFFCF8' }}>
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-                {estadoLabel}
-              </div>
-              {/* Indicador PERMANENTE de racha: no es una novedad ni una
-                  celebración — muestra siempre la racha actual (solo si
-                  es mayor a 0) y se actualiza al completar el registro. */}
-              {rachaRegistros > 0 && (
-                <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: '#FFBD5933', border: '1px solid #FFBD5966', color: '#FFFCF8' }}>
-                  🔥 {rachaRegistros} {rachaRegistros === 1 ? 'día' : 'días'}
-                </div>
-              )}
-            </div>
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-[#FFFCF8]/15">
-          <div className="text-center">
-            {(() => {
-              const etapa = calcularEtapaVida(m.fecha_nacimiento, m.especie)
-              return etapa ? (
-                <>
-                  <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{formatearEdad(etapa)}</div>
-                  <div className="text-[10px] text-[#D9B596] mt-0.5">{etapa.nombre}</div>
-                </>
-              ) : (
-                <>
-                  <div className="font-heading text-base font-extrabold text-[#FFFCF8]">—</div>
-                  <div className="text-[10px] text-[#D9B596] mt-0.5">Edad</div>
-                </>
-              )
-            })()}
+        <div className="mt-4 pt-4 border-t border-[#FFFCF8]/20 flex items-center gap-2 flex-wrap">
+          <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold" style={{ background: `${color}26`, border: `1.5px solid ${color}`, color: '#FFFCF8' }}>
+            <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+            {estadoLabel}
           </div>
-          <div className="text-center">
-            <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{m.peso_actual ? `${m.peso_actual} kg` : '—'}</div>
-            <div className="text-[10px] text-[#D9B596] mt-0.5">Peso actual</div>
-          </div>
-          <div className="text-center">
-            <div className="font-heading text-base font-extrabold text-[#FFFCF8]">{m.castrado ? 'Esterilizado/a' : 'Entero/a'}</div>
-            <div className="text-[10px] text-[#D9B596] mt-0.5">Estado</div>
-          </div>
+
+          {/* Racha: indicador permanente, no una celebración. Solo
+              aparece si hay al menos un día. */}
+          {rachaRegistros > 0 && (
+            <div className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-bold" style={{ background: '#FFBD5926', border: '1.5px solid #FFBD59', color: '#FFFCF8' }}>
+              🔥 {rachaRegistros} {rachaRegistros === 1 ? 'día' : 'días'}
+            </div>
+          )}
+
+          {/* Tiempo juntos. Si no hay fecha de unión, en vez de dejar
+              un hueco se invita a completarla: toda la tarjeta lleva al
+              perfil, que es justo donde se agrega. */}
+          {(() => {
+            const juntos = (() => {
+              if (!m.fecha_union) return null
+              // Mediodía: a medianoche los cambios de horario de verano
+              // pueden correr el cálculo un día.
+              const desde = new Date(m.fecha_union + 'T12:00:00')
+              const ahora = new Date()
+              const meses = (ahora.getFullYear() - desde.getFullYear()) * 12 + (ahora.getMonth() - desde.getMonth())
+              if (meses < 0) return null
+              if (meses < 1) return 'Recién llegó'
+              if (meses < 12) return `${meses} ${meses === 1 ? 'mes' : 'meses'} juntos`
+              const anios = Math.floor(meses / 12)
+              return `${anios} ${anios === 1 ? 'año' : 'años'} juntos`
+            })()
+            return (
+              <div className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold" style={{ background: '#E88FB826', border: '1.5px solid #E88FB8', color: '#FFFCF8' }}>
+                {juntos ? `💕 ${juntos}` : '💕 ¿Cuándo llegó?'}
+              </div>
+            )
+          })()}
         </div>
       </Link>
 
