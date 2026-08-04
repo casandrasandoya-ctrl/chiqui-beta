@@ -224,7 +224,18 @@ export default function DashboardContenido({
                 const partes: string[] = []
                 if (etapa) partes.push(formatearEdad(etapa))
                 if (m.peso_actual) partes.push(`${m.peso_actual} kg`)
-                if (m.castrado) partes.push('Esterilizado/a')
+                // Se muestra en los DOS casos: antes, si no estaba
+                // esterilizada, la línea quedaba a medias.
+                //
+                // "Fértil" en vez de "No esterilizado": describir por
+                // ausencia sugiere que falta algo que debería estar, y
+                // eso es un juicio que la app no tiene por qué hacer.
+                //
+                // Si el campo estuviera vacío no se afirma nada: decir
+                // "Fértil" sobre un dato que nadie ingresó sería
+                // inventarlo.
+                if (m.castrado === true) partes.push('Esterilizado/a')
+                else if (m.castrado === false) partes.push('Fértil')
                 return partes.join('  ○  ')
               })()}
             </p>
