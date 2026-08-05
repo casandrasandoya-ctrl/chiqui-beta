@@ -218,6 +218,10 @@ export default function PerfilPage() {
     // aqui deja claro que se puede editar con el boton Editar.
     ['Nombre', mascota?.nombre || '-'],
     ['Especie', mascota?.especie || '-'],
+    ['Sexo', mascota?.sexo || '-'],
+    // Se distingue el dato vacío del 'no esterilizado': afirmar
+    // 'Fértil' sobre algo que nadie ingresó sería inventarlo.
+    ['Estado', mascota?.castrado === true ? 'Esterilizado/a' : mascota?.castrado === false ? 'Fértil' : '-'],
     ['Raza', mascota?.raza || '-'],
     ['Nacimiento', mascota?.fecha_nacimiento || '-'],
     ['Se unió a tu familia', mascota?.fecha_union || '-'],
@@ -296,7 +300,7 @@ export default function PerfilPage() {
           <div className="text-[10px] text-[#8A7560] uppercase tracking-wider mt-0.5">Sexo</div>
         </div>
         <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3 text-center">
-          <div className="font-bold text-sm text-[#4CAF7D]">{mascota?.castrado ? 'Esterilizado/a' : 'Entero/a'}</div>
+          <div className="font-bold text-sm text-[#4CAF7D]">{mascota?.castrado ? 'Esterilizado/a' : 'Fértil'}</div>
           <div className="text-[10px] text-[#8A7560] uppercase tracking-wider mt-0.5">Estado</div>
         </div>
       </div>
@@ -331,6 +335,10 @@ export default function PerfilPage() {
           <div className="p-4 space-y-3">
             {[
               ['Nombre', 'nombre', 'text', 'ej. Luna'],
+              // Tipos propios: se manejan con botones, no con un
+              // input de texto. Ver las ramas de abajo.
+              ['Sexo', 'sexo', 'sexo', ''],
+              ['Estado reproductivo', 'castrado', 'castrado', ''],
               ['Raza', 'raza', 'text', 'ej. Mestizo'],
               ['Fecha de nacimiento', 'fecha_nacimiento', 'date', ''],
               ['Se unió a tu familia', 'fecha_union', 'date', ''],
@@ -349,6 +357,30 @@ export default function PerfilPage() {
                     value={String((form as Record<string, unknown>)[key] || '')}
                     onChange={v => u(key, v)}
                   />
+                ) : type === 'sexo' ? (
+                  /* Mismos botones que la pantalla de crear mascota,
+                     para que se sienta conocido. */
+                  <div className="flex gap-2">
+                    {['Macho', 'Hembra'].map(s => (
+                      <button
+                        key={s} type="button" onClick={() => u('sexo', s)}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${(form as Record<string, unknown>).sexo === s ? 'bg-[#FFBD59]/15 border-[#FFBD59] text-[#FFBD59]' : 'bg-[#FFFCF8] border-[#EEE2D4] text-[#8A7560]'}`}
+                      >
+                        {s === 'Macho' ? '🐾 Macho' : '🌸 Hembra'}
+                      </button>
+                    ))}
+                  </div>
+                ) : type === 'castrado' ? (
+                  <div className="flex gap-2">
+                    {[['Esterilizado/a', true], ['Fértil', false]].map(([etiqueta, valor]) => (
+                      <button
+                        key={String(etiqueta)} type="button" onClick={() => u('castrado', valor as boolean)}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${(form as Record<string, unknown>).castrado === valor ? 'bg-[#FFBD59]/15 border-[#FFBD59] text-[#FFBD59]' : 'bg-[#FFFCF8] border-[#EEE2D4] text-[#8A7560]'}`}
+                      >
+                        {etiqueta as string}
+                      </button>
+                    ))}
+                  </div>
                 ) : (
                   <input
                     type={type}
