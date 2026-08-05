@@ -11,6 +11,59 @@ const HORAS_DISPONIBLES = Array.from({ length: 24 }, (_, h) => {
   return { valor: `${hh}:00`, label: `${hh}:00` }
 })
 
+// Los pasos cambian por completo segun donde este corriendo la app.
+// Mostrar los de Android en un iPhone no solo no sirve: hace que la
+// app parezca rota.
+function instruccionesPermiso(): { titulo: string; pasos: string[]; cierre: string } | null {
+  if (typeof window === 'undefined') return null
+  let ios = false
+  let instalada = false
+  try {
+    ios = esIOS()
+    instalada = estaInstalada()
+  } catch {
+    // Salida segura: si no se puede determinar el entorno, mejor un
+    // texto generico que unas instrucciones equivocadas.
+    return {
+      titulo: '⚠️ Falta autorizar las notificaciones',
+      pasos: ['Busca CHIQUI en los ajustes de notificaciones de tu teléfono', 'Actívalas desde ahí'],
+      cierre: 'Después vuelve aquí y toca Activar de nuevo.',
+    }
+  }
+
+  if (ios && instalada) {
+    return {
+      titulo: '⚠️ Falta un paso en tu iPhone',
+      pasos: ['Abre Ajustes', 'Entra a Notificaciones', 'Busca CHIQUI en la lista', 'Activa "Permitir notificaciones"'],
+      cierre: 'Después vuelve aquí y toca Activar de nuevo.',
+    }
+  }
+
+  if (ios) {
+    // En iPhone las notificaciones web SOLO existen con la app
+    // agregada a inicio. Ningún ajuste sirve si no se hizo eso antes.
+    return {
+      titulo: '⚠️ Primero agrega CHIQUI a tu pantalla de inicio',
+      pasos: ['Toca el botón de compartir en Safari', 'Elige "Agregar a pantalla de inicio"', 'Abre CHIQUI desde ese ícono'],
+      cierre: 'En iPhone las notificaciones solo funcionan con la app agregada a inicio.',
+    }
+  }
+
+  if (instalada) {
+    return {
+      titulo: '⚠️ Falta un paso en tu teléfono',
+      pasos: ['Abre los Ajustes de tu teléfono', 'Entra a Aplicaciones', 'Busca CHIQUI', 'Entra a Notificaciones y actívalas'],
+      cierre: 'Android pide este permiso aparte del aviso de la app. Después vuelve aquí y toca Activar de nuevo.',
+    }
+  }
+
+  return {
+    titulo: '⚠️ Tu navegador bloqueó las notificaciones',
+    pasos: ['Toca el candado 🔒 junto a la dirección web', 'Busca "Notificaciones"', 'Cámbialo a "Permitir"'],
+    cierre: 'Después recarga la página y toca Activar de nuevo.',
+  }
+}
+
 export default function ConfiguracionNotificaciones() {
   const supabase = createClient()
   const [cargando, setCargando] = useState(true)
@@ -30,6 +83,9 @@ export default function ConfiguracionNotificaciones() {
   // recordatorio está apagado, para poder ver cuál de los tres falla
   // en vez de adivinar.
   const [diag, setDiag] = useState<{ permiso: string; navegador: boolean; base: boolean } | null>(null)
+  // Los pasos para autorizar en el teléfono. Solo se muestran cuando
+  // activar falló por permisos: si funciona, no aparece nada.
+  const [ayudaPermiso, setAyudaPermiso] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -128,6 +184,7 @@ export default function ConfiguracionNotificaciones() {
   async function manejarActivar() {
     setProcesando(true)
     setError('')
+    setAyudaPermiso(false)
     // El finally es lo importante: antes, si algo lanzaba un error,
     // setProcesando(false) nunca se ejecutaba y el botón quedaba en
     // "Activando..." para siempre, sin decir qué pasó.
@@ -140,6 +197,12 @@ export default function ConfiguracionNotificaciones() {
           setPermisoDenegado(true)
         }
         setError(resultado.error || 'No se pudo activar.')
+        // Solo si el permiso NO está concedido: si falló por otra
+        // razón (conexión, base de datos), estos pasos no ayudan y
+        // solo confundirían.
+        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+          setAyudaPermiso(true)
+        }
         return
       }
       // Si la preferencia no llega a la base, el cron nunca va a
@@ -229,6 +292,23 @@ export default function ConfiguracionNotificaciones() {
             {' · '}base {diag.base ? '✓' : '✕'}
           </p>
         )}
+        {/* Pasos para autorizar. No se muestra junto al bloque de
+            iPhone-sin-instalar, que ya explica lo suyo. */}
+        {ayudaPermiso && !iosNoInstalado && (() => {
+          const ayuda = instruccionesPermiso()
+          if (!ayuda) return null
+          return (
+            <div className="bg-[#F07A30]/10 border border-[#F07A30]/30 rounded-xl p-3 mb-3">
+              <p className="text-xs font-bold text-[#3D2B1F] mb-1.5">{ayuda.titulo}</p>
+              <div className="space-y-0.5">
+                {ayuda.pasos.map((paso, i) => (
+                  <p key={i} className="text-[11px] text-[#8A7560] leading-relaxed">{i + 1}. {paso}</p>
+                ))}
+              </div>
+              <p className="text-[11px] text-[#3D2B1F] mt-2 leading-relaxed">{ayuda.cierre}</p>
+            </div>
+          )
+        })()}
         {soportado && !iosNoInstalado && permisoDenegado && (
           <div className="bg-[#F07A30]/10 rounded-xl p-3 text-xs text-[#8C572F] leading-relaxed">
             <p className="font-semibold mb-1">🔕 Las notificaciones están bloqueadas</p>
