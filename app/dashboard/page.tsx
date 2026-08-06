@@ -94,8 +94,12 @@ export default async function Dashboard({ searchParams }: Props) {
 
   const [{ data: regHoy }, { data: vacunas }, { data: antis }, { data: obs }, { data: medsConControl }, { data: enfsConRevision }, { data: visitasVet }] = await Promise.all([
     supabase.from('registros_diarios').select('estado_dia').eq('mascota_id', m.id).eq('fecha', hoy).single(),
-    supabase.from('vacunas').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
-    supabase.from('antiparasitarios').select('nombre,proxima_fecha').eq('mascota_id', m.id).gte('proxima_fecha', hoy).order('proxima_fecha').limit(2),
+    // Se ordena por FECHA DE APLICACION, no por proxima_fecha: manda
+    // la dosis mas reciente, como en Prevencion y en la vista del
+    // veterinario. Antes ganaba la de fecha mas cercana, asi que una
+    // dosis vieja seguia avisando aunque ya se hubiera aplicado otra.
+    supabase.from('vacunas').select('nombre,fecha_aplicacion,proxima_fecha').eq('mascota_id', m.id).order('fecha_aplicacion', { ascending: false }).limit(20),
+    supabase.from('antiparasitarios').select('nombre,fecha_aplicacion,proxima_fecha').eq('mascota_id', m.id).order('fecha_aplicacion', { ascending: false }).limit(20),
     supabase.from('observaciones').select('id,titulo,fecha_inicio').eq('mascota_id', m.id).eq('estado', 'activa').limit(10),
     supabase.from('medicamentos').select('nombre,proximo_control,fecha_fin').eq('mascota_id', m.id).eq('estado', 'activo').gte('proximo_control', hoy).order('proximo_control').limit(5),
     supabase.from('enfermedades').select('diagnostico,proxima_revision').eq('mascota_id', m.id).gte('proxima_revision', hoy).order('proxima_revision').limit(2),
@@ -339,8 +343,16 @@ export default async function Dashboard({ searchParams }: Props) {
   const color = regHoy?.estado_dia ? EC[regHoy.estado_dia] : '#4CAF7D'
   const estadoLabel = regHoy?.estado_dia ? EL[regHoy.estado_dia] : 'Sin registro hoy'
 
-  const proximaVacuna = vacunas?.[0]
-  const proximoAnti = antis?.[0]
+  // Solo la dosis MAS RECIENTE manda. Si su proxima fecha ya paso,
+  // no se muestra nada: una dosis vencida no es un "proximo", y
+  // Prevencion ya la marca como vencida en su propia seccion.
+  const dosisVigente = (lista: any[] | null) => {
+    const masReciente = (lista || [])[0]
+    if (!masReciente?.proxima_fecha) return null
+    return masReciente.proxima_fecha >= hoy ? masReciente : null
+  }
+  const proximaVacuna = dosisVigente(vacunas)
+  const proximoAnti = dosisVigente(antis)
   // Mismo criterio DERIVADO que usa el resto de la app: no basta
   // con estado='activo' en la base, porque ese campo no se
   // actualiza solo. Si fecha_fin ya paso, el tratamiento termino.
