@@ -566,6 +566,8 @@ function RegistroContenido() {
   const [paseoMinutos, setPaseoMinutos] = useState<number | null>(null)
   const [fechaRegistro, setFechaRegistro] = useState('')
   const [nota, setNota] = useState('')
+  // Check de la nota del día: "esto me preocupa, pregúntame mañana".
+  const [notaSeguimiento, setNotaSeguimiento] = useState(false)
   const [cuidados, setCuidados] = useState<Set<string>>(new Set())
   // --- Estados de los nuevos mini-modales de cuidados ---
   // Alimento: el botón fusionado pregunta si fue cambio definitivo o
@@ -1842,6 +1844,35 @@ function RegistroContenido() {
         <textarea value={nota} onChange={e => setNota(e.target.value)}
           placeholder="¿Algo que quieras recordar de hoy?" rows={3}
           className="w-full bg-[#FFFCF8] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none resize-none"/>
+        {/* Seguimiento de la nota. Solo aparece si hay algo escrito:
+            pedir seguimiento de una nota vacía no significa nada.
+            NO cambia el estado del día — sigue verde. El color mide lo
+            que se observó en la mascota, no lo que se anotó. */}
+        {nota.trim().length > 0 && (
+          <button
+            type="button"
+            onClick={() => setNotaSeguimiento(v => !v)}
+            className="w-full mt-2 rounded-xl px-3 py-2.5 flex items-center gap-2.5 text-left"
+            style={notaSeguimiento
+              ? { background: '#F07A3018', border: '1.5px solid #F07A30' }
+              : { background: '#FBEAD9', border: '1.5px solid #EEE2D4' }}
+          >
+            <span
+              className="w-5 h-5 rounded-md flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+              style={notaSeguimiento
+                ? { background: '#F07A30', color: '#FFFCF8' }
+                : { background: '#FFFCF8', border: '1.5px solid #EEE2D4', color: 'transparent' }}
+            >
+              ✓
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-xs font-semibold text-[#3D2B1F]">Esto me preocupa — pregúntame mañana</span>
+              <span className="block text-[10px] text-[#8A7560] leading-snug mt-0.5">
+                Te lo recordamos los próximos días y queda destacado para tu veterinario.
+              </span>
+            </span>
+          </button>
+        )}
       </div>
       <div className="mx-4 mt-4">
         {errorGuardado && (
