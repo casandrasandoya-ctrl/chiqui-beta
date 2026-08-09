@@ -652,6 +652,10 @@ function RegistroContenido() {
   // EDITARLO en vez de solo bloquear la pantalla. El mapeo es el
   // inverso exacto de como se guarda en guardar().
   function cargarRegistroExistente(r: any) {
+    // Sin esta linea, editar un dia que ya tenia seguimiento
+    // mostraria el check vacio y el guardado lo BORRARIA en
+    // silencio. Perder un dato al editar es peor que no guardarlo.
+    setNotaSeguimiento(r.nota_seguimiento === true)
     const nuevoSel: Record<string, string> = {}
     const nuevoDet: Record<string, string[]> = {}
     const campos = ['energia', 'animo', 'apetito', 'agua', 'digestion', 'heces', 'arenero', 'pelaje', 'conducta', 'movilidad', 'paseo']
@@ -899,6 +903,7 @@ function RegistroContenido() {
     setSel({})
     setDet({})
     setNota('')
+    setNotaSeguimiento(false)
     setCuidados(new Set())
     setSignos(new Set())
     setSignoOtroTexto('')
@@ -1232,6 +1237,12 @@ function RegistroContenido() {
     const { error } = await supabase.from('registros_diarios').upsert({
       mascota_id: mascotaId, user_id: user.id, fecha: fechaRegistro,
       estado_dia: calcEstado(sel, signos), nota: nota || null,
+      // El seguimiento solo tiene sentido si hay algo escrito.
+      // Y al volver a marcarlo se reabre la pregunta: si la persona
+      // ya habia respondido "todo bien" y vuelve a preocuparse, hay
+      // que preguntarle de nuevo.
+      nota_seguimiento: notaSeguimiento && nota.trim().length > 0,
+      nota_seguimiento_cerrada: notaSeguimiento && nota.trim().length > 0 ? false : undefined,
       energia: sel.energia || null, animo: sel.animo || null,
       apetito: sel.apetito || null, apetito_detalle: det.apetito?.join(', ') || null,
       agua: sel.agua || null, agua_detalle: det.agua?.join(', ') || null,
