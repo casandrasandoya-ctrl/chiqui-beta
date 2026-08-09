@@ -457,6 +457,53 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
   // Se verifica al montar; si falta, se muestra una novedad que invita
   // a completarlo (aparece sin nombre en rankings, cotutores y /vet).
   const [faltaNombre, setFaltaNombre] = useState(false)
+
+  // Nota marcada como "pregúntame mañana" en días anteriores. Se
+  // consulta desde acá y no desde el dashboard: así el cambio toca
+  // un archivo en vez de tres, igual que la novedad de "completa tu
+  // nombre" de más abajo.
+  const [notaPendiente, setNotaPendiente] = useState<{ fecha: string; nota: string } | null>(null)
+  useEffect(() => {
+    let activo = true
+    ;(async () => {
+      const hoyStr = fechaHoyChile()
+      // Mediodía: restar días sobre medianoche falla en los cambios
+      // de horario de verano.
+      const d = new Date(hoyStr + 'T12:00:00')
+      d.setDate(d.getDate() - 3)
+      const desde = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d)
+      const { data } = await supabase
+        .from('registros_diarios')
+        .select('fecha, nota')
+        .eq('mascota_id', mascota.id)
+        .eq('nota_seguimiento', true)
+        .eq('nota_seguimiento_cerrada', false)
+        .gte('fecha', desde)
+        // Menor que hoy: la nota de hoy todavía no tiene sentido
+        // preguntarla — se escribió hace un rato.
+        .lt('fecha', hoyStr)
+        .order('fecha', { ascending: false })
+        .limit(1)
+      const fila = (data || [])[0]
+      if (activo && fila?.nota) {
+        setNotaPendiente({ fecha: fila.fecha as string, nota: String(fila.nota) })
+      }
+    })()
+    return () => { activo = false }
+  }, [supabase, mascota.id])
+
+  // Marcar la nota como resuelta. Se cierra en la base, no en
+  // localStorage: es un dato del historial, no una preferencia de
+  // esta pantalla.
+  async function cerrarNotaSeguimiento(fecha: string) {
+    await supabase
+      .from('registros_diarios')
+      .update({ nota_seguimiento_cerrada: true })
+      .eq('mascota_id', mascota.id)
+      .eq('fecha', fecha)
+    setNotaPendiente(null)
+    setToast('✓ Anotado, me quedo tranquilo')
+  }
   useEffect(() => {
     let activo = true
     ;(async () => {
@@ -536,6 +583,33 @@ export default function Novedades({ mascota, mascotas, tieneRegistroHoy, color, 
     mascota, especies, tieneRegistroHoy, color, rachaRegistros, sinPermisoNotif, fechaHoyChile(),
     seguimientos, diasSinCampo, medicamentosPendientesHoy, visitasProximas,
   )
+
+  // La nota con seguimiento va PRIMERA, antes incluso del cumpleaños:
+  // si alguien anotó que su mascota comió algo raro, eso pesa más que
+  // una celebración.
+  if (notaPendiente) {
+    const hoyN = fechaHoyChile()
+    const dias = Math.round(
+      (new Date(hoyN + 'T12:00:00').getTime() - new Date(notaPendiente.fecha + 'T12:00:00').getTime()) / 86400000
+    )
+    const cuando = dias === 1 ? 'Ayer' : dias === 2 ? 'Anteayer' : `Hace ${dias} días`
+    // La nota se muestra recortada: el texto completo ya está en el
+    // registro de ese día y en la vista del veterinario.
+    const textoNota = notaPendiente.nota.length > 90
+      ? notaPendiente.nota.slice(0, 90).trim() + '…'
+      : notaPendiente.nota
+    pendientesRaw.unshift({
+      key: `nota_seg_${mascota.id}_${notaPendiente.fecha}`,
+      img: '/chiqui/chiqui_lupa.png',
+      mensaje: `👀 ${cuando} anotaste: "${textoNota}". ¿Cómo va ${mascota.nombre}?`,
+      accion: '✓ Todo bien',
+      onAccion: () => cerrarNotaSeguimiento(notaPendiente.fecha),
+      // Efímera: si se cierra con la ✕ sin responder, vuelve en la
+      // próxima visita. Solo el botón la cierra de verdad — es una
+      // pregunta sobre la salud del animal, merece insistir.
+      efimera: true,
+    })
+  }
   // Enlazar onAccion de las novedades de medicamento con el callback
   // real. Se hace acá (no en calcularNovedades) para que la función
   // pura no dependa de supabase.
