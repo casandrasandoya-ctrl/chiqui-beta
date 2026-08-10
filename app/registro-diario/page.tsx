@@ -1349,7 +1349,7 @@ function RegistroContenido() {
     { titulo: '¿Cómo estuvo su alimentación hoy?', items: [buscarCat('apetito'), buscarCat('agua'), buscarGrupo('Alimentación')] },
     { titulo: '¿Cómo estuvo su digestión hoy?', items: [buscarCat('digestion'), buscarCat('heces'), buscarCat('arenero')] },
     { titulo: '¿Cómo se movió hoy?', items: [buscarCat('movilidad'), buscarCat('paseo'), buscarGrupo('Enriquecimiento y entrenamiento') || buscarGrupo('Enriquecimiento y juego')] },
-    { titulo: '¿Hubo algo de salud hoy?', items: [buscarGrupo('Veterinario y salud'), buscarGrupo('Prevención')] },
+    { titulo: '¿Hubo algo de salud hoy?', items: [{ esAlerta: true }, buscarGrupo('Veterinario y salud'), buscarGrupo('Prevención')] },
     { titulo: '¿Cómo estuvo su piel y su aseo?', items: [buscarCat('pelaje'), buscarGrupo('Higiene y bienestar')] },
   ]
 
@@ -1362,8 +1362,10 @@ function RegistroContenido() {
     if (items.length === 0) continue
     CASILLAS.push({ tipo: 'titulo', texto: fila.titulo })
     for (const it of items) {
-      // Un cuidado se distingue de una observación por tener 'items'.
-      if (it.items) { CASILLAS.push({ tipo: 'grupo', grupo: it }); yaEnGrilla.add(it.titulo) }
+      // Tres tipos: la alerta va marcada, un cuidado tiene 'items',
+      // y lo demás es una observación.
+      if (it.esAlerta) CASILLAS.push({ tipo: 'alerta' })
+      else if (it.items) { CASILLAS.push({ tipo: 'grupo', grupo: it }); yaEnGrilla.add(it.titulo) }
       else CASILLAS.push({ tipo: 'cat', cat: it })
     }
   }
@@ -1507,6 +1509,72 @@ function RegistroContenido() {
               <p key={`t-${item.texto}`} className="w-full text-[11px] font-semibold text-[#8A7560] mt-3 mb-1">
                 {item.texto}
               </p>
+            )
+          }
+
+          // --- Casilla de SIGNOS DE ALERTA ---
+          // En rojo, no en canela: no es un cuidado mas. Y si hay algo
+          // marcado conserva el borde aunque este cerrada, para que no
+          // se pierda entre las otras casillas.
+          if (item.tipo === 'alerta') {
+            const hayAlerta = signos.size > 0
+            return (
+              <div key="alerta" className={signosAbierto ? 'w-full' : 'w-[calc(33.333%-0.25rem)]'}>
+                <button
+                  type="button"
+                  onClick={() => setSignosAbierto(v => !v)}
+                  className="w-full flex items-center gap-1.5 px-1.5 py-2 rounded-xl text-left"
+                  style={{
+                    border: (signosAbierto || hayAlerta) ? '2px solid #E05252' : '2px solid transparent',
+                    background: (signosAbierto || hayAlerta) ? '#FFFCF8' : 'transparent',
+                  }}
+                >
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{background:'#E0525220'}}>🚨</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold leading-tight truncate text-[#E05252]">Alerta</p>
+                    {hayAlerta && (
+                      <p className="text-[10px] mt-0.5 text-[#E05252]">✓ {signos.size}</p>
+                    )}
+                  </div>
+                  <span className="text-[#8C572F] text-[10px] font-bold flex-shrink-0">{signosAbierto ? '▲' : '▼'}</span>
+                </button>
+                {signosAbierto && (
+                  <div className="pb-3 pt-1">
+                    <div className="grid grid-cols-2 gap-2">
+                      {SIGNOS_ALERTA.map(s => {
+                        const activo = signos.has(s.value)
+                        return (
+                          <button
+                            key={s.value}
+                            onClick={() => toggleSigno(s.value)}
+                            className="flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
+                            style={activo
+                              ? { background: '#E0525215', borderColor: '#E05252', borderWidth: '1.5px' }
+                              : { background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
+                          >
+                            <span className="text-base flex-shrink-0">{s.emoji}</span>
+                            <span className="text-xs font-medium text-[#3D2B1F]">{s.label}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {signos.has('otro_signo') && (
+                      <input
+                        className="w-full mt-2 bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none"
+                        placeholder="Describe brevemente qué pasó"
+                        value={signoOtroTexto}
+                        onChange={e => setSignoOtroTexto(e.target.value)}
+                        maxLength={120}
+                      />
+                    )}
+                    {hayAlerta && (
+                      <p className="text-[10px] text-[#E05252] mt-2 leading-relaxed">
+                        Este día quedará marcado en rojo en el calendario y tu veterinario lo verá destacado.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             )
           }
 
@@ -1720,67 +1788,9 @@ function RegistroContenido() {
       {/* SIGNOS DE ALERTA — eventos graves del día. Opcional, colapsado
           por defecto, selección múltiple. Si se marca al menos uno, el
           día queda en rojo en el calendario. */}
-      <div className="mx-4 mt-4">
-        <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
-          ¿Ocurrió algo grave hoy? · opcional
-        </label>
-        <div className="rounded-xl border overflow-hidden bg-[#FFFCF8]" style={{ borderColor: signos.size > 0 ? '#E05252' : '#EEE2D4', borderWidth: '1.5px' }}>
-          <button
-            type="button"
-            onClick={() => setSignosAbierto(v => !v)}
-            className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
-          >
-            <span className="text-lg flex-shrink-0">🚨</span>
-            <div className="flex-1">
-              <p className="text-[11px] font-semibold text-[#E05252]">Signos de alerta</p>
-              <p className="text-[10px] text-[#8A7560]">Convulsiones, intoxicación, accidentes y otras urgencias</p>
-            </div>
-            {signos.size > 0 && (
-              <span className="text-[10px] font-bold text-white bg-[#E05252] rounded-full px-2 py-0.5">
-                {signos.size}
-              </span>
-            )}
-            <span className="text-[#8C572F] text-sm font-bold">{signosAbierto ? '▲' : '▼'}</span>
-          </button>
-          {signosAbierto && (
-            <div className="px-3 pb-3 pt-1">
-              <div className="grid grid-cols-2 gap-2">
-                {SIGNOS_ALERTA.map(s => {
-                  const activo = signos.has(s.value)
-                  return (
-                    <button
-                      key={s.value}
-                      onClick={() => toggleSigno(s.value)}
-                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
-                      style={activo
-                        ? { background: '#E0525215', borderColor: '#E05252', borderWidth: '1.5px' }
-                        : { background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
-                    >
-                      <span className="text-base flex-shrink-0">{s.emoji}</span>
-                      <span className="text-xs font-medium text-[#3D2B1F]">{s.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-              {signos.has('otro_signo') && (
-                <input
-                  className="w-full mt-2 bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm placeholder-[#8A7560] focus:outline-none"
-                  placeholder="Describe brevemente qué pasó"
-                  value={signoOtroTexto}
-                  onChange={e => setSignoOtroTexto(e.target.value)}
-                  maxLength={120}
-                />
-              )}
-              {signos.size > 0 && (
-                <p className="text-[10px] text-[#E05252] mt-2 leading-relaxed">
-                  Este día quedará marcado en rojo en el calendario y tu veterinario lo verá destacado.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-      {/* CUIDADOS — organizados en 5 grupos, cada uno desplegable */}
+      {/* Los signos de alerta ahora viven en la grilla de arriba,
+          en la fila de salud. */}
+{/* CUIDADOS — organizados en 5 grupos, cada uno desplegable */}
       <div className="mx-4 mt-4">
         {/* Los cuidados se mudaron a la grilla de arriba, junto a la
             observación con la que se relacionan. Aquí abajo quedaron
