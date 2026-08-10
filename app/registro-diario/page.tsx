@@ -258,8 +258,14 @@ function getCategorias(especie: string): Categoria[] {
       {value:'tiempo_exacto',emoji:'⏱️',label:'Registrar tiempo exacto'},
     ]}
 
-  const categorias = [energia, animo, apetito, agua, digestion, heces, arenero, pelaje, conducta, movilidad]
+  // Orden temático: cada fila de tres agrupa cosas relacionadas.
+  // Energía-Ánimo-Conducta (cómo estuvo), Apetito-Agua-Digestión
+  // (comida), Heces-Orina-Movilidad, Paseo-Pelaje. Cuando los
+  // cuidados entren a la grilla, cada uno se sienta junto a la
+  // observación con la que se relaciona.
+  const categorias = [energia, animo, conducta, apetito, agua, digestion, heces, arenero, movilidad]
   if (especie === 'Perro') categorias.push(paseo)
+  categorias.push(pelaje)
   return categorias
 }
 
@@ -1427,29 +1433,45 @@ function RegistroContenido() {
           <span className="text-[#1A1200] text-sm">✓</span>
         </div>
       </button>
-      <div className="space-y-0 mt-2">
-        {CATS.map(cat => {
+      {/* Grilla de tres columnas. El panel de opciones se coloca
+          debajo de la FILA completa usando el orden del CSS: los
+          chips llevan fila*2 y el panel fila*2+1, así la grilla los
+          acomoda sola sin dejar huecos. */}
+      <div className="mx-4 mt-2 grid grid-cols-3 gap-x-1.5 gap-y-1">
+        {CATS.map((cat, i) => {
           const selVal = sel[cat.id]
           const opSel = cat.opciones.find(o => o.value === selVal)
           const open = abierto === cat.id
           return (
-            <div key={cat.id} className="mx-4">
-              <button onClick={() => setAbierto(open ? '' : cat.id)} className="w-full flex items-center gap-3 py-3 text-left">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0" style={{background:`${cat.color}20`}}>
+            /* display:contents hace que el chip y el panel sean hijos
+               directos de la grilla, sin tener que eliminar este div. */
+            <div key={cat.id} style={{ display: 'contents' }}>
+              {/* Chip compacto. El detalle ya no se muestra aquí: no
+                  cabe en un tercio de ancho y se ve completo al abrir. */}
+              <button
+                onClick={() => setAbierto(open ? '' : cat.id)}
+                className="flex items-center gap-1.5 px-1.5 py-2 rounded-xl text-left"
+                style={{
+                  order: Math.floor(i / 3) * 2,
+                  border: open ? '2px solid #FFBD59' : '2px solid transparent',
+                  background: open ? '#FFFCF8' : 'transparent',
+                }}
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{background:`${cat.color}20`}}>
                   {cat.icon}
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold">{cat.nombre}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-semibold leading-tight truncate">{cat.nombre}</p>
                   {selVal && (
-                    <p className="text-xs mt-0.5" style={{color:cat.color}}>
-                      {opSel?.emoji} {opSel?.label}{(det[cat.id]?.filter(Boolean).length) ? ` · ${det[cat.id].filter(Boolean).join(', ')}` : ''}
+                    <p className="text-[10px] mt-0.5 truncate" style={{color:cat.color}}>
+                      {opSel?.emoji} {opSel?.label}
                     </p>
                   )}
                 </div>
-                <span className="text-[#8C572F] text-sm font-bold">{open ? '▲' : '▼'}</span>
+                <span className="text-[#8C572F] text-[10px] font-bold flex-shrink-0">{open ? '▲' : '▼'}</span>
               </button>
               {open && (
-                <div className="pb-3">
+                <div className="pb-3" style={{ order: Math.floor(i / 3) * 2 + 1, gridColumn: '1 / -1' }}>
                   <div className="grid grid-cols-3 gap-2 mb-2">
                     {cat.opciones.map(op => (
                       <button key={op.value}
