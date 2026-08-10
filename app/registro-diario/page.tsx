@@ -167,7 +167,11 @@ function getCategorias(especie: string): Categoria[] {
   // Es la señal más crítica que faltaba — en gato puede indicar una
   // obstrucción urinaria (emergencia real); en perro puede indicar
   // problemas renales, de próstata o infección urinaria.
-  const arenero: Categoria = { id:'arenero', nombre: esGato ? 'Arenero' : 'Orina', icon:'🚽', color:'#8A6FD8',
+  const arenero: Categoria = { id:'arenero', // 'Orina' en las dos especies. Antes en gatos se llamaba 'Arenero',
+  // igual que el grupo de cuidados — y ahora que ambos aparecen en la
+  // misma pantalla, el nombre repetido confunde. El id sigue siendo
+  // 'arenero', así que ningún registro guardado se ve afectado.
+  nombre: 'Orina', icon:'🚽', color:'#8A6FD8',
     opciones:[
       {value:'normal',emoji:'✅',label:'Normal'},
       {value:'mas_orina',emoji:'💦',label:'Orinó más',detalle:[
@@ -1341,12 +1345,12 @@ function RegistroContenido() {
   // Pelaje e Higiene van al final: como son solo dos, en medio dejaban
   // media fila vacía; al final esa media fila se ve intencional.
   const FILAS: { titulo: string; items: any[] }[] = [
-    { titulo: 'Cómo estuvo', items: [buscarCat('energia'), buscarCat('animo'), buscarCat('conducta')] },
-    { titulo: 'Comida y agua', items: [buscarCat('apetito'), buscarCat('agua'), buscarGrupo('Alimentación')] },
-    { titulo: 'Digestión', items: [buscarCat('digestion'), buscarCat('heces'), buscarCat('arenero')] },
-    { titulo: 'Movimiento', items: [buscarCat('movilidad'), buscarCat('paseo'), buscarGrupo('Enriquecimiento y entrenamiento') || buscarGrupo('Enriquecimiento y juego')] },
-    { titulo: 'Salud', items: [buscarGrupo('Veterinario y salud'), buscarGrupo('Prevención')] },
-    { titulo: 'Piel y cuidado', items: [buscarCat('pelaje'), buscarGrupo('Higiene y bienestar')] },
+    { titulo: '¿Cómo se sintió hoy?', items: [buscarCat('energia'), buscarCat('animo'), buscarCat('conducta')] },
+    { titulo: '¿Cómo estuvo su alimentación hoy?', items: [buscarCat('apetito'), buscarCat('agua'), buscarGrupo('Alimentación')] },
+    { titulo: '¿Cómo estuvo su digestión hoy?', items: [buscarCat('digestion'), buscarCat('heces'), buscarCat('arenero')] },
+    { titulo: '¿Cómo se movió hoy?', items: [buscarCat('movilidad'), buscarCat('paseo'), buscarGrupo('Enriquecimiento y entrenamiento') || buscarGrupo('Enriquecimiento y juego')] },
+    { titulo: '¿Hubo algo de salud hoy?', items: [buscarGrupo('Veterinario y salud'), buscarGrupo('Prevención')] },
+    { titulo: '¿Cómo estuvo su piel y su aseo?', items: [buscarCat('pelaje'), buscarGrupo('Higiene y bienestar')] },
   ]
 
   const CASILLAS: any[] = []
@@ -1369,7 +1373,7 @@ function RegistroContenido() {
   // final. Así nunca desaparece una sección por olvido.
   const sobrantes = gruposCuidados.filter(g => !yaEnGrilla.has(g.titulo))
   if (sobrantes.length > 0) {
-    CASILLAS.push({ tipo: 'titulo', texto: 'Otros cuidados' })
+    CASILLAS.push({ tipo: 'titulo', texto: '¿Algo más que registrar?' })
     for (const g of sobrantes) CASILLAS.push({ tipo: 'grupo', grupo: g })
   }
 
@@ -1498,7 +1502,9 @@ function RegistroContenido() {
           //     vienen después empiezan una línea nueva ---
           if (item.tipo === 'titulo') {
             return (
-              <p key={`t-${item.texto}`} className="w-full text-[10px] font-semibold text-[#8A7560] uppercase tracking-wider mt-2 mb-0.5">
+              /* Sin mayúsculas: una pregunta en mayúsculas se lee
+                 como un grito, no como una invitación. */
+              <p key={`t-${item.texto}`} className="w-full text-[11px] font-semibold text-[#8A7560] mt-3 mb-1">
                 {item.texto}
               </p>
             )
