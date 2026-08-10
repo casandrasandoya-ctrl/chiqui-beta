@@ -1433,12 +1433,10 @@ function RegistroContenido() {
           <span className="text-[#1A1200] text-sm">✓</span>
         </div>
       </button>
-      {/* Grilla de tres columnas. El panel de opciones se coloca
-          debajo de la FILA completa usando el orden del CSS: los
-          chips llevan fila*2 y el panel fila*2+1, así la grilla los
-          acomoda sola sin dejar huecos. */}
+      {/* Grilla de tres columnas. El panel de opciones se abre a lo
+          ancho justo después de su chip. */}
       <div className="mx-4 mt-2 grid grid-cols-3 gap-x-1.5 gap-y-1">
-        {CATS.map((cat, i) => {
+        {CATS.map(cat => {
           const selVal = sel[cat.id]
           const opSel = cat.opciones.find(o => o.value === selVal)
           const open = abierto === cat.id
@@ -1452,7 +1450,6 @@ function RegistroContenido() {
                 onClick={() => setAbierto(open ? '' : cat.id)}
                 className="flex items-center gap-1.5 px-1.5 py-2 rounded-xl text-left"
                 style={{
-                  order: Math.floor(i / 3) * 2,
                   border: open ? '2px solid #FFBD59' : '2px solid transparent',
                   background: open ? '#FFFCF8' : 'transparent',
                 }}
@@ -1471,7 +1468,11 @@ function RegistroContenido() {
                 <span className="text-[#8C572F] text-[10px] font-bold flex-shrink-0">{open ? '▲' : '▼'}</span>
               </button>
               {open && (
-                <div className="pb-3" style={{ order: Math.floor(i / 3) * 2 + 1, gridColumn: '1 / -1' }}>
+                /* A lo ancho de la grilla. Sin `order`: los chips que
+                   siguen bajan debajo del panel y la fila se parte,
+                   pero la colocación es predecible. El intento de
+                   ordenarlo con CSS dejó los chips dispersos. */
+                <div className="pb-3" style={{ gridColumn: '1 / -1' }}>
                   <div className="grid grid-cols-3 gap-2 mb-2">
                     {cat.opciones.map(op => (
                       <button key={op.value}
