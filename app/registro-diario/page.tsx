@@ -1435,20 +1435,21 @@ function RegistroContenido() {
       </button>
       {/* Grilla de tres columnas. El panel de opciones se abre a lo
           ancho justo después de su chip. */}
-      <div className="mx-4 mt-2 grid grid-cols-3 gap-x-1.5 gap-y-1">
+      <div className="mx-4 mt-2 flex flex-wrap gap-1.5">
         {CATS.map(cat => {
           const selVal = sel[cat.id]
           const opSel = cat.opciones.find(o => o.value === selVal)
           const open = abierto === cat.id
           return (
-            /* display:contents hace que el chip y el panel sean hijos
-               directos de la grilla, sin tener que eliminar este div. */
-            <div key={cat.id} style={{ display: 'contents' }}>
+            /* Un tercio del ancho cerrada; completo al abrirse. El
+               display:contents anterior convertia cada categoria en
+               dos elementos, y por eso los chips saltaban celdas. */
+            <div key={cat.id} className={open ? 'w-full' : 'w-[calc(33.333%-0.25rem)]'}>
               {/* Chip compacto. El detalle ya no se muestra aquí: no
                   cabe en un tercio de ancho y se ve completo al abrir. */}
               <button
                 onClick={() => setAbierto(open ? '' : cat.id)}
-                className="flex items-center gap-1.5 px-1.5 py-2 rounded-xl text-left"
+                className="w-full flex items-center gap-1.5 px-1.5 py-2 rounded-xl text-left"
                 style={{
                   border: open ? '2px solid #FFBD59' : '2px solid transparent',
                   background: open ? '#FFFCF8' : 'transparent',
@@ -1472,7 +1473,7 @@ function RegistroContenido() {
                    siguen bajan debajo del panel y la fila se parte,
                    pero la colocación es predecible. El intento de
                    ordenarlo con CSS dejó los chips dispersos. */
-                <div className="pb-3" style={{ gridColumn: '1 / -1' }}>
+                <div className="pb-3">
                   <div className="grid grid-cols-3 gap-2 mb-2">
                     {cat.opciones.map(op => (
                       <button key={op.value}
