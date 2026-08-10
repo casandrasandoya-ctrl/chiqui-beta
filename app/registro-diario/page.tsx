@@ -1776,11 +1776,12 @@ function RegistroContenido() {
       </div>
       {/* CUIDADOS — organizados en 5 grupos, cada uno desplegable */}
       <div className="mx-4 mt-4">
+        {/* Los cuidados se mudaron a la grilla de arriba, junto a la
+            observación con la que se relacionan. Aquí abajo quedaron
+            Hitos y Momentos, así que el título dice eso. */}
         <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
-          Cuidados de hoy · opcional, puedes marcar varios
+          Hitos y momentos · opcional
         </label>
-        {/* Los cuidados ahora viven en la grilla de arriba, junto a la
-            observación con la que se relacionan. */}
 
         {/* Hitos de cachorro/gatito — solo mascotas menores de 1 año
             con fecha de nacimiento conocida. Cada hito se registra UNA
