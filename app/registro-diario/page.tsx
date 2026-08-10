@@ -1333,26 +1333,45 @@ function RegistroContenido() {
   const buscarCat = (id: string) => CATS.find(c => c.id === id)
   const buscarGrupo = (t: string) => gruposCuidados.find(g => g.titulo === t)
 
-  const ordenGrilla: any[] = [
-    buscarCat('energia'), buscarCat('animo'), buscarCat('conducta'),
-    buscarCat('apetito'), buscarCat('agua'), buscarGrupo('Alimentación'),
-    buscarCat('digestion'), buscarCat('heces'), buscarCat('arenero'),
-    buscarCat('movilidad'), buscarCat('paseo'),
-    buscarGrupo('Enriquecimiento y entrenamiento') || buscarGrupo('Enriquecimiento y juego'),
-    buscarCat('pelaje'), buscarGrupo('Higiene y bienestar'),
-    buscarGrupo('Veterinario y salud'), buscarGrupo('Prevención'),
-  ].filter(Boolean)
+  // La grilla se define por FILAS con nombre. Así queda a la vista, al
+  // leer el código, que cada cuidado está junto a la observación con la
+  // que se relaciona: Alimentación con Apetito y Agua, Juego con
+  // Movilidad y Paseo. Esa era la idea completa del diseño.
+  //
+  // Pelaje e Higiene van al final: como son solo dos, en medio dejaban
+  // media fila vacía; al final esa media fila se ve intencional.
+  const FILAS: { titulo: string; items: any[] }[] = [
+    { titulo: 'Cómo estuvo', items: [buscarCat('energia'), buscarCat('animo'), buscarCat('conducta')] },
+    { titulo: 'Comida y agua', items: [buscarCat('apetito'), buscarCat('agua'), buscarGrupo('Alimentación')] },
+    { titulo: 'Digestión', items: [buscarCat('digestion'), buscarCat('heces'), buscarCat('arenero')] },
+    { titulo: 'Movimiento', items: [buscarCat('movilidad'), buscarCat('paseo'), buscarGrupo('Enriquecimiento y entrenamiento') || buscarGrupo('Enriquecimiento y juego')] },
+    { titulo: 'Salud', items: [buscarGrupo('Veterinario y salud'), buscarGrupo('Prevención')] },
+    { titulo: 'Piel y cuidado', items: [buscarCat('pelaje'), buscarGrupo('Higiene y bienestar')] },
+  ]
 
-  // Red de seguridad: cualquier grupo que no esté en la lista de
-  // arriba (Arenero en gatos, o uno nuevo que se agregue mañana) se
-  // suma al final. Así nunca desaparece una sección por olvido.
-  const yaEnGrilla = new Set(ordenGrilla.map(x => x.titulo).filter(Boolean))
-  for (const g of gruposCuidados) {
-    if (!yaEnGrilla.has(g.titulo)) ordenGrilla.push(g)
+  const CASILLAS: any[] = []
+  const yaEnGrilla = new Set<string>()
+  for (const fila of FILAS) {
+    const items = fila.items.filter(Boolean)
+    // Una fila sin elementos no dibuja su título: en gatos no hay
+    // Paseo, y un encabezado suelto sobre nada se ve roto.
+    if (items.length === 0) continue
+    CASILLAS.push({ tipo: 'titulo', texto: fila.titulo })
+    for (const it of items) {
+      // Un cuidado se distingue de una observación por tener 'items'.
+      if (it.items) { CASILLAS.push({ tipo: 'grupo', grupo: it }); yaEnGrilla.add(it.titulo) }
+      else CASILLAS.push({ tipo: 'cat', cat: it })
+    }
   }
 
-  // Un cuidado se distingue de una observación por tener 'items'.
-  const CASILLAS = ordenGrilla.map(x => (x.items ? { tipo: 'grupo', grupo: x } : { tipo: 'cat', cat: x }))
+  // Red de seguridad: cualquier grupo que no esté en ninguna fila
+  // (Arenero en gatos, o uno nuevo que se agregue mañana) aparece al
+  // final. Así nunca desaparece una sección por olvido.
+  const sobrantes = gruposCuidados.filter(g => !yaEnGrilla.has(g.titulo))
+  if (sobrantes.length > 0) {
+    CASILLAS.push({ tipo: 'titulo', texto: 'Otros cuidados' })
+    for (const g of sobrantes) CASILLAS.push({ tipo: 'grupo', grupo: g })
+  }
 
   // Nombres cortos: en un tercio de ancho caben unos 14 caracteres.
   // Solo cambia lo que se MUESTRA; los títulos reales no se tocan.
@@ -1475,6 +1494,16 @@ function RegistroContenido() {
           ancho justo después de su chip. */}
       <div className="mx-4 mt-2 flex flex-wrap gap-1.5">
         {CASILLAS.map(item => {
+          // --- Nombre de ÁREA: ocupa la fila entera, así los que
+          //     vienen después empiezan una línea nueva ---
+          if (item.tipo === 'titulo') {
+            return (
+              <p key={`t-${item.texto}`} className="w-full text-[10px] font-semibold text-[#8A7560] uppercase tracking-wider mt-2 mb-0.5">
+                {item.texto}
+              </p>
+            )
+          }
+
           // --- Casilla de CUIDADO ---
           if (item.tipo === 'grupo') {
             const grupo = item.grupo
