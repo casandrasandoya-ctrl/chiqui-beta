@@ -1527,7 +1527,10 @@ function RegistroContenido() {
           }
 
           // --- Casilla de OBSERVACIÓN ---
-          const cat = item.cat
+          // Se declara el tipo: al venir de una lista mixta,
+          // TypeScript lo veia como 'any' y perdia la inferencia
+          // dentro de cat.opciones.find(...), lo que rompia el build.
+          const cat = item.cat as Categoria
           const selVal = sel[cat.id]
           const opSel = cat.opciones.find(o => o.value === selVal)
           const open = abierto === cat.id
