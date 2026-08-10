@@ -1326,6 +1326,44 @@ function RegistroContenido() {
   const completadas = Object.keys(sel).length
   const puedeGuardar = completadas > 0 || signos.size > 0
 
+  // --- Orden de la grilla: cada cuidado junto a su observación ---
+  // Los cuidados quedan en el camino de la mirada en vez de al final,
+  // que es donde nadie llegaba.
+  const gruposCuidados = getGruposCuidados(especie)
+  const buscarCat = (id: string) => CATS.find(c => c.id === id)
+  const buscarGrupo = (t: string) => gruposCuidados.find(g => g.titulo === t)
+
+  const ordenGrilla: any[] = [
+    buscarCat('energia'), buscarCat('animo'), buscarCat('conducta'),
+    buscarCat('apetito'), buscarCat('agua'), buscarGrupo('Alimentación'),
+    buscarCat('digestion'), buscarCat('heces'), buscarCat('arenero'),
+    buscarCat('movilidad'), buscarCat('paseo'),
+    buscarGrupo('Enriquecimiento y entrenamiento') || buscarGrupo('Enriquecimiento y juego'),
+    buscarCat('pelaje'), buscarGrupo('Higiene y bienestar'),
+    buscarGrupo('Veterinario y salud'), buscarGrupo('Prevención'),
+  ].filter(Boolean)
+
+  // Red de seguridad: cualquier grupo que no esté en la lista de
+  // arriba (Arenero en gatos, o uno nuevo que se agregue mañana) se
+  // suma al final. Así nunca desaparece una sección por olvido.
+  const yaEnGrilla = new Set(ordenGrilla.map(x => x.titulo).filter(Boolean))
+  for (const g of gruposCuidados) {
+    if (!yaEnGrilla.has(g.titulo)) ordenGrilla.push(g)
+  }
+
+  // Un cuidado se distingue de una observación por tener 'items'.
+  const CASILLAS = ordenGrilla.map(x => (x.items ? { tipo: 'grupo', grupo: x } : { tipo: 'cat', cat: x }))
+
+  // Nombres cortos: en un tercio de ancho caben unos 14 caracteres.
+  // Solo cambia lo que se MUESTRA; los títulos reales no se tocan.
+  const NOMBRE_CORTO: Record<string, string> = {
+    'Veterinario y salud': 'Veterinario',
+    'Higiene y bienestar': 'Higiene',
+    'Enriquecimiento y entrenamiento': 'Juego',
+    'Enriquecimiento y juego': 'Juego',
+    'Pelaje y piel': 'Pelaje',
+  }
+
   return (
     <div className="min-h-screen pb-24 fade-in">
       {/* Aviso al salir con cambios sin guardar. Mismo estilo que el
@@ -1436,7 +1474,60 @@ function RegistroContenido() {
       {/* Grilla de tres columnas. El panel de opciones se abre a lo
           ancho justo después de su chip. */}
       <div className="mx-4 mt-2 flex flex-wrap gap-1.5">
-        {CATS.map(cat => {
+        {CASILLAS.map(item => {
+          // --- Casilla de CUIDADO ---
+          if (item.tipo === 'grupo') {
+            const grupo = item.grupo
+            const abiertoGrupo = gruposAbiertos.has(grupo.titulo)
+            const marcadosEnGrupo = grupo.items.filter((c: any) => cuidados.has(c.value)).length
+            return (
+              <div key={grupo.titulo} className={abiertoGrupo ? 'w-full' : 'w-[calc(33.333%-0.25rem)]'}>
+                <button
+                  type="button"
+                  onClick={() => toggleGrupoCuidados(grupo.titulo)}
+                  className="w-full flex items-center gap-1.5 px-1.5 py-2 rounded-xl text-left"
+                  style={{
+                    border: abiertoGrupo ? '2px solid #FFBD59' : '2px solid transparent',
+                    background: abiertoGrupo ? '#FFFCF8' : 'transparent',
+                  }}
+                >
+                  <img src={grupo.img} alt="" className="w-7 h-7 object-contain flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold leading-tight truncate text-[#CD7421]">
+                      {NOMBRE_CORTO[grupo.titulo] || grupo.titulo}
+                    </p>
+                    {marcadosEnGrupo > 0 && (
+                      <p className="text-[10px] mt-0.5 text-[#CD7421]">✓ {marcadosEnGrupo}</p>
+                    )}
+                  </div>
+                  <span className="text-[#8C572F] text-[10px] font-bold flex-shrink-0">{abiertoGrupo ? '▲' : '▼'}</span>
+                </button>
+                {abiertoGrupo && (
+                  <div className="pb-3 pt-1 grid grid-cols-2 gap-2">
+                    {grupo.items.map((c: any) => {
+                      const activo = cuidados.has(c.value)
+                      return (
+                        <button
+                          key={c.value}
+                          onClick={() => toggleCuidado(c.value)}
+                          className="flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
+                          style={activo
+                            ? { background: '#FFBD5920', borderColor: '#FFBD59', borderWidth: '1.5px' }
+                            : { background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
+                        >
+                          <span className="text-base flex-shrink-0">{c.emoji}</span>
+                          <span className="text-xs font-medium text-[#3D2B1F]">{c.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          // --- Casilla de OBSERVACIÓN ---
+          const cat = item.cat
           const selVal = sel[cat.id]
           const opSel = cat.opciones.find(o => o.value === selVal)
           const open = abierto === cat.id
@@ -1459,7 +1550,7 @@ function RegistroContenido() {
                   {cat.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-semibold leading-tight truncate">{cat.nombre}</p>
+                  <p className="text-[12px] font-semibold leading-tight truncate">{NOMBRE_CORTO[cat.nombre] || cat.nombre}</p>
                   {selVal && (
                     <p className="text-[10px] mt-0.5 truncate" style={{color:cat.color}}>
                       {opSel?.emoji} {opSel?.label}
@@ -1656,48 +1747,8 @@ function RegistroContenido() {
         <label className="text-xs font-semibold text-[#8A7560] uppercase tracking-wider mb-2 block">
           Cuidados de hoy · opcional, puedes marcar varios
         </label>
-        {getGruposCuidados(especie).map(grupo => {
-          const abiertoGrupo = gruposAbiertos.has(grupo.titulo)
-          const marcadosEnGrupo = grupo.items.filter(c => cuidados.has(c.value)).length
-          return (
-            <div key={grupo.titulo} className="mb-2 last:mb-0 rounded-xl border border-[#EEE2D4] overflow-hidden bg-[#FFFCF8]">
-              <button
-                type="button"
-                onClick={() => toggleGrupoCuidados(grupo.titulo)}
-                className="w-full flex items-center gap-1.5 px-3 py-2.5 text-left"
-              >
-                <img src={grupo.img} alt="" className="w-5 h-5 object-contain" />
-                <p className="flex-1 text-[11px] font-semibold text-[#CD7421]">{grupo.titulo}</p>
-                {marcadosEnGrupo > 0 && (
-                  <span className="text-[10px] font-bold text-[#1A1200] bg-[#FFBD59] rounded-full px-2 py-0.5">
-                    {marcadosEnGrupo}
-                  </span>
-                )}
-                <span className="text-[#8C572F] text-sm font-bold">{abiertoGrupo ? '▲' : '▼'}</span>
-              </button>
-              {abiertoGrupo && (
-                <div className="px-3 pb-3 pt-1 grid grid-cols-2 gap-2">
-                  {grupo.items.map(c => {
-                    const activo = cuidados.has(c.value)
-                    return (
-                      <button
-                        key={c.value}
-                        onClick={() => toggleCuidado(c.value)}
-                        className="flex items-center gap-2 rounded-xl px-3 py-2.5 border text-left"
-                        style={activo
-                          ? { background: '#FFBD5920', borderColor: '#FFBD59', borderWidth: '1.5px' }
-                          : { background: '#FFFCF8', borderColor: '#EEE2D4', borderWidth: '1.5px' }}
-                      >
-                        <span className="text-base flex-shrink-0">{c.emoji}</span>
-                        <span className="text-xs font-medium text-[#3D2B1F]">{c.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )
-        })}
+        {/* Los cuidados ahora viven en la grilla de arriba, junto a la
+            observación con la que se relacionan. */}
 
         {/* Hitos de cachorro/gatito — solo mascotas menores de 1 año
             con fecha de nacimiento conocida. Cada hito se registra UNA
