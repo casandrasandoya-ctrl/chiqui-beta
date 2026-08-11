@@ -187,10 +187,19 @@ export default function PrevencionPage() {
         await supabase.from('observaciones').update({ ...form }).eq('id', editandoId)
         if (fotoSalud) await subirFotoSalud('observaciones', editandoId, user.id)
       } else {
+        // La fecha de hoy con zona horaria de Chile. Antes se usaba
+        // toISOString(), que convierte a UTC: una observación creada
+        // después de las 20:00 quedaba fechada MAÑANA, y eso descuadra
+        // los días de evolución del seguimiento.
+        //
+        // Quien registra de noche es justamente quien nota que algo
+        // anda mal después de todo el día: el caso más probable era
+        // también el que se guardaba mal.
+        const hoyObs = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
         const { data: nuevaObs } = await supabase.from('observaciones').insert({
           ...base, ...form,
           estado: 'activa',
-          fecha_inicio: form.fecha_inicio || new Date().toISOString().split('T')[0]
+          fecha_inicio: form.fecha_inicio || hoyObs
         }).select('id').single()
         if (nuevaObs && fotoSalud) await subirFotoSalud('observaciones', nuevaObs.id, user.id)
       }
