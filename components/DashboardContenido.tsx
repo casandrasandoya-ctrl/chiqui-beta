@@ -296,7 +296,19 @@ export default function DashboardContenido({
           mismo alto: uno que se encoge porque tiene menos datos rompe
           la fila y sugiere que ese cuidado importa menos. */}
       {(cuidadosRecientes.length > 0 || rachaPaseo !== null) && (() => {
-        const textoDias = (d: number) => d === 0 ? 'Hoy' : d === 1 ? 'Ayer' : `hace ${d} días`
+        // Formato corto: el texto largo se cortaba en el ancho del cubo
+        // ("hace 35..."), y un texto cortado es peor que uno corto.
+        //
+        // Sobre el mes se deja de contar en días: la diferencia entre 93
+        // y 97 días no le dice nada a nadie, pero "3m" sí. Se usan 30
+        // días por mes — inexacto, pero a esa escala lo que importa es
+        // el orden de magnitud.
+        const textoDias = (d: number) => {
+          if (d === 0) return 'Hoy'
+          if (d === 1) return 'Ayer'
+          if (d <= 30) return `${d}d`
+          return `${Math.max(1, Math.floor(d / 30))}m`
+        }
 
         // Salud y Prevención se fusionan: para el tutor son lo mismo —
         // que fue al vet, que le dio el medicamento, cuánto pesó.
