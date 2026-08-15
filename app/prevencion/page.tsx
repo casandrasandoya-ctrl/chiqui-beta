@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import PesoTracker from '@/components/PesoTracker'
 import FechaSelector from '@/components/FechaSelector'
+import FotoAmpliable from '@/components/FotoAmpliable'
 import RespiracionTracker from '@/components/RespiracionTracker'
 import TemperaturaTracker from '@/components/TemperaturaTracker'
 import ReproduccionTracker from '@/components/ReproduccionTracker'
@@ -1031,7 +1032,7 @@ export default function PrevencionPage() {
                         </div>
                         {o.descripcion && <p className="text-xs text-[#8A7560] mt-1 leading-relaxed">{o.descripcion}</p>}
                         <p className="text-xs text-[#8A7560] mt-1">Desde: {fmt(o.fecha_inicio)}</p>
-                        {o.foto_url && obsExpandida !== o.id && <img src={o.foto_url} alt={o.titulo} className="w-full max-h-64 object-contain bg-[#FBEAD9] rounded-xl mt-2" />}
+                        {o.foto_url && obsExpandida !== o.id && <FotoAmpliable src={o.foto_url} alt={o.titulo} className="w-full max-h-64 object-contain bg-[#FBEAD9] rounded-xl" />}
                       </div>
                     </div>
 

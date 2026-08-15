@@ -1,4 +1,5 @@
 import { createVetClient } from '@/utils/supabase/vet-client'
+import FotoAmpliable from '@/components/FotoAmpliable'
 import ExamenesLabVet from '@/components/ExamenesLabVet'
 
 // La vista del veterinario NUNCA se cachea: cada visita trae los datos
@@ -765,7 +766,7 @@ export default async function VetPage({ searchParams }: Props) {
                                 // recortada: en una observación clínica el recorte
                                 // puede ocultar justo la zona relevante. Mismo
                                 // tratamiento que la vista del tutor en Prevención.
-                                <img src={p.foto_url} alt={o.titulo} className="w-full max-h-64 object-contain bg-[#FBEAD9] rounded-xl mt-1.5" />
+                                <FotoAmpliable src={p.foto_url} alt={o.titulo} className="w-full max-h-64 object-contain bg-[#FBEAD9] rounded-xl" />
                               )}
                             </div>
                           ))}
