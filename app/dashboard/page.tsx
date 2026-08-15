@@ -311,6 +311,29 @@ export default async function Dashboard({ searchParams }: Props) {
     rachaPaseo = contarRachaConsecutiva(fechasConPaseo, desde)
   }
 
+
+  // --- Minutos de paseo del MES CALENDARIO (dia 1 -> hoy) ---
+  // Mismo criterio que Analisis, para que los dos numeros coincidan:
+  // minutos exactos cuando el tutor los capturo, y el promedio del
+  // rango cuando no. Mes calendario y no 30 dias moviles porque con
+  // una ventana movil el total BAJA al avanzar los dias.
+  let minutosPaseoMes = 0
+  if (m.especie === 'Perro') {
+    const MIN_POR_RANGO: Record<string, number> = { '10_30min': 20, '30min_1h': 45, '1_2h': 90, '2_4h': 180 }
+    const inicioMes = hoy.slice(0, 7) + '-01'
+    const { data: paseosMes } = await supabase
+      .from('registros_diarios')
+      .select('fecha, paseo, paseo_minutos_exactos')
+      .eq('mascota_id', m.id)
+      .gte('fecha', inicioMes)
+      .lte('fecha', hoy)
+    minutosPaseoMes = (paseosMes || []).reduce((acc: number, r: any) => {
+      if (typeof r.paseo_minutos_exactos === 'number' && r.paseo_minutos_exactos > 0) {
+        return acc + r.paseo_minutos_exactos
+      }
+      return acc + (MIN_POR_RANGO[r.paseo] || 0)
+    }, 0)
+  }
   // Racha de REGISTROS DIARIOS consecutivos (cualquier registro, no solo paseos)
   // Misma lógica: si hoy no registró aún, no se rompe — se cuenta desde ayer
   let rachaRegistros = 0
@@ -511,7 +534,7 @@ export default async function Dashboard({ searchParams }: Props) {
       diasSinCampo={diasSinCampo}
       medicamentosPendientesHoy={medicamentosPendientesHoy}
       visitasProximas={visitasVet || []}
-      cuidadosRecientes={cuidadosRecientes} ultimoPeso={ultimoPeso} ultimaVisitaVet={ultimaVisitaVet}
+      cuidadosRecientes={cuidadosRecientes} ultimoPeso={ultimoPeso} minutosPaseoMes={minutosPaseoMes} ultimaVisitaVet={ultimaVisitaVet}
       rachaPaseo={rachaPaseo}
         rachaRegistros={rachaRegistros}
         rachaEnRiesgo={rachaEnRiesgo}

@@ -48,6 +48,7 @@ interface Props {
   }[]
   cuidadosRecientes: { grupo: string; label: string; emoji: string; dias: number }[]
   ultimoPeso?: { fecha: string; peso: number } | null
+  minutosPaseoMes?: number
   ultimaVisitaVet?: string | null
   rachaPaseo: number | null
   rachaEnRiesgo: boolean
@@ -58,7 +59,7 @@ interface Props {
 }
 
 export default function DashboardContenido({
-  mascotas, mascota: m, color, estadoLabel, proximosItems, tieneRegistroHoy, cuidadosRecientes, ultimoPeso, ultimaVisitaVet, rachaPaseo, rachaEnRiesgo, celoActivoHoy, diaCeloHoy, rachaRegistros, seguimientosPendientes, diasSinCampo, medicamentosPendientesHoy, visitasProximas,
+  mascotas, mascota: m, color, estadoLabel, proximosItems, tieneRegistroHoy, cuidadosRecientes, ultimoPeso, ultimaVisitaVet, minutosPaseoMes, rachaPaseo, rachaEnRiesgo, celoActivoHoy, diaCeloHoy, rachaRegistros, seguimientosPendientes, diasSinCampo, medicamentosPendientesHoy, visitasProximas,
 }: Props) {
   const router = useRouter()
   const [cuidadosExpandido, setCuidadosExpandido] = useState(false)
@@ -303,6 +304,14 @@ export default function DashboardContenido({
         // y 97 días no le dice nada a nadie, pero "3m" sí. Se usan 30
         // días por mes — inexacto, pero a esa escala lo que importa es
         // el orden de magnitud.
+        // 95 minutos -> "1h 35m". Mismo formato que Analisis.
+        const fmtDuracionMes = (min: number): string => {
+          if (min < 60) return `${min} min`
+          const h = Math.floor(min / 60)
+          const r = min % 60
+          return r > 0 ? `${h}h ${r}m` : `${h}h`
+        }
+
         const textoDias = (d: number) => {
           if (d === 0) return 'Hoy'
           if (d === 1) return 'Ayer'
@@ -332,12 +341,17 @@ export default function DashboardContenido({
         if (esPerro && rachaPaseo !== null) {
           visibles.push({
             clave: 'racha', img: '/chiqui/racha.png', titulo: 'Racha de paseo',
-            lineas: rachaPaseo === 0
-              ? [{ k: 'r', texto: 'Sin racha activa' }]
-              : [
-                  { k: 'r', texto: `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'}`, grande: true },
-                  ...(rachaEnRiesgo ? [{ k: 'a', texto: '¡pasea hoy!', alerta: true }] : []),
-                ],
+            // Formato corto igual que el resto de los cubos, y debajo
+            // los minutos del mes — que se resetean el día 1.
+            lineas: [
+              ...(rachaPaseo === 0
+                ? [{ k: 'r', texto: 'Sin racha' }]
+                : [{ k: 'r', texto: `${rachaPaseo}d`, grande: true }]),
+              ...(rachaEnRiesgo && rachaPaseo > 0 ? [{ k: 'a', texto: '¡pasea hoy!', alerta: true }] : []),
+              ...((minutosPaseoMes || 0) > 0
+                ? [{ k: 'm', texto: `${fmtDuracionMes(minutosPaseoMes || 0)} este mes` }]
+                : []),
+            ],
           })
         }
 
