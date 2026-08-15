@@ -1381,7 +1381,32 @@ function RegistroContenido() {
 
   // Nombres cortos: en un tercio de ancho caben unos 14 caracteres.
   // Solo cambia lo que se MUESTRA; los títulos reales no se tocan.
+
+  // --- Ilustraciones de cada casilla ---
+  // Reemplazan al emoji y al cuadrado de color: diecisiete colores
+  // distintos en una pantalla son ruido, no informacion.
+  //
+  // Si una imagen faltara, la casilla cae de vuelta a su emoji. Asi
+  // un archivo mal nombrado no deja un hueco en blanco.
+  const IMG_CAT: Record<string, string> = {
+    energia: 'energia', animo: 'animo', conducta: 'conducta',
+    // Apetito usa el PLATO; el saco es para el cuidado de
+    // Alimentacion, que es otra cosa.
+    apetito: 'alimentacion', agua: 'agua',
+    digestion: 'digestion', heces: 'heces', arenero: 'orina',
+    movilidad: 'movilidad', paseo: 'paseo', pelaje: 'peine',
+  }
+  const IMG_GRUPO: Record<string, string> = {
+    'Alimentación': 'saco_comida',
+    'Enriquecimiento y entrenamiento': 'juguetes',
+    'Enriquecimiento y juego': 'juguetes',
+    'Veterinario y salud': 'Cuidados_Vet',
+    'Prevención': 'vacunas',
+    'Higiene y bienestar': 'higiene',
+    'Arenero': 'arenero',
+  }
   const NOMBRE_CORTO: Record<string, string> = {
+    'Agua': 'Sed',
     'Veterinario y salud': 'Veterinario',
     'Higiene y bienestar': 'Higiene',
     'Enriquecimiento y entrenamiento': 'Juego',
@@ -1523,20 +1548,14 @@ function RegistroContenido() {
                 <button
                   type="button"
                   onClick={() => setSignosAbierto(v => !v)}
-                  className="w-full flex items-center gap-1.5 px-1.5 py-2 rounded-xl text-left"
+                  className="w-full flex flex-col items-center justify-center gap-1 px-1 py-3 rounded-xl"
                   style={{
                     border: (signosAbierto || hayAlerta) ? '2px solid #E05252' : '2px solid transparent',
                     background: (signosAbierto || hayAlerta) ? '#FFFCF8' : 'transparent',
                   }}
                 >
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{background:'#E0525220'}}>🚨</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold leading-tight truncate text-[#E05252]">Alerta</p>
-                    {hayAlerta && (
-                      <p className="text-[10px] mt-0.5 text-[#E05252]">✓ {signos.size}</p>
-                    )}
-                  </div>
-                  <span className="text-[#8C572F] text-[10px] font-bold flex-shrink-0">{signosAbierto ? '▲' : '▼'}</span>
+                  <img src="/chiqui/alarma.png" alt="" className="w-11 h-11 object-contain" />
+                  <p className="text-[11px] font-bold text-[#8C572F] text-center leading-tight w-full truncate">Alerta</p>
                 </button>
                 {signosAbierto && (
                   <div className="pb-3 pt-1">
@@ -1588,22 +1607,20 @@ function RegistroContenido() {
                 <button
                   type="button"
                   onClick={() => toggleGrupoCuidados(grupo.titulo)}
-                  className="w-full flex items-center gap-1.5 px-1.5 py-2 rounded-xl text-left"
+                  className="w-full flex flex-col items-center justify-center gap-1 px-1 py-3 rounded-xl"
                   style={{
                     border: abiertoGrupo ? '2px solid #FFBD59' : '2px solid transparent',
                     background: abiertoGrupo ? '#FFFCF8' : 'transparent',
                   }}
                 >
-                  <img src={grupo.img} alt="" className="w-7 h-7 object-contain flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold leading-tight truncate text-[#CD7421]">
-                      {NOMBRE_CORTO[grupo.titulo] || grupo.titulo}
-                    </p>
-                    {marcadosEnGrupo > 0 && (
-                      <p className="text-[10px] mt-0.5 text-[#CD7421]">✓ {marcadosEnGrupo}</p>
-                    )}
-                  </div>
-                  <span className="text-[#8C572F] text-[10px] font-bold flex-shrink-0">{abiertoGrupo ? '▲' : '▼'}</span>
+                  {IMG_GRUPO[grupo.titulo] ? (
+                    <img src={`/chiqui/${IMG_GRUPO[grupo.titulo]}.png`} alt="" className="w-11 h-11 object-contain" />
+                  ) : (
+                    <img src={grupo.img} alt="" className="w-11 h-11 object-contain" />
+                  )}
+                  <p className="text-[11px] font-bold text-[#8C572F] text-center leading-tight w-full truncate">
+                    {NOMBRE_CORTO[grupo.titulo] || grupo.titulo}
+                  </p>
                 </button>
                 {abiertoGrupo && (
                   <div className="pb-3 pt-1 grid grid-cols-2 gap-2">
@@ -1646,24 +1663,24 @@ function RegistroContenido() {
                   cabe en un tercio de ancho y se ve completo al abrir. */}
               <button
                 onClick={() => setAbierto(open ? '' : cat.id)}
-                className="w-full flex items-center gap-1.5 px-1.5 py-2 rounded-xl text-left"
+                className="w-full flex flex-col items-center justify-center gap-1 px-1 py-3 rounded-xl"
                 style={{
                   border: open ? '2px solid #FFBD59' : '2px solid transparent',
                   background: open ? '#FFFCF8' : 'transparent',
                 }}
               >
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{background:`${cat.color}20`}}>
-                  {cat.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-semibold leading-tight truncate">{NOMBRE_CORTO[cat.nombre] || cat.nombre}</p>
-                  {selVal && (
-                    <p className="text-[10px] mt-0.5 truncate" style={{color:cat.color}}>
-                      {opSel?.emoji} {opSel?.label}
-                    </p>
-                  )}
-                </div>
-                <span className="text-[#8C572F] text-[10px] font-bold flex-shrink-0">{open ? '▲' : '▼'}</span>
+                {/* Ilustración arriba, nombre abajo. El estado
+                    registrado se consulta en el calendario: aquí
+                    competía con lo único que importa mientras se
+                    registra, que es qué falta por tocar. */}
+                {IMG_CAT[cat.id] ? (
+                  <img src={`/chiqui/${IMG_CAT[cat.id]}.png`} alt="" className="w-11 h-11 object-contain" />
+                ) : (
+                  <span className="text-2xl">{cat.icon}</span>
+                )}
+                <p className="text-[11px] font-bold text-[#8C572F] text-center leading-tight w-full truncate">
+                  {NOMBRE_CORTO[cat.nombre] || cat.nombre}
+                </p>
               </button>
               {open && (
                 /* A lo ancho de la grilla. Sin `order`: los chips que
