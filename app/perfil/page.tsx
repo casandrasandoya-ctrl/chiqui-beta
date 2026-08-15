@@ -420,15 +420,18 @@ export default function PerfilPage() {
         )}
       </div>
 
-      {mascota && <LinkVet key={mascota.id} mascotaId={mascota.id} />}
-
-      {/* Co-tutor */}
+      {/* Link del vet y co-tutor, lado a lado. Los dos componentes traen
+          su propio mx-4 mb-4, así que se neutraliza con [&>div]:mx-0
+          para que no queden con márgenes dobles dentro de la grilla. */}
       {mascota && (
-        <GestionCotutor
-          key={mascota.id}
-          mascotaId={mascota.id}
-          mascotaNombre={mascota.nombre}
-        />
+        <div className="mx-4 mb-4 grid grid-cols-2 gap-2 items-start [&>div]:mx-0 [&>div]:mb-0">
+          <LinkVet key={`lv-${mascota.id}`} mascotaId={mascota.id} />
+          <GestionCotutor
+            key={`ct-${mascota.id}`}
+            mascotaId={mascota.id}
+            mascotaNombre={mascota.nombre}
+          />
+        </div>
       )}
 
       {/* Unirse como co-tutor — para quien tiene un código */}
