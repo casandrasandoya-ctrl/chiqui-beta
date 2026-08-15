@@ -511,7 +511,7 @@ export default async function Dashboard({ searchParams }: Props) {
       diasSinCampo={diasSinCampo}
       medicamentosPendientesHoy={medicamentosPendientesHoy}
       visitasProximas={visitasVet || []}
-      cuidadosRecientes={cuidadosRecientes}
+      cuidadosRecientes={cuidadosRecientes} ultimoPeso={ultimoPeso} ultimaVisitaVet={ultimaVisitaVet}
       rachaPaseo={rachaPaseo}
         rachaRegistros={rachaRegistros}
         rachaEnRiesgo={rachaEnRiesgo}

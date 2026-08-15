@@ -47,6 +47,8 @@ interface Props {
     tomasHoy: number
   }[]
   cuidadosRecientes: { grupo: string; label: string; emoji: string; dias: number }[]
+  ultimoPeso?: { fecha: string; peso: number } | null
+  ultimaVisitaVet?: string | null
   rachaPaseo: number | null
   rachaEnRiesgo: boolean
   rachaRegistros: number
@@ -56,7 +58,7 @@ interface Props {
 }
 
 export default function DashboardContenido({
-  mascotas, mascota: m, color, estadoLabel, proximosItems, tieneRegistroHoy, cuidadosRecientes, rachaPaseo, rachaEnRiesgo, celoActivoHoy, diaCeloHoy, rachaRegistros, seguimientosPendientes, diasSinCampo, medicamentosPendientesHoy, visitasProximas,
+  mascotas, mascota: m, color, estadoLabel, proximosItems, tieneRegistroHoy, cuidadosRecientes, ultimoPeso, ultimaVisitaVet, rachaPaseo, rachaEnRiesgo, celoActivoHoy, diaCeloHoy, rachaRegistros, seguimientosPendientes, diasSinCampo, medicamentosPendientesHoy, visitasProximas,
 }: Props) {
   const router = useRouter()
   const [cuidadosExpandido, setCuidadosExpandido] = useState(false)
@@ -290,84 +292,77 @@ export default function DashboardContenido({
         </>
       )}
 
-      {/* CUIDADOS RECIENTES */}
+      {/* CUIDADOS RECIENTES — cubos por tema. Cada uno muestra sus
+          tres registros más recientes: emoji y hace cuánto. El emoji
+          dice qué es, así que no se repite el nombre. */}
       {(cuidadosRecientes.length > 0 || rachaPaseo !== null) && (
         <>
           <div className="flex items-center justify-between px-5 pb-2.5">
             <div className="flex items-center gap-2">
-              <img src="/chiqui/chiqui_cuidados.png" alt="" className="w-8 h-8 object-contain" />
+              <img src="/chiqui/chiqui_doctor.png" alt="" className="w-8 h-8 object-contain" />
               <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Cuidados recientes</span>
             </div>
-            {cuidadosRecientes.length > 4 && (
-              <button onClick={() => setCuidadosExpandido(e => !e)} className="text-xs text-[#CD7421] font-semibold">
-                {cuidadosExpandido ? 'Ver menos' : 'Ver todo'}
-              </button>
-            )}
+            <Link href="/calendario" className="text-xs text-[#CD7421] font-semibold">Ver todo</Link>
           </div>
 
-          {!cuidadosExpandido ? (
-            <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
-              {rachaPaseo !== null && (
-                <div className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
-                  <span className="text-lg flex-shrink-0">🔥</span>
-                  <div>
-                    <p className="text-[12.5px] font-bold text-[#3D2B1F]">Racha de paseos</p>
-                    <p className="text-[11px] text-[#8A7560]">
-                      {rachaPaseo === 0 ? 'Sin racha activa' : rachaEnRiesgo ? `⚠️ ${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} — ¡pasea hoy para mantenerla!` : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
-                    </p>
-                  </div>
+          <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
+            {rachaPaseo !== null && (
+              <div className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
+                <span className="text-3xl flex-shrink-0">🔥</span>
+                <div className="min-w-0">
+                  <p className="text-[12px] font-bold text-[#3D2B1F] leading-tight">Racha de paseo</p>
+                  <p className="text-[15px] font-extrabold text-[#CD7421] leading-tight mt-0.5">
+                    {rachaPaseo === 0 ? '—' : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'}`}
+                  </p>
+                  {rachaEnRiesgo && rachaPaseo > 0 && (
+                    <p className="text-[10px] text-[#F07A30] leading-tight">¡pasea hoy!</p>
+                  )}
                 </div>
-              )}
-              {cuidadosRecientes.slice(0, rachaPaseo !== null ? 3 : 4).map(item => (
-                <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
-                  <span className="text-lg flex-shrink-0">{item.emoji}</span>
-                  <div>
-                    <p className="text-[12.5px] font-bold text-[#3D2B1F]">{item.label}</p>
-                    <p className="text-[11px] text-[#8A7560]">
-                      {item.dias === 0 ? 'Hoy' : item.dias === 1 ? 'Ayer' : `Hace ${item.dias} días`}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mx-4 mb-4 space-y-3">
-              {rachaPaseo !== null && (
-                <div>
-                  <p className="text-[11px] font-semibold text-[#CD7421] mb-1.5">Paseo</p>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
-                      <span className="text-lg flex-shrink-0">🔥</span>
-                      <div>
-                        <p className="text-[12.5px] font-bold text-[#3D2B1F]">Racha de paseos</p>
-                        <p className="text-[11px] text-[#8A7560]">
-                          {rachaPaseo === 0 ? 'Sin racha activa' : rachaEnRiesgo ? `⚠️ ${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} — ¡pasea hoy para mantenerla!` : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'} seguidos`}
+              </div>
+            )}
+
+            {(() => {
+              // El orden decide qué cubo va primero. Los grupos sin
+              // ningún cuidado registrado no se dibujan.
+              const CUBOS_DEF: { grupo: string; emoji: string; titulo: string }[] = [
+                { grupo: 'Veterinario y salud', emoji: '🩺', titulo: 'Salud' },
+                { grupo: 'Prevención', emoji: '💊', titulo: 'Prevención' },
+                { grupo: 'Alimentación', emoji: '🍽️', titulo: 'Alimentación' },
+                { grupo: 'Higiene y bienestar', emoji: '🚿', titulo: 'Higiene' },
+                { grupo: 'Arenero', emoji: '🧹', titulo: 'Arenero' },
+              ]
+
+              const textoDias = (d: number) => d === 0 ? 'hoy' : d === 1 ? 'ayer' : `${d}d`
+
+              return CUBOS_DEF.map(cubo => {
+                // Las tres más recientes de ese grupo.
+                const items = cuidadosRecientes
+                  .filter(c => c.grupo === cubo.grupo)
+                  .sort((a, b) => a.dias - b.dias)
+                  .slice(0, 3)
+                if (items.length === 0) return null
+
+                return (
+                  <div key={cubo.grupo} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
+                    <span className="text-3xl flex-shrink-0">{cubo.emoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12px] font-bold text-[#3D2B1F] leading-tight mb-0.5">{cubo.titulo}</p>
+                      {items.map(it => (
+                        <p key={it.label} className="text-[11px] text-[#8A7560] leading-snug truncate">
+                          {it.emoji}{' '}
+                          {/* El peso muestra sus kilos: antes decía solo
+                              el día, porque el número vive en otra tabla. */}
+                          {it.label === 'Control de peso' && ultimoPeso
+                            ? `${ultimoPeso.peso} kg`
+                            : textoDias(it.dias)}
                         </p>
-                      </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              )}
-              {Array.from(new Set(cuidadosRecientes.map(c => c.grupo))).map(grupo => (
-                <div key={grupo}>
-                  <p className="text-[11px] font-semibold text-[#CD7421] mb-1.5">{grupo}</p>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {cuidadosRecientes.filter(c => c.grupo === grupo).map(item => (
-                      <div key={item.label} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
-                        <span className="text-lg flex-shrink-0">{item.emoji}</span>
-                        <div>
-                          <p className="text-[12.5px] font-bold text-[#3D2B1F]">{item.label}</p>
-                          <p className="text-[11px] text-[#8A7560]">
-                            {item.dias === 0 ? 'Hoy' : item.dias === 1 ? 'Ayer' : `Hace ${item.dias} días`}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                )
+              })
+            })()}
+          </div>
         </>
       )}
 
