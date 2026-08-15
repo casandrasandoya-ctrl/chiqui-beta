@@ -292,79 +292,103 @@ export default function DashboardContenido({
         </>
       )}
 
-      {/* CUIDADOS RECIENTES — cubos por tema. Cada uno muestra sus
-          tres registros más recientes: emoji y hace cuánto. El emoji
-          dice qué es, así que no se repite el nombre. */}
-      {(cuidadosRecientes.length > 0 || rachaPaseo !== null) && (
-        <>
-          <div className="flex items-center justify-between px-5 pb-2.5">
-            <div className="flex items-center gap-2">
-              <img src="/chiqui/chiqui_doctor.png" alt="" className="w-8 h-8 object-contain" />
-              <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Cuidados recientes</span>
-            </div>
-            <Link href="/calendario" className="text-xs text-[#CD7421] font-semibold">Ver todo</Link>
-          </div>
+      {/* CUIDADOS RECIENTES — cubos por tema, tres por fila. Todos del
+          mismo alto: uno que se encoge porque tiene menos datos rompe
+          la fila y sugiere que ese cuidado importa menos. */}
+      {(cuidadosRecientes.length > 0 || rachaPaseo !== null) && (() => {
+        const textoDias = (d: number) => d === 0 ? 'Hoy' : d === 1 ? 'Ayer' : `hace ${d} días`
 
-          <div className="mx-4 mb-4 grid grid-cols-2 gap-2.5">
-            {rachaPaseo !== null && (
-              <div className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
-                <span className="text-3xl flex-shrink-0">🔥</span>
-                <div className="min-w-0">
-                  <p className="text-[12px] font-bold text-[#3D2B1F] leading-tight">Racha de paseo</p>
-                  <p className="text-[15px] font-extrabold text-[#CD7421] leading-tight mt-0.5">
-                    {rachaPaseo === 0 ? '—' : `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'}`}
+        // Salud y Prevención se fusionan: para el tutor son lo mismo —
+        // que fue al vet, que le dio el medicamento, cuánto pesó.
+        const items = (grupos: string[]) =>
+          cuidadosRecientes
+            .filter(c => grupos.includes(c.grupo))
+            .sort((a, b) => a.dias - b.dias)
+            .slice(0, 3)
+
+        const medicos = items(['Veterinario y salud', 'Prevención'])
+        const alimentacion = items(['Alimentación'])
+        const higiene = items(['Higiene y bienestar'])
+        const arenero = items(['Arenero'])
+
+        const esPerro = m.especie === 'Perro'
+
+        // Cada especie ve TRES y guarda uno, así la fila queda pareja.
+        const visibles: any[] = []
+        const ocultos: any[] = []
+
+        if (esPerro && rachaPaseo !== null) {
+          visibles.push({
+            clave: 'racha', img: '/chiqui/racha.png', titulo: 'Racha de paseo',
+            lineas: rachaPaseo === 0
+              ? [{ k: 'r', texto: 'Sin racha activa' }]
+              : [
+                  { k: 'r', texto: `${rachaPaseo} ${rachaPaseo === 1 ? 'día' : 'días'}`, grande: true },
+                  ...(rachaEnRiesgo ? [{ k: 'a', texto: '¡pasea hoy!', alerta: true }] : []),
+                ],
+          })
+        }
+
+        if (medicos.length > 0) visibles.push({ clave: 'med', img: '/chiqui/Cuidados_Vet.png', titulo: 'Cuidados médicos', items: medicos })
+        if (alimentacion.length > 0) visibles.push({ clave: 'ali', img: '/chiqui/alimentacion.png', titulo: 'Alimentación', items: alimentacion })
+
+        // En gatos higiene sube a la primera fila (no hay racha); en
+        // perros queda detrás de Ver más.
+        if (higiene.length > 0) {
+          const cubo = { clave: 'hig', img: '/chiqui/higiene.png', titulo: 'Higiene', items: higiene }
+          if (!esPerro && visibles.length < 3) visibles.push(cubo)
+          else ocultos.push(cubo)
+        }
+        if (arenero.length > 0) ocultos.push({ clave: 'are', img: '/chiqui/arenero.png', titulo: 'Arenero', items: arenero })
+
+        if (visibles.length === 0 && ocultos.length === 0) return null
+
+        const dibujarCubo = (c: any) => (
+          <div key={c.clave} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-2.5 flex flex-col" style={{ minHeight: '118px' }}>
+            <p className="text-[11px] font-bold text-[#8C572F] text-center leading-tight mb-1.5">{c.titulo}</p>
+            <div className="flex-1 flex items-center gap-1.5">
+              <img src={c.img} alt="" className="w-9 h-9 object-contain flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                {(c.lineas || []).map((l: any) => (
+                  <p key={l.k}
+                    className={l.grande ? "text-[15px] font-extrabold text-[#3D2B1F] leading-tight" : "text-[10px] leading-tight"}
+                    style={l.alerta ? { color: '#F07A30' } : undefined}>
+                    {l.texto}
                   </p>
-                  {rachaEnRiesgo && rachaPaseo > 0 && (
-                    <p className="text-[10px] text-[#F07A30] leading-tight">¡pasea hoy!</p>
-                  )}
-                </div>
+                ))}
+                {(c.items || []).map((it: any) => (
+                  <p key={it.label} className="text-[10px] text-[#8A7560] leading-snug truncate">
+                    {/* El peso muestra sus kilos: el número vive en
+                        historial_peso, no en el registro diario. */}
+                    {it.emoji} {it.label === 'Control de peso' && ultimoPeso ? `${ultimoPeso.peso} kg` : textoDias(it.dias)}
+                  </p>
+                ))}
               </div>
-            )}
-
-            {(() => {
-              // El orden decide qué cubo va primero. Los grupos sin
-              // ningún cuidado registrado no se dibujan.
-              const CUBOS_DEF: { grupo: string; emoji: string; titulo: string }[] = [
-                { grupo: 'Veterinario y salud', emoji: '🩺', titulo: 'Salud' },
-                { grupo: 'Prevención', emoji: '💊', titulo: 'Prevención' },
-                { grupo: 'Alimentación', emoji: '🍽️', titulo: 'Alimentación' },
-                { grupo: 'Higiene y bienestar', emoji: '🚿', titulo: 'Higiene' },
-                { grupo: 'Arenero', emoji: '🧹', titulo: 'Arenero' },
-              ]
-
-              const textoDias = (d: number) => d === 0 ? 'hoy' : d === 1 ? 'ayer' : `${d}d`
-
-              return CUBOS_DEF.map(cubo => {
-                // Las tres más recientes de ese grupo.
-                const items = cuidadosRecientes
-                  .filter(c => c.grupo === cubo.grupo)
-                  .sort((a, b) => a.dias - b.dias)
-                  .slice(0, 3)
-                if (items.length === 0) return null
-
-                return (
-                  <div key={cubo.grupo} className="bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl p-3 flex items-center gap-2.5">
-                    <span className="text-3xl flex-shrink-0">{cubo.emoji}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-bold text-[#3D2B1F] leading-tight mb-0.5">{cubo.titulo}</p>
-                      {items.map(it => (
-                        <p key={it.label} className="text-[11px] text-[#8A7560] leading-snug truncate">
-                          {it.emoji}{' '}
-                          {/* El peso muestra sus kilos: antes decía solo
-                              el día, porque el número vive en otra tabla. */}
-                          {it.label === 'Control de peso' && ultimoPeso
-                            ? `${ultimoPeso.peso} kg`
-                            : textoDias(it.dias)}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })
-            })()}
+            </div>
           </div>
-        </>
-      )}
+        )
+
+        return (
+          <>
+            <div className="flex items-center justify-between px-5 pb-2.5">
+              <div className="flex items-center gap-2">
+                <img src="/chiqui/chiqui_doctor.png" alt="" className="w-8 h-8 object-contain" />
+                <span className="font-heading text-[13px] font-bold text-[#3D2B1F] uppercase tracking-wider">Cuidados recientes</span>
+              </div>
+              {ocultos.length > 0 && (
+                <button onClick={() => setCuidadosExpandido(e => !e)} className="text-xs text-[#CD7421] font-semibold">
+                  {cuidadosExpandido ? 'Ver menos' : 'Ver todo'}
+                </button>
+              )}
+            </div>
+
+            <div className="mx-4 mb-4 grid grid-cols-3 gap-2">
+              {visibles.map(dibujarCubo)}
+              {cuidadosExpandido && ocultos.map(dibujarCubo)}
+            </div>
+          </>
+        )
+      })()}
 
       {/* LINEA VET — compartir el historial con el veterinario.
           Vive tambien en Perfil, pero ahi casi nadie la encontraba:
