@@ -140,10 +140,24 @@ export default async function Dashboard({ searchParams }: Props) {
   // dato de cada campo clave. null = ese campo nunca se ha registrado
   // (a un usuario nuevo no se le recuerda algo que nunca ha usado; el
   // hábito general lo cubre la novedad "Aún no has registrado hoy").
-  const [{ data: regCampos }, { data: ultimoPesoReg }] = await Promise.all([
+  const [{ data: regCampos }, { data: ultimoPesoReg }, { data: visitasPasadas }] = await Promise.all([
     supabase.from('registros_diarios').select('fecha,apetito,agua,heces').eq('mascota_id', m.id).order('fecha', { ascending: false }).limit(60),
-    supabase.from('historial_peso').select('fecha').eq('mascota_id', m.id).order('fecha', { ascending: false }).limit(1),
+    // Se trae tambien el PESO, no solo la fecha: la seccion de cuidados
+    // mostraba el dia del control pero no los kilos, porque leia de los
+    // cuidados del registro diario y el numero vive aqui.
+    supabase.from('historial_peso').select('fecha, peso').eq('mascota_id', m.id).order('fecha', { ascending: false }).limit(1),
+    // Ultima visita PASADA al veterinario. Las futuras ya estan en
+    // Novedades y en Proximos; aqui interesa cuando fue la ultima.
+    supabase.from('visitas_veterinarias').select('fecha').eq('mascota_id', m.id).lte('fecha', hoy).order('fecha', { ascending: false }).limit(1),
   ])
+
+  // Datos para los cubos de cuidados recientes.
+  const ultimoPeso = ultimoPesoReg && ultimoPesoReg[0]
+    ? { fecha: ultimoPesoReg[0].fecha as string, peso: ultimoPesoReg[0].peso as number }
+    : null
+  const ultimaVisitaVet = visitasPasadas && visitasPasadas[0]
+    ? (visitasPasadas[0].fecha as string)
+    : null
   function diasDesdeUltimoCampo(campo: 'apetito' | 'agua' | 'heces'): number | null {
     const conDato = (regCampos || []).find((r: any) => r[campo] !== null && r[campo] !== undefined && r[campo] !== '')
     return conDato ? diasDesde(conDato.fecha) : null
