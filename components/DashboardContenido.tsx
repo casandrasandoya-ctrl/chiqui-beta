@@ -185,74 +185,41 @@ export default function DashboardContenido({
       })()}
 
 
-      {/* HERO */}
-      <Link href="/perfil" className="relative mx-4 mb-4 bg-[#8C572F] rounded-3xl p-5 overflow-hidden block">
-        <div className="flex items-start gap-3.5">
+      {/* HERO — invita a registrar. Los datos de la mascota viven en
+          el perfil; la pantalla de entrada pregunta. */}
+      <Link href="/registro-diario" className="relative mx-4 mb-3 rounded-3xl p-5 overflow-hidden block" style={{ background: '#3fac9c' }}>
+        <div className="flex items-center gap-3.5">
           {m.foto_url ? (
-            <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[#FFFCF8]/40 flex-shrink-0">
+            <div className="relative w-[70px] h-[70px] rounded-full overflow-hidden border-[3px] border-white/50 flex-shrink-0">
               <img src={m.foto_url} alt={m.nombre} className="w-full h-full object-cover" />
             </div>
           ) : (
-            <div className="relative w-16 h-16 rounded-full bg-[#FFBD59] border-2 border-[#FFFCF8]/40 flex items-center justify-center text-4xl flex-shrink-0">
+            <div className="relative w-[70px] h-[70px] rounded-full bg-white/25 border-[3px] border-white/50 flex items-center justify-center text-4xl flex-shrink-0">
               {iconoPorEspecie(m.especie)}
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div className="font-heading text-2xl font-extrabold leading-none text-[#FFFCF8] truncate">{m.nombre}</div>
-              <span className="text-[13px] font-extrabold text-[#FFBD59] flex-shrink-0 pt-0.5">Ver Perfil ▶</span>
-            </div>
-            {/* Dos líneas de datos con círculos de separación. Antes
-                edad, peso y esterilización vivían en una grilla al pie
-                de la tarjeta; acá caben en el mismo lugar y dejan ese
-                espacio para los chips. */}
-            <p className="text-[13px] text-[#F0DEC8] mt-2 truncate">
-              {[m.especie, m.raza, m.sexo].filter(Boolean).join('  ○  ')}
-            </p>
-            <p className="text-[13px] text-[#F0DEC8] mt-0.5 truncate">
-              {(() => {
-                const etapa = calcularEtapaVida(m.fecha_nacimiento, m.especie)
-                const partes: string[] = []
-                if (etapa) partes.push(formatearEdad(etapa))
-                if (m.peso_actual) partes.push(`${m.peso_actual} kg`)
-                // Se muestra en los DOS casos: antes, si no estaba
-                // esterilizada, la línea quedaba a medias.
-                //
-                // "Fértil" en vez de "No esterilizado": describir por
-                // ausencia sugiere que falta algo que debería estar, y
-                // eso es un juicio que la app no tiene por qué hacer.
-                //
-                // Si el campo estuviera vacío no se afirma nada: decir
-                // "Fértil" sobre un dato que nadie ingresó sería
-                // inventarlo.
-                if (m.castrado === true) partes.push('Esterilizado/a')
-                else if (m.castrado === false) partes.push('Fértil')
-                return partes.join('  ○  ')
-              })()}
+            <p className="font-heading text-2xl font-extrabold leading-tight text-white truncate">Hola, {m.nombre}</p>
+            {/* Si ya registró hoy, no se vuelve a preguntar: hacerlo
+                haría parecer que la app no se enteró. */}
+            <p className="text-[15px] text-white/85 mt-0.5">
+              {tieneRegistroHoy ? '✓ Ya registraste hoy' : '¿Cómo se siente hoy?'}
             </p>
           </div>
         </div>
 
-        {/* gap-1.5 y chips de 11px para que los tres entren en una
-            sola linea. flex-wrap queda como red de seguridad: si un
-            texto crece, bajan en vez de desbordarse. */}
-        <div className="mt-4 pt-4 border-t border-[#FFFCF8]/20 flex items-center gap-1.5 flex-wrap">
-          <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: `${color}26`, border: `1.5px solid ${color}`, color: '#FFFCF8' }}>
+        <div className="mt-4 pt-4 border-t border-white/25 flex items-center gap-1.5 flex-wrap">
+          <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-white/20 text-white">
             <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
             {estadoLabel}
           </div>
 
-          {/* Racha: indicador permanente, no una celebración. Solo
-              aparece si hay al menos un día. */}
           {rachaRegistros > 0 && (
-            <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: '#FFBD5926', border: '1.5px solid #FFBD59', color: '#FFFCF8' }}>
+            <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold bg-white/20 text-white">
               🔥 {rachaRegistros} {rachaRegistros === 1 ? 'día' : 'días'}
             </div>
           )}
 
-          {/* Tiempo juntos. Si no hay fecha de unión, en vez de dejar
-              un hueco se invita a completarla: toda la tarjeta lleva al
-              perfil, que es justo donde se agrega. */}
           {(() => {
             const juntos = (() => {
               if (!m.fecha_union) return null
@@ -268,13 +235,23 @@ export default function DashboardContenido({
               return `${anios} ${anios === 1 ? 'año' : 'años'} juntos`
             })()
             return (
-              <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: '#E88FB826', border: '1.5px solid #E88FB8', color: '#FFFCF8' }}>
+              <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-white/20 text-white">
                 {juntos ? `💕 ${juntos}` : '💕 ¿Cuándo llegó?'}
               </div>
             )
           })()}
         </div>
       </Link>
+
+      {/* Perfil y link del veterinario: botones propios en vez de
+          competir con la tarjeta. El link al vet gana visibilidad —
+          en la beta solo el 14% lo había usado, y estaba escondido. */}
+      <div className="flex gap-2 mx-4 mb-4">
+        <Link href="/perfil" className="flex-1 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl py-3 flex items-center justify-center gap-1.5">
+          <span className="text-sm font-bold text-[#8C572F]">Ver Perfil</span>
+        </Link>
+        <LineaVet mascotaId={m.id} />
+      </div>
 
       {/* PRÓXIMOS — grid 2x2 */}
       {proximosItems.length > 0 && (
