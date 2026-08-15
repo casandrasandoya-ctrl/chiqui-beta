@@ -139,7 +139,30 @@ function construirResumenClinico(params: {
       const primero = enPeriodo[0].peso
       const ultimo = enPeriodo[enPeriodo.length - 1].peso
       const variacionPct = primero ? Math.abs((ultimo - primero) / primero) * 100 : 0
-      if (variacionPct < 5) {
+
+      // Cambio desde el CONTROL ANTERIOR. Mirar solo el primero y el
+      // último del semestre puede ocultar lo que acaba de pasar: si
+      // pesaba 15, subió a 16 y volvió a 15, la variación da cero y
+      // se leía "estable" — aunque la baja fuera reciente.
+      //
+      // Mismo umbral del 5% que usa la app, para que las dos digan lo
+      // mismo. Un 5% en un perro de 16 kg es cerca de un kilo.
+      const anteriorPeso = enPeriodo[enPeriodo.length - 2].peso
+      const cambioReciente = ultimo - anteriorPeso
+      const cambioRecientePct = anteriorPeso ? (Math.abs(cambioReciente) / anteriorPeso) * 100 : 0
+      const fechaUltimo = enPeriodo[enPeriodo.length - 1].fecha
+
+      if (cambioRecientePct >= 5 && Math.abs(cambioReciente) >= 0.1) {
+        const kg = Math.abs(cambioReciente).toFixed(1).replace('.', ',')
+        if (cambioReciente < 0) {
+          // La pérdida se marca a cualquier edad, también en cachorros.
+          resumen.push({ texto: `Perdió ${kg} kg desde el control anterior (${anteriorPeso} kg → ${ultimo} kg, ${fechaUltimo}).`, nivel: 'amarillo' })
+        } else if (esCachorroCrecimiento) {
+          resumen.push({ texto: `Aumentó ${kg} kg desde el control anterior (${anteriorPeso} kg → ${ultimo} kg), acorde a su crecimiento.`, nivel: 'verde' })
+        } else {
+          resumen.push({ texto: `Aumentó ${kg} kg desde el control anterior (${anteriorPeso} kg → ${ultimo} kg, ${fechaUltimo}).`, nivel: 'amarillo' })
+        }
+      } else if (variacionPct < 5) {
         resumen.push({ texto: `Peso estable durante los últimos 6 meses (${ultimo} kg).`, nivel: 'verde' })
       } else if (ultimo > primero) {
         // En cachorros/gatitos en crecimiento, el aumento es esperado:
