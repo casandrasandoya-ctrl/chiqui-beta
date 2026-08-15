@@ -235,15 +235,25 @@ export default function PerfilPage() {
   return (
     <div className="min-h-screen pb-24 fade-in">
 
-      <div className="relative bg-gradient-to-b from-[#8C572F] to-[#F5EDE3] pt-8 pb-6 text-center">
+      {/* HERO — fondo crema con huellitas en vez del degradado café. El
+          patrón va incrustado en el CSS como SVG: no depende de subir
+          otro archivo ni agrega una petición de red. */}
+      <div
+        className="relative pt-8 pb-6 text-center"
+        style={{
+          backgroundColor: '#FBEAD9',
+          backgroundImage: `url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiB2aWV3Qm94PSIwIDAgMTIwIDEyMCI+CiAgPGcgZmlsbD0iI0U4RDVCRSIgb3BhY2l0eT0iMC41NSI+CiAgICA8IS0tIEh1ZWxsYSAxIC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjAsMjIpIHJvdGF0ZSgtMTgpIj4KICAgICAgPGVsbGlwc2UgY3g9IjAiIGN5PSI4IiByeD0iNy41IiByeT0iNi41Ii8+CiAgICAgIDxlbGxpcHNlIGN4PSItNyIgY3k9Ii0zIiByeD0iMy4yIiByeT0iNC4yIi8+CiAgICAgIDxlbGxpcHNlIGN4PSItMi40IiBjeT0iLTYuNiIgcng9IjMuMiIgcnk9IjQuNCIvPgogICAgICA8ZWxsaXBzZSBjeD0iMi42IiBjeT0iLTYuNCIgcng9IjMuMiIgcnk9IjQuNCIvPgogICAgICA8ZWxsaXBzZSBjeD0iNyIgY3k9Ii0yLjYiIHJ4PSIzLjEiIHJ5PSI0Ii8+CiAgICA8L2c+CiAgICA8IS0tIEh1ZWxsYSAyIC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNzgsNTIpIHJvdGF0ZSgyMikiPgogICAgICA8ZWxsaXBzZSBjeD0iMCIgY3k9IjgiIHJ4PSI3LjUiIHJ5PSI2LjUiLz4KICAgICAgPGVsbGlwc2UgY3g9Ii03IiBjeT0iLTMiIHJ4PSIzLjIiIHJ5PSI0LjIiLz4KICAgICAgPGVsbGlwc2UgY3g9Ii0yLjQiIGN5PSItNi42IiByeD0iMy4yIiByeT0iNC40Ii8+CiAgICAgIDxlbGxpcHNlIGN4PSIyLjYiIGN5PSItNi40IiByeD0iMy4yIiByeT0iNC40Ii8+CiAgICAgIDxlbGxpcHNlIGN4PSI3IiBjeT0iLTIuNiIgcng9IjMuMSIgcnk9IjQiLz4KICAgIDwvZz4KICAgIDwhLS0gSHVlbGxhIDMgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0NSw4OCkgcm90YXRlKC04KSI+CiAgICAgIDxlbGxpcHNlIGN4PSIwIiBjeT0iOCIgcng9IjcuNSIgcnk9IjYuNSIvPgogICAgICA8ZWxsaXBzZSBjeD0iLTciIGN5PSItMyIgcng9IjMuMiIgcnk9IjQuMiIvPgogICAgICA8ZWxsaXBzZSBjeD0iLTIuNCIgY3k9Ii02LjYiIHJ4PSIzLjIiIHJ5PSI0LjQiLz4KICAgICAgPGVsbGlwc2UgY3g9IjIuNiIgY3k9Ii02LjQiIHJ4PSIzLjIiIHJ5PSI0LjQiLz4KICAgICAgPGVsbGlwc2UgY3g9IjciIGN5PSItMi42IiByeD0iMy4xIiByeT0iNCIvPgogICAgPC9nPgogIDwvZz4KPC9zdmc+")`,
+          backgroundSize: '120px 120px',
+        }}
+      >
         <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-9 h-9 object-contain absolute top-3 right-4 opacity-90" />
-        <div className="mx-auto mb-3" style={{ width: 80 }}>
+        <div className="mx-auto mb-3" style={{ width: 112 }}>
           {mascota && (
             <FotoMascota
               mascotaId={mascota.id}
               especie={mascota.especie}
               fotoUrl={mascota.foto_url}
-              size={80}
+              size={112}
               editable
               onFotoActualizada={(nuevaUrl) => {
                 setMascota(prev => prev ? { ...prev, foto_url: nuevaUrl } : prev)
@@ -252,11 +262,9 @@ export default function PerfilPage() {
             />
           )}
         </div>
-        <h1 className="font-heading text-xl font-extrabold">{mascota?.nombre}</h1>
+        <h1 className="font-heading text-2xl font-extrabold text-[#3D2B1F]">{mascota?.nombre}</h1>
         <p className="text-sm text-[#8A7560] mt-1">
-          {mascota?.especie}
-          {mascota?.raza ? ` · ${mascota.raza}` : ''}
-          {edad ? ` · ${edad}` : ''}
+          {[mascota?.especie, mascota?.raza, edad].filter(Boolean).join('  \u25E6  ')}
         </p>
         {mascota?.alergias && (
           <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-bold bg-[#E05252]/15 text-[#E05252]">
