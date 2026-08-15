@@ -250,7 +250,7 @@ export default function DashboardContenido({
         <Link href="/perfil" className="flex-1 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl py-3 flex items-center justify-center gap-1.5">
           <span className="text-sm font-bold text-[#8C572F]">Ver Perfil</span>
         </Link>
-        <LineaVet mascotaId={m.id} />
+        <LineaVet mascotaId={m.id} mascotaNombre={m.nombre} />
       </div>
 
       {/* PRÓXIMOS — grid 2x2 */}
