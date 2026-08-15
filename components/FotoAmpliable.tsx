@@ -29,6 +29,7 @@ export default function FotoAmpliable({
   className?: string
 }) {
   const [abierta, setAbierta] = useState(false)
+  const [zoom, setZoom] = useState(1)
 
   // Escape para cerrar, y bloqueo del scroll de fondo mientras está
   // abierta.
@@ -49,7 +50,7 @@ export default function FotoAmpliable({
     <>
       <button
         type="button"
-        onClick={() => setAbierta(true)}
+        onClick={() => { setZoom(1); setAbierta(true) }}
         className="w-full block relative mt-2"
         aria-label={`Ampliar foto: ${alt}`}
       >
@@ -75,20 +76,49 @@ export default function FotoAmpliable({
             ✕
           </button>
 
-          {/* overflow-auto permite desplazarse cuando la imagen se amplía
-              con el gesto de pellizcar. */}
-          <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
-            <img
-              src={src}
-              alt={alt}
-              className="max-w-full max-h-full object-contain"
-              onClick={e => e.stopPropagation()}
-            />
+          {/* Botones de zoom propios. El pellizco del navegador solo
+              funciona si la página lo autoriza en su viewport, y en la
+              app instalada viene bloqueado para que la interfaz no se
+              deforme al tocar. Cambiar eso afectaría toda la app, así
+              que el visor trae su propio zoom. */}
+          <div className="w-full h-full overflow-auto p-4" onClick={e => e.stopPropagation()}>
+            <div className="min-w-full min-h-full flex items-center justify-center">
+              <img
+                src={src}
+                alt={alt}
+                onClick={() => setZoom(z => (z >= 2.5 ? 1 : 2.5))}
+                style={{
+                  width: `${zoom * 100}%`,
+                  maxWidth: zoom === 1 ? '100%' : 'none',
+                  height: 'auto',
+                  objectFit: 'contain',
+                }}
+              />
+            </div>
           </div>
 
-          <p className="absolute bottom-5 left-0 right-0 text-center text-white/50 text-[11px]">
-            Pellizca para acercar · Toca fuera para cerrar
-          </p>
+          <div className="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => setZoom(z => Math.max(1, +(z - 0.5).toFixed(1)))}
+                disabled={zoom <= 1}
+                aria-label="Alejar"
+                className="w-11 h-11 rounded-full bg-white/15 text-white text-xl font-bold disabled:opacity-30"
+              >−</button>
+              <span className="text-white/80 text-xs font-semibold w-14 text-center">{Math.round(zoom * 100)}%</span>
+              <button
+                type="button"
+                onClick={() => setZoom(z => Math.min(4, +(z + 0.5).toFixed(1)))}
+                disabled={zoom >= 4}
+                aria-label="Acercar"
+                className="w-11 h-11 rounded-full bg-white/15 text-white text-xl font-bold disabled:opacity-30"
+              >+</button>
+            </div>
+            <p className="text-white/50 text-[11px]">
+              {zoom > 1 ? 'Desliza para recorrer la imagen' : 'Toca la imagen o usa + para acercar'}
+            </p>
+          </div>
         </div>
       )}
     </>

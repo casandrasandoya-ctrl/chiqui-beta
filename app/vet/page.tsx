@@ -104,11 +104,13 @@ function detectarMotivosConsulta(registros: any[]): string[] {
         fechasPorSenal.set(etiqueta, lista)
       }
     }
-    if (r.estado_dia === 'rojo' || r.estado_dia === 'naranjo') {
-      const lista = fechasPorSenal.get('Días con estado de alerta reciente') || []
-      if (!lista.includes(r.fecha)) lista.push(r.fecha)
-      fechasPorSenal.set('Días con estado de alerta reciente', lista)
-    }
+    // El estado del día NO se agrega como motivo: decía que algo pasó
+    // sin decir qué, y los síntomas concretos que sí lo dicen ya están
+    // en esta misma lista. Ocupaba uno de los seis lugares con
+    // información que el veterinario no puede usar.
+    //
+    // El estado sigue estando en el calendario y en los registros
+    // diarios, que es donde corresponde.
   }
 
   // Racha más larga de días consecutivos. Se construye a MEDIODÍA para
