@@ -90,14 +90,68 @@ function detectarMotivosConsulta(registros: any[]): string[] {
     conducta: { agresivo:'Cambios de conducta (agresivo)', ansioso:'Ansiedad', escondite:'Se esconde', letargico:'Letárgico' },
     movilidad: { cojera:'Cojera', rigidez:'Rigidez', dolor_aparente:'Dolor aparente', no_salta:'Dificultad para saltar' },
   }
+  // En qué FECHAS apareció cada señal. Antes se usaba un Set, que
+  // descarta los repetidos: tres días de vómito quedaban como una
+  // sola entrada y se perdía justo el dato que importa.
+  const fechasPorSenal = new Map<string, string[]>()
   for (const r of recientes) {
     for (const [campo, valoresLabel] of Object.entries(CAMPOS_LABEL)) {
       const val = r[campo]
-      if (val && valoresLabel[val]) senales.add(valoresLabel[val])
+      if (val && valoresLabel[val]) {
+        const etiqueta = valoresLabel[val]
+        const lista = fechasPorSenal.get(etiqueta) || []
+        if (!lista.includes(r.fecha)) lista.push(r.fecha)
+        fechasPorSenal.set(etiqueta, lista)
+      }
     }
-    if (r.estado_dia === 'rojo' || r.estado_dia === 'naranjo') senales.add('Días con estado de alerta reciente')
+    if (r.estado_dia === 'rojo' || r.estado_dia === 'naranjo') {
+      const lista = fechasPorSenal.get('Días con estado de alerta reciente') || []
+      if (!lista.includes(r.fecha)) lista.push(r.fecha)
+      fechasPorSenal.set('Días con estado de alerta reciente', lista)
+    }
   }
-  return Array.from(senales).slice(0, 6)
+
+  // Racha más larga de días consecutivos. Se construye a MEDIODÍA para
+  // que los cambios de horario de verano no rompan el conteo.
+  const rachaMasLarga = (fechas: string[]): number => {
+    const orden = fechas.slice().sort()
+    let mejor = 1
+    let actual = 1
+    for (let i = 1; i < orden.length; i++) {
+      const previa = new Date(orden[i - 1] + 'T12:00:00')
+      const esta = new Date(orden[i] + 'T12:00:00')
+      const dif = Math.round((esta.getTime() - previa.getTime()) / 86400000)
+      if (dif === 1) { actual++; if (actual > mejor) mejor = actual }
+      else actual = 1
+    }
+    return orden.length > 0 ? mejor : 0
+  }
+
+  const hoyStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+
+  const conDuracion = Array.from(fechasPorSenal.entries()).map(([etiqueta, fechas]) => {
+    const n = fechas.length
+    const racha = rachaMasLarga(fechas)
+    let texto: string
+    if (n === 1) {
+      // Un solo día: decir CUÁNDO fue vale más que decir "1 día".
+      const d = diasDesde(fechas[0])
+      const cuando = fechas[0] === hoyStr ? 'hoy' : d === 1 ? 'ayer' : `hace ${d} días`
+      texto = `${etiqueta} (${cuando})`
+    } else if (racha === n) {
+      // Todas las apariciones fueron consecutivas.
+      texto = `${etiqueta} ${n} días seguidos`
+    } else {
+      // Intermitente: el veterinario lo lee distinto que lo continuo.
+      texto = `${etiqueta} ${n} de los últimos 7 días, intermitente`
+    }
+    return { texto, n }
+  })
+
+  // Primero lo que lleva más días: un síntoma de cinco días pesa más
+  // que uno de ayer. Antes el orden dependía de en qué campo estuviera.
+  conDuracion.sort((a, b) => b.n - a.n)
+  return conDuracion.slice(0, 6).map(x => x.texto)
 }
 
 // Construye el Resumen Clínico: resume información ya registrada, sin
@@ -672,7 +726,7 @@ export default async function VetPage({ searchParams }: Props) {
           <h2 className="font-bold text-xs text-[#CD7421] uppercase tracking-wider mb-2">
             🩺 Posible motivo de consulta
           </h2>
-          <p className="text-[11px] text-[#8A7560] mb-2">Basado en los últimos 7 días:</p>
+          <p className="text-[11px] text-[#8A7560] mb-2">Según lo registrado por el tutor en los últimos 7 días:</p>
           {chipsMotivo.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {chipsMotivo.map(m => (
