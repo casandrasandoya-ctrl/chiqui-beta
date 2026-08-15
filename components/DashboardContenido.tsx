@@ -1,4 +1,5 @@
 'use client'
+import MenuCuenta from '@/components/MenuCuenta'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
@@ -101,19 +102,9 @@ export default function DashboardContenido({
           <img src="/logo-chiqui-compacto.png" alt="CHIQUI" className="w-16 h-16 object-contain" />
           <span className="font-heading text-2xl font-extrabold text-[#8C572F]">Entre Señales</span>
         </div>
-        {/* Cerrar sesión — esquina superior derecha, con confirmación */}
-        <button
-          onClick={() => setConfirmarCerrar(true)}
-          className="flex items-center gap-1 text-[#8A7560] active:opacity-60"
-          aria-label="Cerrar sesión"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          <span className="text-[11px] font-semibold">Salir</span>
-        </button>
+        {/* Menú de cuenta: perfil, recordatorios, panel y cerrar
+            sesión. Reemplaza al botón suelto de Salir. */}
+        <MenuCuenta />
       </div>
 
       {/* Modal de confirmación de cierre de sesión */}
