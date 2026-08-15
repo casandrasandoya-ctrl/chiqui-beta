@@ -1,4 +1,5 @@
 'use client'
+import BotonLinkVet from '@/components/BotonLinkVet'
 import MenuCuenta from '@/components/MenuCuenta'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -250,7 +251,7 @@ export default function DashboardContenido({
         <Link href="/perfil" className="flex-1 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl py-3 flex items-center justify-center gap-1.5">
           <span className="text-sm font-bold text-[#8C572F]">Ver Perfil</span>
         </Link>
-        <LineaVet mascotaId={m.id} mascotaNombre={m.nombre} />
+        <BotonLinkVet mascotaId={m.id} mascotaNombre={m.nombre} />
       </div>
 
       {/* PRÓXIMOS — grid 2x2 */}
@@ -373,7 +374,8 @@ export default function DashboardContenido({
       {/* LINEA VET — compartir el historial con el veterinario.
           Vive tambien en Perfil, pero ahi casi nadie la encontraba:
           es la funcion que distingue a CHIQUI y merece estar visible. */}
-      <LineaVet mascotaId={m.id} mascotaNombre={m.nombre} />
+      {/* El link del veterinario vive arriba, junto a Ver Perfil. */}
+
 
       {/* CHIQUI TE CUENTA — carrusel de datos curiosos, cambia cada dia */}
       <ChiquiTeCuenta especie={m.especie} />
