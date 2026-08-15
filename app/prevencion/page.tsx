@@ -503,8 +503,25 @@ export default function PrevencionPage() {
   const SC = "w-full bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-4 py-3 text-[#3D2B1F] text-sm focus:outline-none appearance-none"
 
   // Separar obs activas y resueltas
-  const obsActivas = obs.filter(o => o.estado !== 'resuelta')
-  const obsResueltas = obs.filter(o => o.estado === 'resuelta')
+  // Ordenadas por última actualización: la evolución más reciente,
+  // o la fecha de inicio si no tiene ninguna. Una observación de
+  // hace tres meses actualizada ayer está viva; una de la semana
+  // pasada sin evoluciones, quizá no.
+  //
+  // Las evoluciones se cargan solo al desplegar, así que acá se
+  // ordena con lo que haya en memoria. Sin ellas, la fecha de inicio
+  // ES la última actualización conocida.
+  const ultimaActualizacionObs = (o: any): string => {
+    const evos = evoluciones[o.id] || []
+    const fechas = evos.map((e: any) => e.fecha).filter(Boolean)
+    if (fechas.length === 0) return o.fecha_inicio || ''
+    return fechas.slice().sort().reverse()[0]
+  }
+  const ordenarPorActualizacion = (lista: any[]) =>
+    lista.slice().sort((a, b) => ultimaActualizacionObs(b).localeCompare(ultimaActualizacionObs(a)))
+
+  const obsActivas = ordenarPorActualizacion(obs.filter(o => o.estado !== 'resuelta'))
+  const obsResueltas = ordenarPorActualizacion(obs.filter(o => o.estado === 'resuelta'))
 
   // --- Mini-resúmenes de estado por sección ---
   // Cada encabezado muestra a la derecha una o más "píldoras" que

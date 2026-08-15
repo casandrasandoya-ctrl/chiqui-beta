@@ -504,6 +504,20 @@ export default async function VetPage({ searchParams }: Props) {
     })
   )
 
+  // Ordenadas por ÚLTIMA ACTUALIZACIÓN: la evolución más reciente, o
+  // la fecha de inicio si no tiene ninguna. En una consulta de diez
+  // minutos, lo primero que debe verse es lo que el tutor ha estado
+  // siguiendo — no lo que empezó hace más tiempo.
+  //
+  // Mismo criterio que usa el dashboard para sus recordatorios, así
+  // las tres pantallas coinciden.
+  const ultimaActualizacion = (o: any): string => {
+    const fechas = (o.evoluciones || []).map((e: any) => e.fecha).filter(Boolean)
+    if (fechas.length === 0) return o.fecha_inicio || ''
+    return fechas.slice().sort().reverse()[0]
+  }
+  obsConEvoluciones.sort((a: any, b: any) => ultimaActualizacion(b).localeCompare(ultimaActualizacion(a)))
+
   const registros = datos.registros || []
 
   // Etiquetas legibles del tamaño del perro (la base guarda la clave).
