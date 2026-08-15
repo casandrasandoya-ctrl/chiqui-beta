@@ -1350,7 +1350,10 @@ function RegistroContenido() {
     { titulo: '¿Cómo estuvo su digestión hoy?', items: [buscarCat('digestion'), buscarCat('heces'), buscarCat('arenero')] },
     { titulo: '¿Cómo se movió hoy?', items: [buscarCat('movilidad'), buscarCat('paseo'), buscarGrupo('Enriquecimiento y entrenamiento') || buscarGrupo('Enriquecimiento y juego')] },
     { titulo: '¿Hubo algo de salud hoy?', items: [{ esAlerta: true }, buscarGrupo('Veterinario y salud'), buscarGrupo('Prevención')] },
-    { titulo: '¿Cómo estuvo su piel y su aseo?', items: [buscarCat('pelaje'), buscarGrupo('Higiene y bienestar')] },
+    // Arenero va aquí y no al final: en gatos deja la última fila
+    // pareja (Pelaje · Higiene · Arenero) en vez de dos y una suelta.
+    // En perros no aplica, y las filas filtran lo que no existe.
+    { titulo: '¿Cómo estuvo su piel y su aseo?', items: [buscarCat('pelaje'), buscarGrupo('Higiene y bienestar'), buscarGrupo('Arenero')] },
   ]
 
   const CASILLAS: any[] = []
