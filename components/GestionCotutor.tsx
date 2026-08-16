@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import UnirseComoCotutor from '@/components/UnirseComoCotutor'
 
 // Genera un codigo corto tipo CHIQ-XXXX
 function generarCodigo(): string {
@@ -164,6 +163,10 @@ export default function GestionCotutor({ mascotaId, mascotaNombre }: Props) {
           <p className="text-[11px] text-[#8A7560] mb-2 leading-snug">
             Invita a alguien que también cuide a {mascotaNombre}.
           </p>
+          {/* Solo el generador. "Tengo un código" vive en el botón + del
+              selector de mascotas, junto a "Agregar otra mascota": las
+              dos son formas de SUMAR una mascota. Esta caja es para lo
+              contrario — invitar a alguien a la tuya. */}
           <button
             onClick={generarInvitacion}
             disabled={procesando}
@@ -171,9 +174,6 @@ export default function GestionCotutor({ mascotaId, mascotaNombre }: Props) {
           >
             {procesando ? 'Generando...' : '+ Generar código'}
           </button>
-          {/* "Tengo un código" vive AQUI, no suelto abajo: las dos cosas
-              son parte del mismo tema — compartir el cuidado. */}
-          <UnirseComoCotutor />
         </>
       )}
 

@@ -5,6 +5,7 @@ import './globals.css'
 import RegistrarServiceWorker from '@/components/RegistrarServiceWorker'
 import InstalarAutomatico from '@/components/InstalarAutomatico'
 import ClientWrapper from '@/components/ClientWrapper'
+import MenuFlotante from '@/components/MenuFlotante'
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -44,6 +45,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className={`${nunito.variable} ${nunitoSans.variable} font-body bg-[#F5EDE3] text-[#3D2B1F] min-h-screen`}>
+        {/* Menu de cuenta, presente en todas las pantallas salvo las
+            que no tienen sesion. Ver components/MenuFlotante.tsx. */}
+        <MenuFlotante />
         <RegistrarServiceWorker />
         <Suspense fallback={null}>
           <InstalarAutomatico />
