@@ -128,36 +128,34 @@ export default function LinkVet({ mascotaId }: { mascotaId: string }) {
 
   return (
     <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#EEE2D4]">
-        <div className="flex items-center gap-2 mb-1">
-          <img src="/chiqui/chiqui_doctor.png" alt="" className="w-7 h-7 object-contain" />
-          <h2 className="font-bold text-sm">Comparte el historial con tu vet</h2>
+      <div className="px-3 py-2.5 border-b border-[#EEE2D4]">
+        <div className="flex items-center gap-1.5">
+          <img src="/chiqui/chiqui_doctor.png" alt="" className="w-6 h-6 object-contain flex-shrink-0" />
+          <h2 className="font-bold text-[13px] leading-tight">Link para tu vet</h2>
         </div>
-        <p className="text-xs text-[#8A7560] mt-0.5">CHIQUI recomienda enviarlo antes o durante la consulta, para que tu vet llegue con contexto.</p>
+        <p className="text-[11px] text-[#8A7560] mt-1 leading-snug">Envíaselo antes de la consulta.</p>
       </div>
-      <div className="p-4">
+      <div className="p-3">
         {buscando ? (
-          <p className="text-xs text-[#8A7560] text-center py-2">Cargando...</p>
+          <p className="text-[11px] text-[#8A7560] text-center py-2">Cargando...</p>
         ) : !link ? (
           <button onClick={generarLink} disabled={loading}
-            className="w-full bg-[#4AABDB] text-white font-bold py-3 rounded-xl text-sm disabled:opacity-50">
-            {loading ? 'Generando...' : '🔗 Generar link para el vet'}
+            className="w-full bg-[#4AABDB] text-white font-bold py-2.5 rounded-xl text-[13px] disabled:opacity-50">
+            {loading ? 'Generando...' : '🔗 Generar link'}
           </button>
         ) : (
-          <div className="space-y-3">
-            <div className="copiable bg-[#FBEAD9] rounded-xl p-3 text-xs text-[#8A7560] break-all border border-[#EEE2D4]">
-              {link}
-            </div>
+          <div className="space-y-2">
             <button onClick={copiar}
-              className="w-full bg-[#4CAF7D] text-[#0a2418] font-bold py-3 rounded-xl text-sm">
+              className="w-full bg-[#4CAF7D] text-[#0a2418] font-bold py-2.5 rounded-xl text-[13px]">
               {copiado ? '✅ ¡Copiado!' : '📋 Copiar link'}
             </button>
-            <p className="text-xs text-[#8A7560] text-center">El veterinario puede ver el historial sin crear cuenta</p>
-            {expira && (
-              <p className="text-[11px] text-[#CD7421] text-center font-semibold">
-                Este link funciona hasta el {fmtExpira(expira)}. Despues puedes generar uno nuevo.
-              </p>
-            )}
+            {/* La URL completa ya no se muestra: ocupaba media tarjeta y
+                nadie la lee — se copia con el botón. Si alguien necesita
+                verla, el botón la deja en el portapapeles igual. */}
+            <p className="text-[10px] text-[#8A7560] text-center leading-snug">
+              Tu vet lo abre sin crear cuenta.
+              {expira && <> Dura hasta el {fmtExpira(expira)}.</>}
+            </p>
           </div>
         )}
         {error && (

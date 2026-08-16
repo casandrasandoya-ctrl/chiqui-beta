@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import UnirseComoCotutor from '@/components/UnirseComoCotutor'
 
 // Genera un codigo corto tipo CHIQ-XXXX
 function generarCodigo(): string {
@@ -152,24 +153,27 @@ export default function GestionCotutor({ mascotaId, mascotaNombre }: Props) {
   if (estado === 'cargando') return null
 
   return (
-    <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <img src="/chiqui/chiqui_amor.png" alt="" className="w-7 h-7 object-contain" />
-        <h3 className="font-bold text-sm text-[#3D2B1F]">Co-tutor</h3>
+    <div className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-3">
+      <div className="flex items-center gap-1.5 mb-2">
+        <img src="/chiqui/chiqui_amor.png" alt="" className="w-6 h-6 object-contain flex-shrink-0" />
+        <h3 className="font-bold text-[13px] text-[#3D2B1F]">Co-tutor</h3>
       </div>
 
       {estado === 'sin_cotutor' && (
         <>
-          <p className="text-xs text-[#8A7560] mb-3 leading-relaxed">
-            Invita a alguien de tu familia o pareja para que también pueda registrar a {mascotaNombre}.
+          <p className="text-[11px] text-[#8A7560] mb-2 leading-snug">
+            Invita a alguien que también cuide a {mascotaNombre}.
           </p>
           <button
             onClick={generarInvitacion}
             disabled={procesando}
-            className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-2.5 rounded-xl text-sm disabled:opacity-40"
+            className="w-full bg-[#FFBD59] text-[#1A1200] font-bold py-2.5 rounded-xl text-[13px] disabled:opacity-40"
           >
-            {procesando ? 'Generando...' : '+ Generar código de invitación'}
+            {procesando ? 'Generando...' : '+ Generar código'}
           </button>
+          {/* "Tengo un código" vive AQUI, no suelto abajo: las dos cosas
+              son parte del mismo tema — compartir el cuidado. */}
+          <UnirseComoCotutor />
         </>
       )}
 

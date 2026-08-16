@@ -434,8 +434,8 @@ export default function PerfilPage() {
         </div>
       )}
 
-      {/* Unirse como co-tutor — para quien tiene un código */}
-      <UnirseComoCotutor />
+      {/* "Tengo un código" ahora vive dentro de la tarjeta de co-tutor:
+          las dos cosas son parte del mismo tema. */}
 
       <ConfiguracionNotificaciones />
 
