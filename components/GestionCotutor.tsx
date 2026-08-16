@@ -184,7 +184,7 @@ export default function GestionCotutor({ mascotaId, mascotaNombre }: Props) {
           </p>
           {/* Código visual grande */}
           <div className="bg-[#FBEAD9] rounded-xl p-4 text-center mb-3">
-            <p className="copiable text-3xl font-black tracking-widest text-[#8C572F]">
+            <p className="copiable text-[15px] font-black tracking-normal text-[#8C572F] whitespace-nowrap">
               {invitacion.codigo_invitacion}
             </p>
             <p className="text-xs text-[#8A7560] mt-1">Código de {mascotaNombre}</p>
