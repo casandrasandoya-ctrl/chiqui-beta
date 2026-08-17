@@ -424,7 +424,7 @@ export default function PerfilPage() {
           su propio mx-4 mb-4, así que se neutraliza con [&>div]:mx-0
           para que no queden con márgenes dobles dentro de la grilla. */}
       {mascota && (
-        <div className="mx-4 mb-4 grid grid-cols-2 gap-2 items-start [&>div]:mx-0 [&>div]:mb-0">
+        <div className="mx-4 mb-4 grid grid-cols-2 gap-2 items-stretch [&>div]:mx-0 [&>div]:mb-0 [&>div]:h-full">
           <LinkVet key={`lv-${mascota.id}`} mascotaId={mascota.id} />
           <GestionCotutor
             key={`ct-${mascota.id}`}
