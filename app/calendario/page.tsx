@@ -340,8 +340,11 @@ export default function CalendarioPage() {
     <div className="min-h-screen pb-24 fade-in">
 
       {/* Header mes */}
-      <div className="px-5 pt-6 pb-3 flex items-center justify-between sticky top-0 bg-[#F5EDE3] z-10 border-b border-[#EEE2D4]">
-        <button onClick={() => cambiarMes(-1)} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg">‹</button>
+      {/* Flechas junto a la fecha, no en los extremos: asi dejan libre
+          la esquina superior derecha, donde va el menu. Y acercarlas al
+          mes que cambian hace mas evidente que le pertenecen. */}
+      <div className="px-5 pt-6 pb-3 flex items-center justify-center gap-2 sticky top-0 bg-[#F5EDE3] z-10 border-b border-[#EEE2D4]">
+        <button onClick={() => cambiarMes(-1)} className="w-9 h-9 rounded-full bg-[#FFFCF8] flex items-center justify-center text-lg flex-shrink-0">‹</button>
         <div className="text-center flex items-center gap-2">
           <img src="/chiqui/chiqui_calendario.png" alt="CHIQUI" className="w-7 h-7 object-contain" />
           <div>

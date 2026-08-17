@@ -20,7 +20,10 @@ import MenuCuenta from '@/components/MenuCuenta'
 // El z-40 lo deja bajo los modales (z-60) para que no se superponga a
 // una ventana abierta, y sobre el contenido normal.
 
-const SIN_MENU = ['/login', '/registro', '/bienvenida', '/vet', '/dashboard', '/privacidad', '/links']
+// El registro diario se suma: ahi la esquina la ocupa "Guardar
+// cambios", que es lo mas importante de esa pantalla y no debe competir
+// con nada.
+const SIN_MENU = ['/login', '/registro', '/bienvenida', '/vet', '/dashboard', '/privacidad', '/links', '/registro-diario']
 
 export default function MenuFlotante() {
   const pathname = usePathname()
