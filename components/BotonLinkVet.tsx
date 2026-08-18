@@ -5,16 +5,20 @@ import { createClient } from '@/utils/supabase/client'
 // ============================================================
 // BOTÓN LINK VET
 // ============================================================
-// Botón simple que copia el link al portapapeles. Reemplaza al bloque
-// explicativo que ocupaba media pantalla: en el dashboard lo que se
-// necesita es la acción, no la explicación.
+// Genera el link y lo copia al portapapeles.
 //
-// REUSA EL LINK VIGENTE en vez de crear uno nuevo en cada toque. Sin
-// eso, la cuenta de Casandra llegó a acumular 52 links generados — uno
-// por cada vez que alguien tocó el botón.
+// HACE EXACTAMENTE LO MISMO QUE components/LinkVet.tsx, que lleva meses
+// funcionando. La versión anterior de este botón inventaba su propia
+// forma de crear el token —lo generaba en el navegador con
+// crypto.randomUUID() y lo escribía a mano— y el resultado eran links
+// que daban 404: ese token no coincidía con el que la base genera sola.
 //
-// Si el navegador no deja copiar (pasa en algunos contextos), se
-// muestra el link para copiarlo a mano en vez de fallar en silencio.
+// Acá se insertan solo mascota_id y user_id, y la base rellena el token
+// y su vencimiento con sus valores por defecto. Es la única forma de
+// que el token que se guarda sea el mismo que el RPC va a reconocer.
+//
+// Si el navegador no deja copiar, se muestra el link para copiarlo a
+// mano en vez de fallar en silencio.
 
 export default function BotonLinkVet({
   mascotaId,
@@ -27,50 +31,40 @@ export default function BotonLinkVet({
   const [cargando, setCargando] = useState(false)
   const [copiado, setCopiado] = useState(false)
   const [linkManual, setLinkManual] = useState<string | null>(null)
+  const [error, setError] = useState('')
 
   async function generarYCopiar(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     if (cargando) return
     setCargando(true)
+    setError('')
     setLinkManual(null)
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setCargando(false); return }
-
-      const ahora = new Date().toISOString()
-
-      // Se busca un link que siga vigente antes de crear otro. Crear uno
-      // en cada toque llena la tabla de links que nadie usa.
-      const { data: existente } = await supabase
-        .from('links_veterinario')
-        .select('token, expira_en')
-        .eq('mascota_id', mascotaId)
-        .eq('activo', true)
-        .gt('expira_en', ahora)
-        .order('expira_en', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      let token = existente?.token as string | undefined
-
-      if (!token) {
-        const nuevoToken = crypto.randomUUID()
-        const expira = new Date()
-        expira.setDate(expira.getDate() + 7)
-        const { error } = await supabase.from('links_veterinario').insert({
-          mascota_id: mascotaId,
-          user_id: user.id,
-          token: nuevoToken,
-          activo: true,
-          expira_en: expira.toISOString(),
-        })
-        if (error) { setCargando(false); return }
-        token = nuevoToken
+      if (!user) {
+        setError('No se pudo verificar tu sesión.')
+        return
       }
 
-      const url = `${window.location.origin}/vet/${token}`
+      // Mismo insert que LinkVet: solo estos dos campos. La base genera
+      // el token y su vencimiento. Escribir el token a mano desde acá
+      // es lo que producía los links rotos.
+      const { data, error: errInsert } = await supabase
+        .from('links_veterinario')
+        .insert({ mascota_id: mascotaId, user_id: user.id })
+        .select('token')
+        .single()
+
+      if (errInsert || !data) {
+        // El mensaje real de Postgres, no una frase genérica: si algo
+        // falla, hay que poder saber qué.
+        setError('No se pudo generar el link: ' + (errInsert?.message || 'error desconocido'))
+        return
+      }
+
+      const url = `${window.location.origin}/vet?token=${data.token}`
 
       try {
         await navigator.clipboard.writeText(url)
@@ -99,20 +93,29 @@ export default function BotonLinkVet({
         {!cargando && !copiado && <span className="text-sm">🔗</span>}
       </button>
 
-      {linkManual && (
+      {(linkManual || error) && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center px-8"
           style={{ background: 'rgba(61,43,31,0.45)' }}
-          onClick={() => setLinkManual(null)}
+          onClick={() => { setLinkManual(null); setError('') }}
         >
           <div className="bg-[#FFFCF8] rounded-2xl w-full max-w-xs p-5" onClick={e => e.stopPropagation()}>
-            <p className="font-bold text-sm text-[#3D2B1F] mb-1">Link para tu veterinario</p>
-            <p className="text-xs text-[#8A7560] mb-3">Cópialo y compártelo. Dura 7 días.</p>
-            <p className="text-[11px] text-[#3D2B1F] bg-[#FBEAD9] rounded-xl p-3 break-all select-all">
-              {linkManual}
-            </p>
+            {error ? (
+              <>
+                <p className="font-bold text-sm text-[#E05252] mb-2">No se pudo generar</p>
+                <p className="text-xs text-[#8A7560] break-words">{error}</p>
+              </>
+            ) : (
+              <>
+                <p className="font-bold text-sm text-[#3D2B1F] mb-1">Link para tu veterinario</p>
+                <p className="text-xs text-[#8A7560] mb-3">Cópialo y compártelo.</p>
+                <p className="copiable text-[11px] text-[#3D2B1F] bg-[#FBEAD9] rounded-xl p-3 break-all select-all">
+                  {linkManual}
+                </p>
+              </>
+            )}
             <button
-              onClick={() => setLinkManual(null)}
+              onClick={() => { setLinkManual(null); setError('') }}
               className="w-full mt-3 py-2.5 rounded-xl text-sm font-semibold text-[#8A7560] bg-[#F0E2CE]"
             >
               Cerrar
