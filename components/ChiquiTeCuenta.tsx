@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 // Rotan diariamente — cada dia se muestra un set distinto de 4 tarjetas
 // tomadas desde la lista segun el dia del año.
 
-const TARJETAS_PERRO = [
+export const TARJETAS_PERRO = [
   // GRUPO 0: Alimentación
   { emoji: '🍎', cat: 'alim', titulo: 'Frutas que sí puedo comer', pregunta: '¿Qué frutas puedo comer sin riesgo?', texto: 'Me encanta cuando compartimos un premio rico. Manzana, pera, sandía, melón y arándanos son seguros para mí. Solo acuérdate de quitar las semillas y la cáscara.' },
   { emoji: '🚫', cat: 'seg', titulo: 'Frutas que no debo comer', pregunta: '¿Qué frutas nunca debo comer?', texto: 'Aunque te ponga ojitos, las uvas, las pasas y la palta pueden hacerme mucho daño e incluso afectar mis riñones. Mejor guárdalas solo para ti.' },
@@ -62,7 +62,7 @@ const TARJETAS_PERRO = [
   { emoji: '🫁', cat: 'salud', titulo: 'Dificultad respiratoria', pregunta: '¿Cómo reconocer dificultad respiratoria?', bloques: { reconocer: 'Respiro con mucho esfuerzo o muy rápido, mis encías se ven pálidas o azuladas.', haz: ['Manténme tranquilo', 'Busca atención veterinaria de inmediato'], evita: ['Darme comida o agua', 'Hacerme caminar o moverme'] } },
 ]
 
-const TARJETAS_GATO = [
+export const TARJETAS_GATO = [
   // GRUPO 0: Alimentación
   { emoji: '🐟', cat: 'alim', titulo: 'El pescado con moderación', pregunta: '¿Puedo comer pescado todos los días?', texto: 'Me encanta el pescado, pero el atún en lata es solo un gusto de vez en cuando porque tiene mucho sodio. Si quieres consentirme, mejor pescado fresco bien cocido.' },
   { emoji: '🥛', cat: 'alim', titulo: '¿Y la leche?', pregunta: '¿Puedo tomar leche sin problema?', texto: 'Aunque salga en las películas, la mayoría de nosotros somos intolerantes a la lactosa. Lo que más agradezco siempre será agua fresca.' },

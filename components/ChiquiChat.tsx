@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import { TARJETAS_PERRO, TARJETAS_GATO } from '@/components/ChiquiTeCuenta'
 
 // ============================================================
 // CHIQUI CHAT — conversación sobre lo registrado
@@ -39,11 +40,107 @@ export interface DatosChat {
 
 interface Mensaje { de: 'chiqui' | 'tu'; texto: string }
 
+// Quita tildes y baja a minusculas: "cuánto" y "cuanto" tienen que
+// encontrar lo mismo.
+function normalizar(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+// Palabras que nunca deciden de que se habla. Van explicitas porque el
+// error que evitan es grave: sin esto, "¿le puedo dar uvas?" respondia
+// con el tip de frutas SEGURAS —porque "puedo" coincidia— y alguien
+// podia entender que las uvas estaban bien. Son toxicas.
+const RELLENO = new Set([
+  'puedo','puede','pueden','podria','debo','debe','deben','deberia',
+  'comer','come','comen','darle','dale','para','como','cuando','donde',
+  'cual','cuales','cuanto','cuanta','cuantos','cuantas','tiene','tienen',
+  'esta','estan','estoy','hacer','hago','haces','sobre','todo','todos',
+  'toda','todas','mucho','mucha','muchos','menos','bien','cosa','cosas',
+  'algo','nada','siempre','nunca','tambien','porque','aunque','entonces',
+  'mientras','desde','hasta','pero','ademas','perro','perra','gato',
+  'gata','mascota','ellos','ellas','sus','este','esto','esta','eso',
+  'mejor','peor','solo','solamente','tanto','tanta','ser','estar',
+])
+
+// Busca en los Chiqui Tips — contenido ya escrito y verificado. Es lo
+// que permite responder "¿puedo darle uvas?" sin que un modelo de
+// lenguaje invente nada: la respuesta ya estaba escrita.
+//
+// Dos filtros, y los dos hacen falta:
+//   1. Las palabras de relleno no puntuan (lista de arriba).
+//   2. De las que quedan, cada una pesa AL REVES de lo comun que sea:
+//      "uvas" sale en un tip y vale mucho; "salud" sale en veinte y
+//      vale poco.
+function buscarTip(pregunta: string, especie: string): string | null {
+  const tips = (especie === 'Gato' ? TARJETAS_GATO : TARJETAS_PERRO) as any[]
+  if (!tips || tips.length === 0) return null
+
+  const textoDe = (t: any) => normalizar(
+    `${t.pregunta || ''} ${t.titulo || ''} ${t.texto || ''} ${t.bloques ? Object.values(t.bloques).flat().join(' ') : ''}`
+  )
+  const textos = tips.map(textoDe)
+
+  const palabras = Array.from(new Set(
+    normalizar(pregunta)
+      .replace(/[¿?¡!.,;:]/g, ' ')
+      .split(/\s+/)
+      .filter(p => p.length >= 4 && !RELLENO.has(p))
+  ))
+  if (palabras.length === 0) return null
+
+  const peso = new Map<string, number>()
+  for (const p of palabras) {
+    const enCuantos = textos.filter(t => t.includes(p)).length
+    peso.set(p, enCuantos > 0 ? 1 / enCuantos : 0)
+  }
+  const maxPeso = Math.max(0, ...Array.from(peso.values()))
+  // Ninguna palabra de la pregunta aparece en ningun tip, o todas son
+  // demasiado comunes: no hay de que agarrarse.
+  if (maxPeso < 0.2) return null
+
+  let mejor: { texto: string; puntos: number } | null = null
+  for (let i = 0; i < tips.length; i++) {
+    const t = tips[i]
+    let puntos = 0
+    for (const p of palabras) {
+      const w = peso.get(p) || 0
+      if (w === 0) continue
+      // Una sola vez por palabra: si se sumara pregunta + titulo +
+      // texto, una palabra repetida en el mismo tip valdria el triple
+      // sin aportar mas informacion.
+      if (textos[i].includes(p)) puntos += w
+      // Un pequeño extra si ademas esta en la pregunta del tip, que
+      // esta escrita como la haria una persona.
+      if (normalizar(t.pregunta || '').includes(p)) puntos += w * 0.5
+    }
+    if (puntos > 0 && (!mejor || puntos > mejor.puntos)) {
+      const cuerpo = t.texto
+        || (t.bloques ? `${t.bloques.reconocer}\n\nQué hacer:\n${(t.bloques.haz || []).map((x: string) => `· ${x}`).join('\n')}\n\nQué evitar:\n${(t.bloques.evita || []).map((x: string) => `· ${x}`).join('\n')}` : '')
+      if (cuerpo) mejor = { texto: cuerpo, puntos }
+    }
+  }
+  // Umbral: mas vale decir "no se" que responder sobre otra cosa. En
+  // temas de toxicidad, una respuesta equivocada es peor que ninguna.
+  return mejor && mejor.puntos >= 0.4 ? mejor.texto : null
+}
+
 // Cada tema tiene sus palabras y su respuesta. El orden importa: la
 // primera que coincide gana, así que lo más específico va primero.
 function responder(pregunta: string, d: DatosChat): string {
   const q = pregunta.toLowerCase()
   const tiene = (...palabras: string[]) => palabras.some(p => q.includes(p))
+
+  // Preguntas de CONOCIMIENTO ("¿puedo darle...?", "¿es normal
+  // que...?") van a los Chiqui Tips antes que a los datos: no
+  // preguntan por su mascota, preguntan cómo funcionan los perros y
+  // los gatos.
+  const esConocimiento = /\b(puedo|puede|debo|debe|es normal|son seguros?|es seguro|cada cuanto|cada cuánto|por que|por qué|que significa|qué significa|sirve|toxic|venenos|peligros)\b/.test(q)
+  if (esConocimiento) {
+    const tipDirecto = buscarTip(pregunta, d.especie)
+    if (tipDirecto) {
+      return `${tipDirecto}\n\n_(Esto lo saqué de mis Chiqui Tips. Ante la duda, tu veterinario siempre sabe más.)_`
+    }
+  }
 
   // Exámenes: SIEMPRE antes que nada. Si alguien pregunta por un valor
   // de laboratorio, la respuesta no depende de qué más diga.
@@ -125,8 +222,16 @@ function responder(pregunta: string, d: DatosChat): string {
     return `Llevas ${d.totalRegistros} registro${d.totalRegistros === 1 ? '' : 's'} de ${d.nombre} en ${d.textoPeriodo}.`
   }
 
-  // No reconocida: se dice, y se ofrece lo que sí sabe.
-  return `De eso no sé. Yo solo puedo contarte lo que has registrado de ${d.nombre}.\n\nPrueba preguntándome por sus síntomas, paseos, peso, medicamentos, vacunas o qué contarle al veterinario.`
+  // Antes de rendirse: buscar en los Chiqui Tips. Es contenido ya
+  // escrito y verificado, así que "¿puedo darle chocolate?" tiene
+  // respuesta real en vez de un "no sé".
+  const tip = buscarTip(pregunta, d.especie)
+  if (tip) {
+    return `${tip}\n\n_(Esto lo saqué de mis Chiqui Tips. Ante la duda, tu veterinario siempre sabe más.)_`
+  }
+
+  // No reconocida y sin tip: se admite, y se ofrece lo que sí sabe.
+  return `De eso no sé. Puedo contarte lo que has registrado de ${d.nombre}, o lo que aprendí en mis Chiqui Tips.\n\nPrueba preguntándome por sus síntomas, paseos, peso, medicamentos, vacunas, o qué puede comer.`
 }
 
 export default function ChiquiChat({ datos }: { datos: DatosChat }) {
