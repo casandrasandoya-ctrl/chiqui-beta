@@ -720,7 +720,28 @@ export default function PrevencionPage() {
                   <button onClick={() => { setModal('vacuna'); setForm({}); setEditandoId(null) }} className="mt-4 bg-[#FFBD59] text-[#1A1200] font-bold px-6 py-2.5 rounded-xl text-sm">+ Agregar primera vacuna</button>
                 </div>
               )}
-              {vacunas.map(v => (
+              {(() => {
+                // Solo la vacuna VIGENTE de cada tipo muestra su estado.
+                // Una dosis reemplazada por otra mas nueva del mismo tipo
+                // no debe seguir marcada en rojo: esa fecha ya no es
+                // informacion accionable, y contradecia al badge de la
+                // seccion, que si aplica esta regla.
+                //
+                // Se agrupa por nombre igual que el badge: la antirrabica
+                // y la triple felina tienen ciclos independientes, asi que
+                // cada tipo conserva su propio indicador.
+                const idsVigentes = new Set<string>()
+                const porNombreVac = new Map<string, any>()
+                for (const v of vacunas) {
+                  const k = (v.nombre || '').toLowerCase().trim()
+                  const prev = porNombreVac.get(k)
+                  if (!prev || String(v.fecha_aplicacion || '').localeCompare(String(prev.fecha_aplicacion || '')) > 0) {
+                    porNombreVac.set(k, v)
+                  }
+                }
+                for (const v of porNombreVac.values()) idsVigentes.add(v.id)
+
+                return vacunas.map(v => (
                 <div key={v.id} className="bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
                   <div className="p-4">
                     <div className="flex items-start justify-between">
@@ -733,11 +754,16 @@ export default function PrevencionPage() {
                         </div>
                       </div>
                       <div className="flex items-start gap-1">
-                        {v.proxima_fecha && (
+                        {v.proxima_fecha && idsVigentes.has(v.id) && (
                           <div className="text-right mr-1">
                             <p className="text-xs text-[#8A7560]">Próxima</p>
                             <p className="text-xs font-bold" style={{ color: diasColor(v.proxima_fecha) }}>{dias(v.proxima_fecha)}</p>
                             <p className="text-xs text-[#8A7560]">{fmt(v.proxima_fecha)}</p>
+                          </div>
+                        )}
+                        {v.proxima_fecha && !idsVigentes.has(v.id) && (
+                          <div className="text-right mr-1">
+                            <p className="text-[10px] text-[#B5A38F]">Ya reforzada</p>
                           </div>
                         )}
                         <button onClick={() => setMenuAbierto({ tipo: 'vacuna', id: v.id })} className="w-7 h-7 flex items-center justify-center text-[#8A7560] text-lg flex-shrink-0">⋮</button>
@@ -746,7 +772,8 @@ export default function PrevencionPage() {
                     {v.nota && <p className="text-xs text-[#8A7560] mt-2 italic bg-[#FBEAD9] rounded-xl p-2">📝 {v.nota}</p>}
                   </div>
                 </div>
-              ))}
+                ))
+              })()}
             </div>
           </div>
         )}
