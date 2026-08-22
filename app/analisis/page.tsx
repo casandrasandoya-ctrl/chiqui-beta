@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import BottomNav from '@/components/BottomNav'
 import SelectorMascota from '@/components/SelectorMascota'
+import ChiquiChat from '@/components/ChiquiChat'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 
 const ESTADO_COLOR: Record<string, string> = {
@@ -1173,6 +1174,37 @@ export default function AnalisisPage() {
       </div>
       {/* Selector de mascota */}
       {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
+
+      {/* Chat de Chiqui. Se abre contando los episodios del período y
+          responde con dos fuentes: los datos registrados y los Chiqui
+          Tips, que ya están escritos y verificados.
+          No es una IA, y lo dice al abrirse. */}
+      {mascota && total > 0 && (
+        <ChiquiChat datos={{
+          nombre: mascota.nombre || 'tu mascota',
+          especie: mascota.especie || '',
+          // Los episodios salen de los insights: son las mismas frases
+          // que ya se muestran en "Lo observado este mes", sin el ícono.
+          episodios: insights.filter(i => i.icon === '🔍').map(i => i.text),
+          totalRegistros: total,
+          pctBien,
+          textoPeriodo,
+          paseosMes: esPerro && actividadChiqui && actividadChiqui.promedioDia > 0
+            ? { cantidad: registros.filter(r => r.paseo && r.paseo !== 'no_paseo').length,
+                minutos: Math.round(actividadChiqui.promedioDia * periodo) }
+            : null,
+          // El peso y las vacunas viven en Salud: el chat lo dice en vez
+          // de afirmar que no están registrados.
+          peso: null,
+          medicamentos: (medsVigentes || []).map((m: any) => ({
+            nombre: m.nombre || 'Medicamento',
+            desde: m.fecha_inicio || '',
+          })),
+          proximaVacuna: null,
+          proximoAnti: null,
+          examenes: [],
+        }} />
+      )}
       {/* "Lo que Chiqui aprendió este mes" — el resumen del período
           contado con la voz del personaje. Chiqui abre en primera
           persona, comparte la síntesis de datos y cierra con una
