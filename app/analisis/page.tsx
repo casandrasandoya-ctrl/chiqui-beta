@@ -521,7 +521,11 @@ export default function AnalisisPage() {
     especie: mascota?.especie || '',
     // Los episodios salen de los insights: las mismas frases que ya se
     // muestran, sin el ícono.
-    episodios: insights.filter(i => i.icon === '🔍').map(i => i.text),
+    // El tipo va explicito: este bloque se calcula ANTES de donde se
+    // declara insights, y ahi TypeScript todavia no sabe que contiene.
+    episodios: (insights as { icon: string; text: string; tipo: string }[])
+      .filter(i => i.icon === '🔍')
+      .map(i => i.text),
     totalRegistros: total,
     pctBien,
     textoPeriodo,
