@@ -172,6 +172,12 @@ export default function AnalisisPage() {
   const [signosHistorial, setSignosHistorial] = useState<SignoEvento[]>([])
   // Fechas en que se fue al veterinario, de las dos fuentes.
   const [visitasVet, setVisitasVet] = useState<string[]>([])
+  // Datos que el chat necesita y que esta pantalla no cargaba: sin
+  // ellos respondia "no hay registro" sobre cosas que sí estaban.
+  const [pesoChat, setPesoChat] = useState<{ actual: number; fecha: string; anterior?: number | null } | null>(null)
+  const [vacunasChat, setVacunasChat] = useState<any[]>([])
+  const [antisChat, setAntisChat] = useState<any[]>([])
+  const [examenesChat, setExamenesChat] = useState<any[]>([])
   const [enriqRegistros, setEnriqRegistros] = useState<any[]>([])
   // Historial COMPLETO de enriquecimiento (no los 30 dias de
   // enriqRegistros): la racha de juego de los gatos se cuenta
@@ -289,6 +295,43 @@ export default function AnalisisPage() {
   // Sirven para reconocer que el tutor YA actuó: si hubo episodios y
   // después una consulta, decírselo vale más que dejarle la alerta
   // abierta como si no hubiera hecho nada.
+  // Peso, vacunas, antiparasitarios y exámenes. Viven en Salud, pero el
+  // chat los necesita: antes respondía "no hay registro" sobre datos que
+  // sí existían, que es peor que no responder.
+  //
+  // Solo la dosis MÁS RECIENTE de cada vacuna o antiparasitario, que es
+  // la regla del proyecto: una reemplazada por otra más nueva no cuenta.
+  async function cargarDatosChat(mascotaId: string) {
+    const [{ data: pesos }, { data: vac }, { data: ant }, { data: exs }] = await Promise.all([
+      supabase.from('historial_peso').select('peso, fecha').eq('mascota_id', mascotaId).order('fecha', { ascending: false }).limit(2),
+      supabase.from('vacunas').select('nombre, fecha_aplicacion, proxima_fecha').eq('mascota_id', mascotaId).order('fecha_aplicacion', { ascending: false }),
+      supabase.from('antiparasitarios').select('nombre, fecha_aplicacion, proxima_fecha').eq('mascota_id', mascotaId).order('fecha_aplicacion', { ascending: false }),
+      supabase.from('examenes').select('nombre, categoria, fecha').eq('mascota_id', mascotaId).order('fecha', { ascending: false }).limit(5),
+    ])
+
+    if (pesos && pesos.length > 0) {
+      const d = new Date(String(pesos[0].fecha).slice(0, 10) + 'T12:00:00')
+      setPesoChat({
+        actual: pesos[0].peso,
+        fecha: `${d.getDate()} ${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]}`,
+        anterior: pesos.length > 1 ? pesos[1].peso : null,
+      })
+    }
+
+    // Una sola por nombre: la más reciente.
+    const masReciente = (lista: any[] | null) => {
+      const porNombre = new Map<string, any>()
+      for (const x of (lista || [])) {
+        const k = (x.nombre || '').toLowerCase().trim()
+        if (!porNombre.has(k)) porNombre.set(k, x)
+      }
+      return Array.from(porNombre.values())
+    }
+    setVacunasChat(masReciente(vac))
+    setAntisChat(masReciente(ant))
+    setExamenesChat(exs || [])
+  }
+
   async function cargarVisitas(mascotaId: string) {
     const [{ data: formales }, { data: marcadas }] = await Promise.all([
       supabase.from('visitas_veterinarias').select('fecha').eq('mascota_id', mascotaId),
@@ -403,7 +446,111 @@ export default function AnalisisPage() {
       if (a.promedioDias === null && b.promedioDias === null) return 0
       if (a.promedioDias === null) return 1
       if (b.promedioDias === null) return -1
-      return (a.proximaEstimadaDias ?? 999) - (b.proximaEstimadaDias ?? 999)
+    
+  // --- Datos para el chat ---
+  // Se arma acá y no en el JSX para que se lea: son bastantes fuentes.
+  const MESES_CHAT = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+  const hoyChat = fechaChile()
+  const inicioMesChat = hoyChat.slice(0, 7) + '-01'
+
+  const diasHastaChat = (f: string | null): number | null => {
+    if (!f) return null
+    // Mediodía: restar días sobre medianoche se cae en los cambios de
+    // horario de verano.
+    const a = new Date(hoyChat + 'T12:00:00').getTime()
+    const b = new Date(String(f).slice(0, 10) + 'T12:00:00').getTime()
+    return Math.round((b - a) / 86400000)
+  }
+  const fmtChat = (f: string | null): string => {
+    if (!f) return ''
+    const d = new Date(String(f).slice(0, 10) + 'T12:00:00')
+    return `${d.getDate()} ${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]}`
+  }
+
+  // Paseos del MES CALENDARIO, no de 30 días móviles: "este mes" tiene
+  // que significar agosto. Se usa paseoHistorial, que ya trae meses
+  // completos justamente por esto.
+  const paseosDelMes = (paseoHistorial || []).filter((r: any) =>
+    r.fecha >= inicioMesChat && r.fecha <= hoyChat && r.paseo && r.paseo !== 'no_paseo'
+  )
+  const MIN_RANGO_CHAT: Record<string, number> = { '10_30min': 20, '30min_1h': 45, '1_2h': 90, '2_4h': 180 }
+  const minutosDelMes = paseosDelMes.reduce((acc: number, r: any) =>
+    acc + (typeof r.paseo_minutos_exactos === 'number' && r.paseo_minutos_exactos > 0
+      ? r.paseo_minutos_exactos
+      : (MIN_RANGO_CHAT[r.paseo] || 0)), 0)
+
+  // Cuidados: cuándo fue la última vez y cada cuánto suele hacerse. Las
+  // palabras van SIN tildes ni ñ, porque se comparan contra texto
+  // normalizado — 'ban' cubre bañé, bañar y baño.
+  const CUIDADOS_CHAT: { campo: string; label: string; palabras: string[] }[] = [
+    { campo: 'se_bano', label: 'Baño', palabras: ['ban', 'ducha'] },
+    { campo: 'corte_unas', label: 'Corte de uñas', palabras: ['una', 'unas', 'garra'] },
+    { campo: 'limpieza_dental', label: 'Limpieza dental', palabras: ['diente', 'dental', 'cepill'] },
+    { campo: 'limpieza_oidos', label: 'Limpieza de oídos', palabras: ['oido', 'oreja'] },
+    { campo: 'compro_alimento', label: 'Compra de alimento', palabras: ['comida', 'alimento', 'comprar', 'saco', 'croqueta'] },
+    { campo: 'cambio_alimento', label: 'Cambio de alimento', palabras: ['cambio de alimento', 'cambiar alimento'] },
+    { campo: 'cargo_dispensador', label: 'Dispensador', palabras: ['dispensador'] },
+    { campo: 'peino', label: 'Cepillado', palabras: ['peina', 'peino', 'cepillar el pelo'] },
+  ]
+  const cuidadosChat = CUIDADOS_CHAT.map(c => {
+    const fechas = (registros || [])
+      .filter((r: any) => r[c.campo])
+      .map((r: any) => String(r.fecha).slice(0, 10))
+      .sort()
+      .reverse()
+    if (fechas.length === 0) return null
+    const dias = Math.abs(diasHastaChat(fechas[0]) || 0)
+    // Cada cuánto: el promedio entre las últimas veces. Con una sola
+    // vez registrada no hay intervalo que calcular.
+    let cada: number | null = null
+    if (fechas.length >= 2) {
+      const difs: number[] = []
+      for (let i = 0; i < Math.min(fechas.length - 1, 5); i++) {
+        const d1 = new Date(fechas[i] + 'T12:00:00').getTime()
+        const d2 = new Date(fechas[i + 1] + 'T12:00:00').getTime()
+        difs.push(Math.round((d1 - d2) / 86400000))
+      }
+      const prom = Math.round(difs.reduce((a, b) => a + b, 0) / difs.length)
+      if (prom > 0) cada = prom
+    }
+    return { label: c.label, palabras: c.palabras, diasDesde: dias, cadaCuantos: cada }
+  }).filter(Boolean) as { label: string; palabras: string[]; diasDesde: number; cadaCuantos: number | null }[]
+
+  const datosChat = {
+    nombre: mascota?.nombre || 'tu mascota',
+    especie: mascota?.especie || '',
+    // Los episodios salen de los insights: las mismas frases que ya se
+    // muestran, sin el ícono.
+    episodios: insights.filter(i => i.icon === '🔍').map(i => i.text),
+    totalRegistros: total,
+    pctBien,
+    textoPeriodo,
+    paseosMes: esPerro
+      ? { cantidad: paseosDelMes.length, minutos: minutosDelMes, nombreMes: MESES_CHAT[Number(hoyChat.slice(5, 7)) - 1] }
+      : null,
+    peso: pesoChat,
+    medicamentos: (medsVigentes || []).map((m: any) => ({
+      nombre: m.nombre || 'Medicamento',
+      desde: fmtChat(m.fecha_inicio),
+    })),
+    vacunas: (vacunasChat || []).map((v: any) => ({
+      nombre: v.nombre || 'Vacuna',
+      proxima: v.proxima_fecha ? fmtChat(v.proxima_fecha) : null,
+      dias: diasHastaChat(v.proxima_fecha),
+    })),
+    antiparasitarios: (antisChat || []).map((a: any) => ({
+      nombre: a.nombre || 'Antiparasitario',
+      proxima: a.proxima_fecha ? fmtChat(a.proxima_fecha) : null,
+      dias: diasHastaChat(a.proxima_fecha),
+    })),
+    cuidados: cuidadosChat,
+    examenes: (examenesChat || []).map((e: any) => ({
+      nombre: e.nombre || e.tipo || e.categoria || 'Examen',
+      fecha: fmtChat(e.fecha),
+    })),
+  }
+
+  return (a.proximaEstimadaDias ?? 999) - (b.proximaEstimadaDias ?? 999)
     })
     setRutinas(calculadas)
   }
@@ -421,6 +568,7 @@ export default function AnalisisPage() {
       await cargarRutinas(m.id)
       await cargarSignos(m.id)
     await cargarVisitas(m.id)
+    await cargarDatosChat(m.id)
       // Respiración reciente
       const { data: resp } = await supabase
         .from('frecuencia_respiratoria')
@@ -1212,30 +1360,7 @@ export default function AnalisisPage() {
           Tips, que ya están escritos y verificados.
           No es una IA, y lo dice al abrirse. */}
       {mascota && total > 0 && (
-        <ChiquiChat datos={{
-          nombre: mascota.nombre || 'tu mascota',
-          especie: mascota.especie || '',
-          // Los episodios salen de los insights: son las mismas frases
-          // que ya se muestran en "Lo observado este mes", sin el ícono.
-          episodios: insights.filter(i => i.icon === '🔍').map(i => i.text),
-          totalRegistros: total,
-          pctBien,
-          textoPeriodo,
-          paseosMes: esPerro && actividadChiqui && actividadChiqui.promedioDia > 0
-            ? { cantidad: registros.filter(r => r.paseo && r.paseo !== 'no_paseo').length,
-                minutos: Math.round(actividadChiqui.promedioDia * periodo) }
-            : null,
-          // El peso y las vacunas viven en Salud: el chat lo dice en vez
-          // de afirmar que no están registrados.
-          peso: null,
-          medicamentos: (medsVigentes || []).map((m: any) => ({
-            nombre: m.nombre || 'Medicamento',
-            desde: m.fecha_inicio || '',
-          })),
-          proximaVacuna: null,
-          proximoAnti: null,
-          examenes: [],
-        }} />
+        <ChiquiChat datos={datosChat} />
       )}
       {/* "Lo que Chiqui aprendió este mes" — el resumen del período
           contado con la voz del personaje. Chiqui abre en primera
