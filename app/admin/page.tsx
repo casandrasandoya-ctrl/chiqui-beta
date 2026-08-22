@@ -302,9 +302,18 @@ export default async function AdminPage({ searchParams }: Props) {
   // los 60 dias, en vez de filtrar la lista completa 60 veces.
   const regsPorFecha = new Map<string, any[]>()
   for (const r of regs) {
-    const arr = regsPorFecha.get(r.fecha) || []
+    // La fecha se NORMALIZA a YYYY-MM-DD antes de usarla como clave.
+    // Sin esto, si Supabase la devuelve con hora ("2026-08-21T00:00:00")
+    // o con cualquier variacion de formato, nunca coincide con la clave
+    // que arma sumarDias() y los registros de ese dia desaparecen.
+    //
+    // El bloque de "otra actividad" mas abajo ya hacia esto con
+    // .slice(0, 10), y por eso la vacuna y el peso SI se veian mientras
+    // los registros diarios no.
+    const f = String(r.fecha).slice(0, 10)
+    const arr = regsPorFecha.get(f) || []
     arr.push(r)
-    regsPorFecha.set(r.fecha, arr)
+    regsPorFecha.set(f, arr)
   }
 
   // Cada fuente se normaliza a la misma forma. Si una consulta
