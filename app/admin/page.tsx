@@ -208,7 +208,18 @@ export default async function AdminPage({ searchParams }: Props) {
     db.from('mascotas').select('id, user_id, nombre, especie, archivada_en, created_at'),
     // paseo y se_bano viven dentro del registro del dia, no en una
     // tabla propia: por eso viajan aca y no en una consulta aparte.
-    db.from('registros_diarios').select('user_id, mascota_id, fecha, paseo, se_bano, corte_unas, limpieza_dental, limpieza_oidos, cambio_alimento, probo_alimento_nuevo, compro_alimento').limit(50000),
+    // Supabase corta en 1000 filas por consulta, sin importar el
+    // .limit() que se pida. La tabla ya tiene mas de 1000 registros, asi
+    // que se traian solo los primeros mil EN UN ORDEN CUALQUIERA — y los
+    // mas recientes, los de hoy, quedaban fuera.
+    //
+    // Con .order descendente y .range se piden 5000 explicitamente,
+    // empezando por los mas nuevos. Si algun dia se pasa de 5000, lo que
+    // se pierde son los mas antiguos, no los de hoy.
+    db.from('registros_diarios')
+      .select('user_id, mascota_id, fecha, paseo, se_bano, corte_unas, limpieza_dental, limpieza_oidos, cambio_alimento, probo_alimento_nuevo, compro_alimento')
+      .order('fecha', { ascending: false })
+      .range(0, 4999),
     db.from('links_veterinario').select('user_id, created_at'),
     db.from('mascota_cotutores').select('dueno_user_id, estado'),
     db.from('preferencias_usuario').select('user_id, notificaciones_activas'),
