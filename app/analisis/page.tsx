@@ -170,6 +170,8 @@ export default function AnalisisPage() {
   // Grupos de rutinas abiertos (Veterinario, Alimentación, etc.).
   const [gruposRutinaAbiertos, setGruposRutinaAbiertos] = useState<Set<string>>(new Set())
   const [signosHistorial, setSignosHistorial] = useState<SignoEvento[]>([])
+  // Fechas en que se fue al veterinario, de las dos fuentes.
+  const [visitasVet, setVisitasVet] = useState<string[]>([])
   const [enriqRegistros, setEnriqRegistros] = useState<any[]>([])
   // Historial COMPLETO de enriquecimiento (no los 30 dias de
   // enriqRegistros): la racha de juego de los gatos se cuenta
@@ -279,6 +281,25 @@ export default function AnalisisPage() {
   // liviano. Los eventos graves son poco frecuentes pero muy relevantes
   // para detectar recurrencias en el tiempo (ej. convulsiones que se
   // repiten cada cierto período).
+  // Visitas al veterinario. Vienen de DOS lugares y hay que mirar los
+  // dos: la tabla formal de Prevención, y los días marcados "fue al
+  // vet" en el registro diario. Es la misma combinación que hace el
+  // componente de Visitas.
+  //
+  // Sirven para reconocer que el tutor YA actuó: si hubo episodios y
+  // después una consulta, decírselo vale más que dejarle la alerta
+  // abierta como si no hubiera hecho nada.
+  async function cargarVisitas(mascotaId: string) {
+    const [{ data: formales }, { data: marcadas }] = await Promise.all([
+      supabase.from('visitas_veterinarias').select('fecha').eq('mascota_id', mascotaId),
+      supabase.from('registros_diarios').select('fecha').eq('mascota_id', mascotaId).eq('fue_al_vet', true),
+    ])
+    const fechas = new Set<string>()
+    for (const v of (formales || [])) if (v.fecha) fechas.add(String(v.fecha).slice(0, 10))
+    for (const r of (marcadas || [])) if (r.fecha) fechas.add(String(r.fecha).slice(0, 10))
+    setVisitasVet(Array.from(fechas).sort())
+  }
+
   async function cargarSignos(mascotaId: string) {
     const { data } = await supabase
       .from('registros_diarios')
@@ -399,6 +420,7 @@ export default function AnalisisPage() {
       await cargarRegistros(m.id)
       await cargarRutinas(m.id)
       await cargarSignos(m.id)
+    await cargarVisitas(m.id)
       // Respiración reciente
       const { data: resp } = await supabase
         .from('frecuencia_respiratoria')
@@ -688,10 +710,20 @@ export default function AnalisisPage() {
       const notas = ep.dias.filter(d => d.nota).map(d => d.nota)
       const textoNotas = notas.length > 0 ? ` 💬 "${notas[notas.length - 1]}"` : ''
 
+      // ¿Se fue al veterinario por esto? Se busca una visita entre el
+      // primer día del episodio y hasta una semana después del último.
+      // Si la hubo, el episodio deja de ser una alerta abierta: el
+      // tutor ya actuó, y decírselo vale más que insistir.
+      const limite = new Date(ultimo + 'T12:00:00')
+      limite.setDate(limite.getDate() + 7)
+      const limiteStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(limite)
+      const visita = visitasVet.find(f => f >= primero && f <= limiteStr)
+      const textoVisita = visita ? ` ✅ Fuiste al veterinario el ${fmtEp(visita)}.` : ''
+
       insights.push({
         icon: '🔍',
-        text: `${titulo} — ${lista.join(', ')}.${textoNotas}`,
-        tipo: 'warn',
+        text: `${titulo} — ${lista.join(', ')}.${textoNotas}${textoVisita}`,
+        tipo: visita ? 'good' : 'warn',
       })
     }
   }
@@ -1209,53 +1241,8 @@ export default function AnalisisPage() {
           contado con la voz del personaje. Chiqui abre en primera
           persona, comparte la síntesis de datos y cierra con una
           conclusión cuyo tono se adapta al estado del mes. */}
-      {resumenInteligente && vozChiqui && (
-        <div className="mx-4 mb-4 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] overflow-hidden">
-          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#EEE2D4]" style={{ background: 'linear-gradient(135deg, #FFBD5918, #FFFCF8)' }}>
-            <img src="/chiqui/chiqui_ia.png" alt="Chiqui" className="w-9 h-9 object-contain flex-shrink-0" />
-            <div>
-              <p className="text-sm font-bold text-[#3D2B1F]">🧠 Lo que Chiqui aprendió este mes</p>
-              <p className="text-xs text-[#8A7560]">Sobre {textoPeriodo}</p>
-            </div>
-          </div>
-          <div className="px-4 py-3">
-            {/* Apertura en primera persona (voz de Chiqui) */}
-            <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2 font-semibold">{vozChiqui.apertura}</p>
-            {/* Síntesis de datos observados (los hechos del mes) */}
-            <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2">{resumenInteligente.sintesis}</p>
-            {/* Actividad acorde a tamaño y edad (solo perros con algo de
-                actividad registrada). Tono cuidadoso: habla de "lo
-                registrado", compara con un rango orientativo y, si es
-                baja, deja espacio a que sea salud o registro incompleto
-                — nunca acusa de sedentarismo. */}
-            {actividadChiqui && actividadChiqui.promedioDia > 0 && (
-              !actividadChiqui.datosSuficientes ? (
-                <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2">
-                  🐾 Según lo que registraste, {nombreM} se movió un promedio de <span className="font-semibold">{actividadChiqui.promedioDia} min al día</span>. Llevas {diasCubiertos} {diasCubiertos === 1 ? 'día' : 'días'} de registro: todavía es pronto para compararlo con lo recomendado. En unos días te cuento mejor.
-                </p>
-              ) : actividadChiqui.suficiente ? (
-                <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2">
-                  🐾 Según lo que registraste, {nombreM} se movió un promedio de <span className="font-semibold">{actividadChiqui.promedioDia} min al día</span> — acorde a lo esperable para su tamaño y edad ({actividadChiqui.ideal}). ¡Muy bien!
-                </p>
-              ) : (
-                <p className="text-xs text-[#3D2B1F] leading-relaxed mb-2">
-                  🐾 Según lo que registraste, {nombreM} se movió un promedio de <span className="font-semibold">{actividadChiqui.promedioDia} min al día</span>. Para su tamaño y edad suele recomendarse algo más ({actividadChiqui.ideal}) — aunque si tiene alguna molestia o no registraste todas las salidas, esto puede variar. Ante la duda, tu veterinario es la mejor guía.
-                </p>
-              )
-            )}
-            {/* Cierre con la conclusión y el tono adecuado al estado.
-                Va en una caja con el color del semáforo — así el estado
-                general se comunica sin una etiqueta fría aparte. */}
-            <div
-              className="flex items-start gap-2 rounded-xl px-3 py-2.5"
-              style={{ background: `${vozChiqui.color}14`, border: `1px solid ${vozChiqui.color}33` }}
-            >
-              <span className="text-base flex-shrink-0">{vozChiqui.icono}</span>
-              <p className="text-xs text-[#3D2B1F] leading-relaxed">{vozChiqui.cierre}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* "Lo que Chiqui aprendió este mes" se movió al chat, que lo
+          cuenta al abrirse y además deja seguir preguntando. */}
       {/* Anillo de constancia de cuidado del mes. Mide seguimiento del
           tutor (registro, prevención, rutinas, actividad), NO la salud
           del animal. Tocable para ver de qué se compone. */}
