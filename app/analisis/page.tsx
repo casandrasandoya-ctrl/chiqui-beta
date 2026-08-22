@@ -561,13 +561,138 @@ export default function AnalisisPage() {
   } else {
     if (signosUltimos30 > 0) insights.push({ icon: '🚨', text: `${signosUltimos30} día${signosUltimos30 === 1 ? '' : 's'} con signos de alerta en ${textoPeriodo}. Revisa el detalle más abajo y coméntalo con tu veterinario.`, tipo: 'warn' })
     if (pctBien >= 80) insights.push({ icon: '✅', text: `Energía y ánimo normales o positivos en el ${pctBien}% de los días registrados.`, tipo: 'good' })
-    if (naranjos > 0 || rojos > 0) insights.push({ icon: '👁', text: `Se detectaron ${naranjos + rojos} días con síntomas notables en ${textoPeriodo}. Vale la pena observar.`, tipo: 'warn' })
-    const modaEnerg = modaCampo('energia')
-    if (modaEnerg) insights.push({ icon: '⚡', text: `La señal de energía más frecuente fue "${modaEnerg.val.replace(/_/g,' ')}" (${modaEnerg.count} de ${total} días).`, tipo: 'info' })
-    const vomitos = contarValor('digestion', 'vomito')
-    if (vomitos > 0) insights.push({ icon: '🤮', text: `Se registraron ${vomitos} episodios de vómito. Si se repiten, sería bueno comentarlo con el veterinario.`, tipo: 'warn' })
-    const rascado = contarValor('pelaje', 'rasca')
-    if (rascado >= 3) insights.push({ icon: '🐾', text: `Noté ${rascado} días con rascado registrado. Quizás sería bueno comentarlo en la próxima consulta veterinaria.`, tipo: 'warn' })
+    // --- EPISODIOS CONCRETOS ---
+    // Antes esto decía "Se detectaron 8 días con síntomas notables".
+    // Un tutor que lee eso no sabe qué pasó, cuándo, ni qué contarle al
+    // veterinario. Ahora se nombran los hechos con sus fechas.
+    //
+    // Los días con síntomas se agrupan en EPISODIOS: días seguidos o
+    // separados por uno, porque un malestar de tres días es una cosa
+    // distinta a tres malestares sueltos en el mes.
+    //
+    // Y se muestra la NOTA que escribió la persona junto al síntoma.
+    // Eso es lo que convierte "heces con sangre" —que asusta— en
+    // "heces con sangre, y anoté que había comido un hueso".
+    //
+    // No hay interpretación clínica: solo se ordenan los hechos que la
+    // propia persona registró.
+    const NORMALES: Record<string, string[]> = {
+      digestion: ['normal'], heces: ['normal'], apetito: ['normal'], agua: ['normal'],
+      energia: ['normal', 'alta', 'muy_alta'], animo: ['normal', 'feliz', 'muy_feliz'],
+      movilidad: ['normal'], pelaje: ['brillante', 'normal'], conducta: ['sociable', 'normal'],
+      arenero: ['normal'],
+    }
+    // Etiqueta natural + peso. El peso solo ORDENA dentro del episodio
+    // (lo más relevante primero), no gradúa urgencia ni recomienda nada.
+    const ETQ: Record<string, [string, number]> = {
+      'digestion:vomito': ['vomitó', 10], 'digestion:diarrea': ['diarrea', 10],
+      'digestion:nauseas': ['náuseas', 6], 'digestion:gases': ['gases', 2],
+      'digestion:mal_aliento': ['mal aliento', 4],
+      'heces:con_sangre': ['heces con sangre', 12], 'heces:blandas': ['heces blandas', 7],
+      'heces:duras': ['heces duras', 5], 'heces:no_hizo': ['no hizo heces', 6],
+      'heces:diarrea': ['diarrea', 10],
+      'apetito:nada': ['no comió', 11], 'apetito:menos': ['comió menos', 7],
+      'apetito:mas': ['comió más', 2],
+      'agua:menos': ['tomó menos agua', 6], 'agua:mas': ['tomó más agua', 4],
+      'agua:nada': ['no tomó agua', 10],
+      'energia:muy_baja': ['energía muy baja', 10], 'energia:baja': ['energía baja', 7],
+      'animo:decaido': ['decaído', 8], 'animo:ansioso': ['ansioso', 5],
+      'animo:irritable': ['irritable', 6],
+      'movilidad:cojera': ['cojera', 9], 'movilidad:rigidez': ['rigidez', 6],
+      'movilidad:dificultad': ['dificultad al moverse', 8],
+      'pelaje:rasca': ['se rascó', 4], 'pelaje:lame_exceso': ['se lamió mucho', 5],
+      'pelaje:caida': ['caída de pelo', 4],
+      'conducta:esconde': ['se escondió', 7], 'conducta:agresivo': ['agresivo', 6],
+      'arenero:sangre': ['sangre en la orina', 12], 'arenero:dificultad': ['dificultad al orinar', 11],
+    }
+
+    const diasConSintoma = registros
+      .filter(r => r.fecha)
+      .map(r => {
+        const hallazgos: { etq: string; peso: number }[] = []
+        for (const [campo, normales] of Object.entries(NORMALES)) {
+          const v = r[campo]
+          if (v && !normales.includes(v)) {
+            const par = ETQ[`${campo}:${v}`]
+            hallazgos.push(par
+              ? { etq: par[0], peso: par[1] }
+              : { etq: String(v).replace(/_/g, ' '), peso: 3 })
+          }
+        }
+        return { fecha: r.fecha as string, hallazgos, nota: (r.nota || '').trim() }
+      })
+      .filter(d => d.hallazgos.length > 0)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))
+
+    // Agrupar en episodios. Mediodía para que los cambios de horario de
+    // verano no corran el conteo de días.
+    const episodios: { dias: typeof diasConSintoma }[] = []
+    for (const d of diasConSintoma) {
+      const ultimo = episodios[episodios.length - 1]
+      const finAnterior = ultimo?.dias[ultimo.dias.length - 1]?.fecha
+      const separacion = finAnterior
+        ? Math.round((new Date(d.fecha + 'T12:00:00').getTime() - new Date(finAnterior + 'T12:00:00').getTime()) / 86400000)
+        : 999
+      if (ultimo && separacion <= 2) ultimo.dias.push(d)
+      else episodios.push({ dias: [d] })
+    }
+
+    const MES_EP = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+    const fmtEp = (f: string) => {
+      const d = new Date(f + 'T12:00:00')
+      return `${d.getDate()} ${MES_EP[d.getMonth()]}`
+    }
+
+
+    // QUE SE MUESTRA Y QUE NO
+    // Un vomito suelto o un dia de rascado son hechos aislados: mostrarlos
+    // como hallazgo convierte el resumen en ruido y hace que se deje de
+    // leer. Un episodio entra si cumple alguna de estas:
+    //   - dura 2 dias o mas (hay continuidad)
+    //   - trae algo de peso alto (sangre, no comio, cojera)
+    //   - el mismo sintoma se repite 3 veces o mas en el periodo
+    const PESO_MINIMO = 7
+    const repeticiones = new Map<string, number>()
+    for (const d of diasConSintoma) {
+      for (const h of d.hallazgos) {
+        repeticiones.set(h.etq, (repeticiones.get(h.etq) || 0) + 1)
+      }
+    }
+
+    const episodiosRelevantes = episodios.filter(ep => {
+      if (ep.dias.length >= 2) return true
+      const hs = ep.dias[0].hallazgos
+      if (hs.some(h => h.peso >= PESO_MINIMO)) return true
+      return hs.some(h => (repeticiones.get(h.etq) || 0) >= 3)
+    })
+
+    // Los más recientes primero: lo de ayer importa más que lo del mes
+    // pasado.
+    for (const ep of episodiosRelevantes.slice().reverse()) {
+      const primero = ep.dias[0].fecha
+      const ultimo = ep.dias[ep.dias.length - 1].fecha
+      const titulo = primero === ultimo
+        ? `El ${fmtEp(primero)}`
+        : `Del ${fmtEp(primero)} al ${fmtEp(ultimo)}`
+
+      // Un mismo síntoma en varios días se nombra una vez.
+      const pesos = new Map<string, number>()
+      for (const d of ep.dias) {
+        for (const h of d.hallazgos) {
+          pesos.set(h.etq, Math.max(pesos.get(h.etq) || 0, h.peso))
+        }
+      }
+      const lista = Array.from(pesos.entries()).sort((a, b) => b[1] - a[1]).map(([e]) => e)
+
+      const notas = ep.dias.filter(d => d.nota).map(d => d.nota)
+      const textoNotas = notas.length > 0 ? ` 💬 "${notas[notas.length - 1]}"` : ''
+
+      insights.push({
+        icon: '🔍',
+        text: `${titulo} — ${lista.join(', ')}.${textoNotas}`,
+        tipo: 'warn',
+      })
+    }
   }
 
   const ultimos7 = registros.slice(0, 7).reverse()
