@@ -226,6 +226,9 @@ export default function ChiquiFlotante() {
         totalRegistros: (regs || []).length,
         pctBien: 0,
         textoPeriodo: 'los últimos 30 días',
+        // La fecha de hoy en Chile: sin ella el chat no puede
+        // recortar las señales al período que pide la persona.
+        hoyISO: hoy,
         paseosMes: m.especie === 'Perro'
           ? { cantidad: paseosMes.length, minutos: minutosMes, nombreMes: MESES_LARGO[Number(hoy.slice(5, 7)) - 1] }
           : null,
