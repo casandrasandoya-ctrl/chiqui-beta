@@ -323,6 +323,18 @@ function detectar(q: string, frases: string[]): number {
   return puntos
 }
 
+// El menú que se ofrece cuando no se entiende o cuando no hay datos.
+// Dos caminos: los botones son seguros, el texto libre es más rápido
+// para quien ya sabe qué preguntar.
+const MENU = [
+  '📋 ¿Cómo ha estado?',
+  '💉 Vacunas',
+  '⚖️ Peso',
+  '💊 Medicamentos',
+  '🧪 Exámenes',
+  '💡 Chiqui Tips',
+]
+
 // ============================================================
 // LA RESPUESTA
 // ============================================================
@@ -334,7 +346,51 @@ function responder(
   ultimoTema: Tema,
   vecesPorTema: Record<string, number>,
 ): Respuesta {
-  const q = normalizar(pregunta).replace(/[¿?¡!.,;:]/g, ' ').trim()
+  // Se quitan los emojis: los botones del menú los traen y no aportan
+  // a reconocer la intención.
+  const q = normalizar(pregunta)
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, ' ')
+    .replace(/[¿?¡!.,;:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  // --- 0. EMERGENCIAS: antes que absolutamente todo ---
+  // Si alguien escribe que su mascota convulsiona, no es momento de
+  // conversar. Se dice qué hacer y se corta.
+  const EMERGENCIAS: { palabras: string[]; que: string; haz: string[] }[] = [
+    { palabras: ['convuls', 'ataque', 'se sacude', 'temblando sin control'],
+      que: 'Una convulsión',
+      haz: ['Aleja los objetos que tenga cerca', 'Cronometra cuánto dura', 'No lo sujetes ni le pongas nada en la boca'] },
+    { palabras: ['no respira', 'le cuesta respirar', 'dificultad para respirar', 'se ahoga', 'ahogando'],
+      que: 'La dificultad para respirar',
+      haz: ['Mantenlo tranquilo y en un lugar fresco', 'No le des agua ni comida', 'Ve al veterinario ahora'] },
+    { palabras: ['se desmayo', 'perdio el conocimiento', 'no reacciona', 'no responde', 'inconsciente'],
+      que: 'La pérdida de conciencia',
+      haz: ['Ponlo de costado en un lugar seguro', 'Revisa si respira', 'Ve al veterinario ahora'] },
+    { palabras: ['sangra mucho', 'sangrado', 'mucha sangre', 'hemorragia'],
+      que: 'Un sangrado abundante',
+      haz: ['Presiona la herida con un paño limpio', 'No le quites el paño si se empapa: pon otro encima', 'Ve al veterinario ahora'] },
+    { palabras: ['golpe de calor', 'muy caliente', 'jadea sin parar', 'se sobrecalento'],
+      que: 'Un golpe de calor',
+      haz: ['Llévalo a un lugar fresco y con sombra', 'Mójale patas y barriga con agua a temperatura ambiente, nunca helada', 'Ve al veterinario ahora'] },
+    { palabras: ['se intoxic', 'comio veneno', 'intoxicacion', 'tomo veneno'],
+      que: 'Una posible intoxicación',
+      haz: ['No lo hagas vomitar sin que te lo indiquen', 'Lleva el envase de lo que comió si lo tienes', 'Ve al veterinario ahora'] },
+    { palabras: ['lo atropell', 'se cayo de', 'accidente', 'lo golpeo un auto'],
+      que: 'Un accidente o golpe fuerte',
+      haz: ['Muévelo lo menos posible', 'Usa una superficie plana para trasladarlo', 'Ve al veterinario aunque se vea bien'] },
+    { palabras: ['no puede caminar', 'no mueve las patas', 'paralisis', 'arrastra las patas'],
+      que: 'No poder caminar',
+      haz: ['Muévelo lo menos posible', 'Trasládalo en una superficie plana', 'Ve al veterinario ahora'] },
+  ]
+  const emerg = EMERGENCIAS.find(e => e.palabras.some(p => q.includes(p)))
+  if (emerg) {
+    return {
+      texto: `🚨 **${emerg.que} puede ser una urgencia.**\n\n${emerg.haz.map(h => `· ${h}`).join('\n')}\n\nSi está pasando ahora, ve al veterinario de inmediato. Yo no puedo evaluarlo.`,
+      tema: null,
+      opciones: ['Registrar signo de alerta'],
+    }
+  }
 
   // --- 1. ALIMENTOS: siempre primero, y por nombre exacto ---
   const alimento = buscarAlimento(pregunta)
@@ -392,6 +448,16 @@ function responder(
   const empiezaConY = /^(y|pero|entonces|ademas|tambien)\b/.test(q)
   const muyCorta = q.split(/\s+/).filter(Boolean).length <= 3
 
+  // "Chiqui Tips" desde el menú: se ofrecen los temas disponibles.
+  if (/\bchiqui tips\b|\btips\b/.test(q)) {
+    return {
+      texto: `Puedo contarte sobre estos temas:`,
+      tema: null,
+      opciones: ['¿Qué puede comer?', '¿Qué hago si está ansioso?', '¿Cómo deben ser sus heces?',
+                 '¿Cuánta agua necesita?', '¿Está en su peso ideal?', '¿Cuáles son los signos de alerta?'],
+    }
+  }
+
   // --- 4. ¿PIDE DATOS O PIDE CONSEJO? ---
   // "¿ha cojeado?" pregunta por SUS registros. "¿por qué cojea?" pide
   // explicación. Sin esta distinción los consejos se comían todas las
@@ -427,7 +493,10 @@ function responder(
   // nuevo siempre le gana al anterior — antes bastaba con que la
   // pregunta fuera corta, y por eso "¿cuánto pesa?" seguía respondiendo
   // sobre ansiedad.
-  if (mejor.puntos === 0 && (empiezaConY || muyCorta) && ultimoTema) {
+  // SOLO con "y/pero/entonces" al principio. Antes bastaba con que la
+  // pregunta fuera corta, y por eso "calor", "vet" o "codifica"
+  // heredaban el tema anterior y respondian cualquier cosa.
+  if (mejor.puntos === 0 && empiezaConY && ultimoTema) {
     // "¿Y qué más?" después de un consejo: el siguiente del mismo tema.
     if (ultimoTema.startsWith('consejo:')) {
       const temaConsejo = ultimoTema.slice('consejo:'.length)
@@ -447,18 +516,31 @@ function responder(
 
   switch (mejor.tema) {
     case 'peso': {
-      if (!d.peso) return { texto: `No tengo controles de peso de ${d.nombre}. Puedes anotarlos en Salud → Peso: sirven mucho para ver cambios a tiempo.`, tema: 'peso' }
-      let r = `${d.nombre} pesa ${d.peso.actual} kg, del control del ${d.peso.fecha}.`
+      if (!d.peso) {
+        return {
+          texto: `No tengo controles de peso de ${d.nombre}. Puedes anotarlos en Salud → Peso: sirven mucho para ver cambios a tiempo.`,
+          tema: 'peso',
+          opciones: MENU,
+        }
+      }
+      // Se cuenta la historia completa, no solo el número: de dónde
+      // viene, cuánto cambió y desde cuándo. Es lo que hace que se
+      // sienta como alguien que conoce a la mascota.
+      let r = `🐾 Revisé los registros de ${d.nombre}.\n\nSu último peso fue **${d.peso.actual} kg**, del ${d.peso.fecha}.`
       if (d.peso.anterior != null) {
         const dif = +(d.peso.actual - d.peso.anterior).toFixed(1)
-        if (dif === 0) r += ' Igual que el control anterior.'
-        else {
+        if (dif === 0) {
+          r += ` El control anterior fue igual: ${d.peso.anterior} kg. Se ha mantenido estable.`
+        } else {
           const pct = Math.abs(dif / d.peso.anterior) * 100
-          r += ` ${dif > 0 ? 'Subió' : 'Bajó'} ${Math.abs(dif)} kg desde el anterior (${d.peso.anterior} kg).`
+          const gramos = Math.abs(dif) < 1 ? `${Math.round(Math.abs(dif) * 1000)} g` : `${Math.abs(dif)} kg`
+          r += ` El anterior fue ${d.peso.anterior} kg.\n\nHas registrado ${dif > 0 ? 'un aumento' : 'una baja'} de **${gramos}**.`
           // El 5% es el mismo umbral que usa la vista del veterinario.
-          // Se menciona, no se diagnostica.
-          if (pct >= 5) r += ` Es más del 5%, así que vale la pena comentarlo en la próxima consulta.`
+          // Se menciona el hecho, no se diagnostica.
+          if (pct >= 5) r += ` Es más del 5% de su peso, así que vale la pena comentarlo en la próxima consulta.`
         }
+      } else {
+        r += ` Es el único control que tengo, así que todavía no puedo compararlo.`
       }
       return { texto: r, tema: 'peso' }
     }
@@ -551,11 +633,14 @@ function responder(
     if (c) return { texto: c.texto, tema: `consejo:${c.tema}` as Tema }
   }
 
-  // --- No se entendió: se dice, sin inventar ---
+  // --- No se entendió ---
+  // Se admite sin rodeos y se ofrece el menú. Antes heredaba el tema
+  // anterior y respondía sobre exámenes a "¿sabes codificar?", que es
+  // peor que decir que no se sabe.
   return {
-    texto: `No estoy segura de qué quieres saber. Puedo ayudarte con los registros de ${d.nombre}, sus cuidados, o si un alimento le hace mal.`,
+    texto: `Eso está fuera de lo que puedo consultar 🐾\n\nYo conozco la historia de ${d.nombre}: lo que registras día a día, sus cuidados y su salud. Sobre otros temas no sé.\n\n¿Qué quieres hacer?`,
     tema: null,
-    opciones: ['¿Cómo ha estado?', '¿Cuánto pesa?', '¿Qué vacuna le toca?'],
+    opciones: MENU,
   }
 }
 
@@ -563,27 +648,26 @@ export default function ChiquiChat({ datos }: { datos: DatosChat }) {
   const [abierto, setAbierto] = useState(false)
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [texto, setTexto] = useState('')
-  // El tema de la última respuesta, para entender "¿y antes?".
+  // Chiqui "escribiendo": una pausa corta antes de responder. Sin ella
+  // la respuesta aparece instantánea y se siente a máquina.
+  const [pensando, setPensando] = useState(false)
   const [ultimoTema, setUltimoTema] = useState<Tema>(null)
-  // Cuántas veces se preguntó por cada tema de consejos, para ir
-  // rotando: preguntar dos veces por ansiedad no debe dar lo mismo.
   const [veces, setVeces] = useState<Record<string, number>>({})
   const finRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!abierto || mensajes.length > 0) return
-    const saludo = `Hola 🐾 Soy Chiqui. **No soy una inteligencia artificial**: te cuento lo que tú misma registras, nada más.`
+    const saludo = `Hola 🐾 Soy Chiqui.\n\n**No soy una inteligencia artificial**: conozco la historia de ${datos.nombre} porque tú la registras.`
     const resumen = datos.episodios.length > 0
-      ? `En ${datos.textoPeriodo} anotaste esto de ${datos.nombre}:\n\n${datos.episodios.map(e => `· ${e}`).join('\n\n')}`
-      : `En ${datos.textoPeriodo} no hubo episodios destacables en ${datos.nombre}. Vas bien.`
+      ? `En ${datos.textoPeriodo} anotaste esto:\n\n${datos.episodios.map(e => `· ${e}`).join('\n\n')}`
+      : `En ${datos.textoPeriodo} no hubo episodios destacables. Vas bien.`
     setMensajes([
       { de: 'chiqui', texto: saludo },
-      { de: 'chiqui', texto: resumen },
-      { de: 'chiqui', texto: `Pregúntame por su peso, vacunas, paseos, cuándo lo bañaste, si un alimento le hace mal, o qué hacer si anda ansioso.` },
+      { de: 'chiqui', texto: resumen, opciones: MENU },
     ])
   }, [abierto, mensajes.length, datos])
 
-  useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [mensajes])
+  useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [mensajes, pensando])
   useEffect(() => {
     document.body.style.overflow = abierto ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
@@ -591,66 +675,94 @@ export default function ChiquiChat({ datos }: { datos: DatosChat }) {
 
   function enviar(pregunta?: string) {
     const q = (pregunta ?? texto).trim()
-    if (!q) return
+    if (!q || pensando) return
     setTexto('')
-    const r = responder(q, datos, ultimoTema, veces)
-    setUltimoTema(r.tema)
-    // Se cuenta el tema del consejo para rotar la próxima vez. También
-    // cuando se continúa uno con "¿y qué más?", que no pasa por
-    // buscarConsejo pero sí consume una opción.
-    const c = buscarConsejo(q, veces)
-    const temaConsejo = c ? c.tema : (r.tema && r.tema.startsWith('consejo:') ? r.tema.slice(8) : null)
-    if (temaConsejo) setVeces(v => ({ ...v, [temaConsejo]: (v[temaConsejo] || 0) + 1 }))
-    setMensajes(m => [...m, { de: 'tu', texto: q }, { de: 'chiqui', texto: r.texto, opciones: r.opciones }])
-  }
+    setMensajes(m => [...m, { de: 'tu', texto: q }])
+    setPensando(true)
 
-  const SUGERENCIAS = ['¿Cómo ha estado?', '¿Cuánto pesa?', '¿Qué vacuna le toca?', '¿Anda ansioso?']
+    // La pausa es corta a propósito: suficiente para que se sienta una
+    // conversación, no tanto como para impacientar.
+    setTimeout(() => {
+      const r = responder(q, datos, ultimoTema, veces)
+      setUltimoTema(r.tema)
+      const c = buscarConsejo(q, veces)
+      const temaConsejo = c ? c.tema : (r.tema && r.tema.startsWith('consejo:') ? r.tema.slice(8) : null)
+      if (temaConsejo) setVeces(v => ({ ...v, [temaConsejo]: (v[temaConsejo] || 0) + 1 }))
+      setPensando(false)
+      setMensajes(m => [...m, { de: 'chiqui', texto: r.texto, opciones: r.opciones }])
+    }, 420)
+  }
 
   return (
     <>
       <button
         onClick={() => setAbierto(true)}
-        className="mx-4 mb-4 bg-[#FFFCF8] border border-[#EEE2D4] rounded-2xl px-4 py-3 flex items-center gap-3 text-left"
-        style={{ width: 'calc(100% - 2rem)' }}
+        className="mx-4 mb-4 rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
+        style={{
+          width: 'calc(100% - 2rem)',
+          background: 'linear-gradient(135deg, #FFFCF8 0%, #FBEAD9 100%)',
+          border: '1.5px solid #EEE2D4',
+        }}
       >
-        <img src="/chiqui/chiqui_ia.png" alt="" className="w-11 h-11 object-contain flex-shrink-0" />
+        <div className="relative flex-shrink-0">
+          <img src="/chiqui/chiqui_ia.png" alt="" className="w-12 h-12 object-contain" />
+          {/* Punto verde: señal de que está disponible, como en las apps
+              de mensajería. */}
+          <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#FFFCF8]" style={{ background: '#4CAF7D' }} />
+        </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-[#3D2B1F]">Habla conmigo</p>
-          <p className="text-[11px] text-[#8A7560] leading-snug">Te cuento lo que registraste de {datos.nombre}</p>
+          <p className="text-[11px] text-[#8A7560] leading-snug">Conozco la historia de {datos.nombre}</p>
         </div>
-        <span className="text-[#8C572F] text-lg flex-shrink-0">›</span>
+        <span className="text-[#CD7421] text-xl flex-shrink-0">›</span>
       </button>
 
       {abierto && (
         <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: '#F5EDE3' }}>
-          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#EEE2D4] bg-[#FFFCF8] flex-shrink-0">
-            <img src="/chiqui/chiqui_ia.png" alt="" className="w-9 h-9 object-contain" />
+          {/* Encabezado */}
+          <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0"
+            style={{ background: '#FFFCF8', borderBottom: '1px solid #EEE2D4' }}>
+            <div className="relative flex-shrink-0">
+              <img src="/chiqui/chiqui_ia.png" alt="" className="w-10 h-10 object-contain" />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#FFFCF8]" style={{ background: '#4CAF7D' }} />
+            </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-[#3D2B1F]">Chiqui</p>
-              <p className="text-[10px] text-[#8A7560]">Sobre lo que registras · no es una IA</p>
+              <p className="text-[15px] font-bold text-[#3D2B1F] leading-tight">Chiqui</p>
+              <p className="text-[10px] text-[#8A7560]">No es una IA · conoce lo que registras</p>
             </div>
             <button onClick={() => setAbierto(false)} aria-label="Cerrar"
-              className="w-8 h-8 rounded-full bg-[#F0E2CE] text-[#8C572F] font-bold flex items-center justify-center">✕</button>
+              className="w-9 h-9 rounded-full flex items-center justify-center text-[#8C572F] text-lg active:scale-95 transition-transform"
+              style={{ background: '#F0E2CE' }}>✕</button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2.5">
+          {/* Conversación */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {mensajes.map((m, i) => (
               <div key={i}>
-                <div className={m.de === 'tu' ? 'flex justify-end' : 'flex justify-start'}>
-                  <div className="max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-line"
+                <div className={m.de === 'tu' ? 'flex justify-end' : 'flex justify-start gap-2 items-end'}>
+                  {/* La carita solo en el primer mensaje de una tanda:
+                      repetirla en cada burbuja satura. */}
+                  {m.de === 'chiqui' && (
+                    <img src="/chiqui/chiqui_ia.png" alt=""
+                      className="w-7 h-7 object-contain flex-shrink-0 mb-0.5"
+                      style={{ visibility: i > 0 && mensajes[i - 1].de === 'chiqui' ? 'hidden' : 'visible' }} />
+                  )}
+                  <div className="max-w-[80%] px-4 py-2.5 text-[14px] leading-[1.55] whitespace-pre-line"
                     style={m.de === 'tu'
-                      ? { background: '#FFBD59', color: '#1A1200' }
-                      : { background: '#FFFCF8', color: '#3D2B1F', border: '1px solid #EEE2D4' }}>
+                      ? { background: '#FFBD59', color: '#1A1200',
+                          borderRadius: '18px 18px 4px 18px' }
+                      : { background: '#FFFCF8', color: '#3D2B1F',
+                          borderRadius: '18px 18px 18px 4px',
+                          boxShadow: '0 1px 2px rgba(61,43,31,0.06)' }}>
                     {m.texto.split('**').map((parte, j) => j % 2 === 1 ? <strong key={j}>{parte}</strong> : parte)}
                   </div>
                 </div>
-                {/* Opciones para desambiguar: en vez de adivinar qué
-                    quiso decir, se le pregunta. */}
                 {m.opciones && m.opciones.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  <div className="flex flex-wrap gap-2 mt-2.5 ml-9">
                     {m.opciones.map(o => (
                       <button key={o} onClick={() => enviar(o)}
-                        className="text-[11px] font-semibold text-[#8C572F] bg-[#FBEAD9] border border-[#EEE2D4] rounded-full px-3 py-1.5">
+                        className="text-[12px] font-semibold text-[#8C572F] px-3.5 py-2 active:scale-95 transition-transform"
+                        style={{ background: '#FFFCF8', border: '1.5px solid #E8D5BE', borderRadius: '14px' }}>
                         {o}
                       </button>
                     ))}
@@ -658,27 +770,44 @@ export default function ChiquiChat({ datos }: { datos: DatosChat }) {
                 )}
               </div>
             ))}
+
+            {/* Escribiendo */}
+            {pensando && (
+              <div className="flex justify-start gap-2 items-end">
+                <img src="/chiqui/chiqui_ia.png" alt="" className="w-7 h-7 object-contain flex-shrink-0 mb-0.5" />
+                <div className="px-4 py-3.5 flex gap-1.5"
+                  style={{ background: '#FFFCF8', borderRadius: '18px 18px 18px 4px', boxShadow: '0 1px 2px rgba(61,43,31,0.06)' }}>
+                  {[0, 1, 2].map(n => (
+                    <span key={n} className="w-1.5 h-1.5 rounded-full"
+                      style={{ background: '#CD7421', animation: `chiquiPunto 1.2s ${n * 0.18}s infinite ease-in-out` }} />
+                  ))}
+                </div>
+              </div>
+            )}
             <div ref={finRef} />
           </div>
 
-          <div className="flex-shrink-0 border-t border-[#EEE2D4] bg-[#FFFCF8]">
-            <div className="flex gap-1.5 px-3 py-2 overflow-x-auto">
-              {SUGERENCIAS.map(s => (
-                <button key={s} onClick={() => enviar(s)}
-                  className="flex-shrink-0 text-[11px] font-semibold text-[#8C572F] bg-[#FBEAD9] border border-[#EEE2D4] rounded-full px-3 py-1.5">
-                  {s}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2 px-3 pb-3">
+          {/* Escribir */}
+          <div className="flex-shrink-0" style={{ background: '#FFFCF8', borderTop: '1px solid #EEE2D4' }}>
+            <div className="flex gap-2 px-3 py-3">
               <input value={texto} onChange={e => setTexto(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') enviar() }}
-                placeholder="Pregúntame algo..."
-                className="flex-1 bg-[#FBEAD9] border border-[#EEE2D4] rounded-xl px-3.5 py-2.5 text-sm text-[#3D2B1F] placeholder-[#8A7560] focus:outline-none" />
-              <button onClick={() => enviar()} disabled={!texto.trim()}
-                className="bg-[#FFBD59] text-[#1A1200] font-bold px-4 rounded-xl text-sm disabled:opacity-40">Enviar</button>
+                placeholder={`Pregúntame sobre ${datos.nombre}...`}
+                className="flex-1 px-4 py-3 text-[14px] text-[#3D2B1F] placeholder-[#B5A38F] focus:outline-none"
+                style={{ background: '#F5EDE3', border: '1.5px solid #EEE2D4', borderRadius: '22px' }} />
+              <button onClick={() => enviar()} disabled={!texto.trim() || pensando}
+                aria-label="Enviar"
+                className="w-12 h-12 flex items-center justify-center text-[#1A1200] text-lg font-bold flex-shrink-0 disabled:opacity-35 active:scale-95 transition-transform"
+                style={{ background: '#FFBD59', borderRadius: '50%' }}>↑</button>
             </div>
           </div>
+
+          <style>{`
+            @keyframes chiquiPunto {
+              0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+              30% { opacity: 1; transform: translateY(-3px); }
+            }
+          `}</style>
         </div>
       )}
     </>
