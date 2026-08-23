@@ -34,10 +34,15 @@ export interface DatosChat {
   medicamentos?: { nombre: string; desde: string }[]
   vacunas?: { nombre: string; proxima: string | null; dias: number | null }[]
   antiparasitarios?: { nombre: string; proxima: string | null; dias: number | null }[]
-  senales?: { campo: string; etiqueta: string; fecha: string; nota: string }[]
+  // fecha es para mostrar ("26 jul") y fechaISO para comparar contra
+  // las visitas al veterinario.
+  senales?: { campo: string; etiqueta: string; fecha: string; fechaISO?: string; nota: string }[]
   cuidados?: { label: string; palabras: string[]; diasDesde: number; cadaCuantos: number | null }[]
   examenes?: { nombre: string; fecha: string }[]
   visitasVet?: string[]
+  // Para poder mostrar la fecha en formato legible sin repetir el
+  // formateador acá.
+  fmtVisita?: (iso: string) => string
 }
 
 interface Mensaje { de: 'chiqui' | 'tu'; texto: string; opciones?: string[] }
@@ -273,7 +278,7 @@ function buscarConsejo(pregunta: string, vecesPorTema: Record<string, number>): 
 // coinciden y gana la que más — no la primera que calza. Así "¿qué
 // vacunas vienen?" no cae en el corte de uñas por la raíz "una".
 type Tema = 'peso' | 'vacunas' | 'antiparasitarios' | 'medicamentos' | 'paseos'
-  | 'senal' | 'cuidado' | 'examenes' | 'resumen' | 'vet'
+  | 'senal' | 'cuidado' | 'examenes' | 'resumen' | 'vet' | 'visitas'
   // Los consejos también son un tema, para que "¿y qué más?" después de
   // uno de ansiedad devuelva el siguiente en vez de no entender.
   | 'consejo:ansiedad' | 'consejo:aburrimiento' | 'consejo:heces' | null
@@ -295,6 +300,10 @@ const INTENCIONES: Intencion[] = [
       'perfil bio', 'resultado', 'laboratorio', 'analisis de sangre'] },
   { tema: 'vet', frases: ['que le cuento', 'le cuento al', 'llevar al vet', 'para la consulta',
       'preparar la consulta', 'que le digo al'] },
+  // Preguntar por la ÚLTIMA visita es distinto de preparar la próxima.
+  { tema: 'visitas', frases: ['fue al veterinario', 'fuimos al vet', 'ultima vez al vet',
+      'cuando fue al vet', 'lo lleve al vet', 'visita al veterinario', 'visitas al vet',
+      'ha ido al vet', 'consulta veterinaria', 'ultima consulta'] },
   { tema: 'resumen', frases: ['como ha estado', 'como esta', 'que le paso', 'que paso',
       'ha estado enfermo', 'estuvo enfermo', 'ultimamente', 'todo', 'resumen', 'episodi'] },
 ]
@@ -608,6 +617,40 @@ function responder(
       if (n === 0) return { texto: `Los exámenes los guardo en Salud → Exámenes.\n\nEso sí, leerlos es cosa de tu veterinario: los valores dependen de la edad, el estado de ${d.nombre} y el laboratorio.`, tema: 'examenes' }
       const lista = (d.examenes || []).slice(0, 3).map(e => `· ${e.nombre} — ${e.fecha}`).join('\n')
       return { texto: `Tengo ${n} examen${n === 1 ? '' : 'es'} guardado${n === 1 ? '' : 's'}:\n${lista}\n\nInterpretarlos es cosa de tu veterinario. Si quieres, genera el link desde tu perfil y los ve todos.`, tema: 'examenes' }
+    }
+
+    case 'visitas': {
+      if (!d.visitasVet || d.visitasVet.length === 0) {
+        return {
+          texto: `No tengo visitas al veterinario registradas de ${d.nombre}.\n\nPuedes anotarlas en Salud → Visitas, o marcando "fue al vet" en el registro del día.`,
+          tema: 'visitas',
+          opciones: MENU,
+        }
+      }
+      // La última primero: es la que importa.
+      const ordenadas = d.visitasVet.slice().sort().reverse()
+      const ultima = ordenadas[0]
+
+      // Lo que estaba pasando esa semana. Es el cruce que hace útil el
+      // dato: una visita sola no dice nada, una visita con lo que se
+      // registró alrededor sí.
+      const cerca = (d.senales || []).filter(s => s.fechaISO && Math.abs(
+        (new Date(s.fechaISO + 'T12:00:00').getTime() - new Date(ultima + 'T12:00:00').getTime()) / 86400000
+      ) <= 5)
+
+      let r = `La última vez que fueron al veterinario fue el **${d.fmtVisita ? d.fmtVisita(ultima) : ultima}**.`
+      if (cerca.length > 0) {
+        const etiquetas = Array.from(new Set(cerca.map(s => s.etiqueta)))
+        r += `\n\nEsos días habías registrado: ${etiquetas.join(', ')}.`
+        const conNota = cerca.find(s => s.nota)
+        if (conNota) r += `\n💬 "${conNota.nota}"`
+      } else {
+        r += `\n\nEsos días no habías registrado nada fuera de lo normal.`
+      }
+      if (ordenadas.length > 1) {
+        r += `\n\nEn total llevas ${ordenadas.length} visitas registradas.`
+      }
+      return { texto: r, tema: 'visitas' }
     }
 
     case 'vet': {
