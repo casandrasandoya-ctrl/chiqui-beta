@@ -724,7 +724,16 @@ function responder(
   }
 }
 
-export default function ChiquiChat({ datos }: { datos: DatosChat }) {
+export default function ChiquiChat({
+  datos,
+  flotante = false,
+}: {
+  datos: DatosChat
+  // En Análisis es una tarjeta dentro del contenido. En el resto de las
+  // pantallas es una burbuja fija abajo a la derecha, que aparece unos
+  // segundos después de entrar.
+  flotante?: boolean
+}) {
   const [abierto, setAbierto] = useState(false)
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [texto, setTexto] = useState('')
@@ -734,6 +743,19 @@ export default function ChiquiChat({ datos }: { datos: DatosChat }) {
   const [ultimoTema, setUltimoTema] = useState<Tema>(null)
   const [veces, setVeces] = useState<Record<string, number>>({})
   const finRef = useRef<HTMLDivElement>(null)
+  // La burbuja no aparece de inmediato: unos segundos después, para no
+  // competir con lo que la persona vino a hacer.
+  const [visible, setVisible] = useState(!flotante)
+  const [saludo, setSaludo] = useState(false)
+
+  useEffect(() => {
+    if (!flotante) return
+    const t1 = setTimeout(() => setVisible(true), 2500)
+    const t2 = setTimeout(() => setSaludo(true), 3200)
+    // El saludo se retira solo: si nadie lo toca, deja de estorbar.
+    const t3 = setTimeout(() => setSaludo(false), 9000)
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+  }, [flotante])
 
   useEffect(() => {
     if (!abierto || mensajes.length > 0) return
@@ -775,27 +797,66 @@ export default function ChiquiChat({ datos }: { datos: DatosChat }) {
 
   return (
     <>
-      <button
-        onClick={() => setAbierto(true)}
-        className="mx-4 mb-4 rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
-        style={{
-          width: 'calc(100% - 2rem)',
-          background: 'linear-gradient(135deg, #FFFCF8 0%, #FBEAD9 100%)',
-          border: '1.5px solid #EEE2D4',
-        }}
-      >
-        <div className="relative flex-shrink-0">
-          <img src="/chiqui/chiqui_ia.png" alt="" className="w-12 h-12 object-contain" />
-          {/* Punto verde: señal de que está disponible, como en las apps
-              de mensajería. */}
-          <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#FFFCF8]" style={{ background: '#4CAF7D' }} />
+      {flotante ? (
+        // Burbuja flotante, sobre la barra de abajo.
+        <div
+          className="fixed right-4 z-40 flex items-center gap-2"
+          style={{
+            bottom: '88px',
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'translateY(0)' : 'translateY(12px)',
+            transition: 'opacity .35s ease, transform .35s ease',
+            pointerEvents: visible ? 'auto' : 'none',
+          }}
+        >
+          {saludo && (
+            <button
+              onClick={() => setAbierto(true)}
+              className="px-3.5 py-2.5 text-[12px] font-semibold text-[#3D2B1F] whitespace-nowrap"
+              style={{
+                background: '#FFFCF8',
+                border: '1.5px solid #EEE2D4',
+                borderRadius: '16px 16px 4px 16px',
+                boxShadow: '0 2px 8px rgba(61,43,31,0.10)',
+                animation: 'chiquiEntra .3s ease',
+              }}
+            >
+              Soy Chiqui, ¿hablamos?
+            </button>
+          )}
+          <button
+            onClick={() => setAbierto(true)}
+            aria-label="Hablar con Chiqui"
+            className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+            style={{
+              background: 'linear-gradient(135deg, #FFBD59 0%, #CD7421 100%)',
+              boxShadow: '0 4px 14px rgba(140,87,47,0.30)',
+            }}
+          >
+            <img src="/chiqui/chiqui_ia.png" alt="" className="w-10 h-10 object-contain" />
+          </button>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-[#3D2B1F]">Habla conmigo</p>
-          <p className="text-[11px] text-[#8A7560] leading-snug">Conozco la historia de {datos.nombre}</p>
-        </div>
-        <span className="text-[#CD7421] text-xl flex-shrink-0">›</span>
-      </button>
+      ) : (
+        <button
+          onClick={() => setAbierto(true)}
+          className="mx-4 mb-4 rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left transition-transform active:scale-[0.98]"
+          style={{
+            width: 'calc(100% - 2rem)',
+            background: 'linear-gradient(135deg, #FFFCF8 0%, #FBEAD9 100%)',
+            border: '1.5px solid #EEE2D4',
+          }}
+        >
+          <div className="relative flex-shrink-0">
+            <img src="/chiqui/chiqui_ia.png" alt="" className="w-12 h-12 object-contain" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#FFFCF8]" style={{ background: '#4CAF7D' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-[#3D2B1F]">Habla conmigo</p>
+            <p className="text-[11px] text-[#8A7560] leading-snug">Conozco la historia de {datos.nombre}</p>
+          </div>
+          <span className="text-[#CD7421] text-xl flex-shrink-0">›</span>
+        </button>
+      )}
 
       {abierto && (
         <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: '#F5EDE3' }}>
@@ -886,6 +947,10 @@ export default function ChiquiChat({ datos }: { datos: DatosChat }) {
             @keyframes chiquiPunto {
               0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
               30% { opacity: 1; transform: translateY(-3px); }
+            }
+            @keyframes chiquiEntra {
+              from { opacity: 0; transform: scale(0.9) translateX(8px); }
+              to { opacity: 1; transform: scale(1) translateX(0); }
             }
           `}</style>
         </div>
