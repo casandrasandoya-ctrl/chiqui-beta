@@ -1341,7 +1341,7 @@ export default function AnalisisPage() {
     'conducta:esconde': 'se escondió', 'conducta:agresivo': 'agresivo',
     'arenero:sangre': 'sangre en la orina', 'arenero:dificultad': 'dificultad al orinar',
   }
-  const senalesChat: { campo: string; etiqueta: string; fecha: string; nota: string }[] = []
+  const senalesChat: { campo: string; etiqueta: string; fecha: string; fechaISO: string; nota: string }[] = []
   for (const r of (registros || [])) {
     if (!r.fecha) continue
     for (const [campo, normales] of Object.entries(SENALES_CHAT)) {
@@ -1351,6 +1351,9 @@ export default function AnalisisPage() {
           campo,
           etiqueta: ETQ_CHAT[`${campo}:${v}`] || String(v).replace(/_/g, ' '),
           fecha: fmtChat(r.fecha),
+          // La fecha sin formatear, para poder cruzarla con las visitas
+          // al veterinario.
+          fechaISO: String(r.fecha).slice(0, 10),
           nota: (r.nota || '').trim(),
         })
       }
@@ -1389,6 +1392,10 @@ export default function AnalisisPage() {
       dias: diasHastaChat(a.proxima_fecha),
     })),
     senales: senalesChat,
+    // Las visitas ya se cargan para los episodios (script 439): acá se
+    // reusan para poder responder "¿cuándo fue al veterinario?".
+    visitasVet,
+    fmtVisita: fmtChat,
     cuidados: cuidadosChat,
     examenes: (examenesChat || []).map((e: any) => ({
       nombre: e.nombre || e.tipo || e.categoria || 'Examen',
