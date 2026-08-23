@@ -297,6 +297,93 @@ function buscarConsejo(pregunta: string, vecesPorTema: Record<string, number>): 
 }
 
 // ============================================================
+// CÓMO USAR LA APP
+// ============================================================
+// Preguntarle a Chiqui dónde se hace algo es más natural que buscar un
+// tutorial, y él ya está en todas las pantallas.
+//
+// Cada respuesta es el CAMINO CONCRETO, no una explicación general:
+// "toca Salud abajo, entra a Vacunas, toca + Agregar". Quien pregunta
+// esto quiere hacer algo ahora, no entender el sistema.
+interface Comolo { palabras: string[]; texto: string }
+
+const COMOLO: Comolo[] = [
+  { palabras: ['vacuna'],
+    texto: 'Toca **Salud** en la barra de abajo, entra a **Vacunas** y usa **+ Agregar**.\n\nAnota el nombre, la fecha en que se la pusieron y cuándo toca la próxima. Con eso te aviso antes de que venza.' },
+
+  { palabras: ['antiparasit', 'desparasit'],
+    texto: 'Toca **Salud**, entra a **Antiparasitarios** y usa **+ Agregar**.\n\nSi anotas cada cuántos días toca, te aviso cuando se acerque la próxima dosis.' },
+
+  { palabras: ['perfil', 'sus datos', 'el nombre', 'la raza', 'el sexo', 'la foto', 'esterilizad'],
+    texto: 'Toca las **tres líneas** de arriba a la derecha, entra a **Perfil y cuenta**, y ahí abre **Datos del perfil**.\n\nCon el botón **Editar** puedes corregir el nombre, la raza, el sexo, la fecha de nacimiento y todo lo demás. La foto se cambia tocando el botoncito sobre la imagen.' },
+
+  { palabras: ['cotutor', 'co tutor', 'otra persona', 'mi pareja', 'mi familia',
+               'alguien mas', 'otro cuidador'],
+    texto: 'En el **Perfil** hay una tarjeta de **Co-tutor**. Toca **+ Generar código** y comparte ese código con quien quieras.\n\nEsa persona lo ingresa desde el botón **+** del selector de mascotas, en "Tengo un código". Desde ahí las dos pueden registrar a la misma mascota.' },
+
+  { palabras: ['observacion', 'herida', 'masa', 'bulto', 'lesion', 'seguimiento'],
+    texto: 'Toca **Salud** y entra a **Observaciones**. Usa **+ Agregar** y describe lo que viste.\n\nDespués puedes ir sumando su evolución con fotos: cómo estaba el primer día, cómo va después. Eso es justo lo que tu veterinario necesita ver.' },
+
+  { palabras: ['el peso', 'pesar', 'los kilos'],
+    texto: 'Toca **Salud** y entra a **Peso**. Ahí anotas los kilos y la fecha.\n\nCon dos o más controles ya puedo decirte si subió o bajó, y cuánto.' },
+
+  { palabras: ['medicament', 'remedio', 'tratamiento'],
+    texto: 'Toca **Salud**, entra a **Medicamentos** y usa **+ Agregar**.\n\nAnota cada cuántos días toca la dosis: así te aviso los días que corresponde y llevas la cuenta de las que ya diste.' },
+
+  { palabras: ['bano', 'banarlo', 'cuidado', 'corte de unas', 'las unas', 'cepillar'],
+    texto: 'Los cuidados van en el **registro diario**: toca el lápiz del centro, baja a la fila de **piel y aseo** y marca lo que hiciste.\n\nSi fue otro día, entra al **Calendario**, toca ese día y regístralo ahí.' },
+
+  { palabras: ['registro diario', 'para que sirve', 'que es el registro', 'cada dia'],
+    texto: 'El registro diario es el corazón de la app: son las señales de cada día —cómo estuvo su energía, si comió bien, cómo fueron sus heces.\n\nUn día suelto no dice mucho. Pero con varios ya se ven patrones, y eso es lo que le sirve a tu veterinario cuando algo pasa.\n\nSi todo estuvo normal, con el botón **Todo normal** lo registras en un toque.' },
+
+  { palabras: ['ayer', 'otro dia', 'dia pasado', 'dia anterior', 'atrasad'],
+    texto: 'Entra al **Calendario**, toca el día que te faltó y registra ahí. Puedes completar días anteriores sin problema.' },
+
+  { palabras: ['visita', 'agendar', 'consulta'],
+    texto: 'Toca **Salud** y entra a **Visitas veterinarias**. Puedes anotar una que ya pasó o agendar la próxima.\n\nSi la agendas, te aviso la noche antes.' },
+
+  // 'compart' como raíz: cubre comparto, compartir y compartirle.
+  { palabras: ['link', 'compart', 'enviarle', 'que vea el vet', 'mostrarle', 'al veterinario'],
+    texto: 'En el **Perfil** hay una tarjeta de **Link para tu vet**. Toca **Copiar link** y envíaselo.\n\nÉl lo abre sin crear cuenta y ve todo el historial: registros, vacunas, peso, exámenes y observaciones.' },
+
+  { palabras: ['otra mascota', 'nueva mascota', 'otro perro', 'otro gato', 'segunda mascota'],
+    texto: 'Toca el botón **+** al lado de las fotos de tus mascotas, arriba. Ahí eliges **Agregar otra mascota**.\n\nPuedes tener todas las que quieras y cambiar entre ellas tocando su foto.' },
+
+  { palabras: ['notificacion', 'recordatorio', 'que me avise', 'aviso'],
+    texto: 'En el **Perfil**, baja hasta **Recordatorio diario** y actívalo. Puedes elegir a qué hora.\n\nSi no te llegan, revisa también los ajustes de tu teléfono: Ajustes → Aplicaciones → CHIQUI → Notificaciones.' },
+
+  { palabras: ['examen', 'hemograma', 'perfil bioquimico'],
+    texto: 'Toca **Salud** y entra a **Exámenes**. Puedes anotar los valores de un hemograma, un perfil bioquímico y otros, con sus rangos de referencia.\n\nAsí los tienes a mano cuando tu veterinario los pida.' },
+]
+
+// Verbos que indican que la pregunta es sobre CÓMO HACER algo, no
+// sobre los datos: "¿dónde registro una vacuna?" pregunta el camino,
+// "¿qué vacunas vienen?" pregunta el dato.
+const VERBOS_COMO = /\b(donde|como|puedo|quiero|necesito|se puede|hago para|agrego|agregar|registro|registrar|anoto|anotar|guardo|guardar|pongo|poner|edito|editar|cambio|cambiar|creo|crear|comparto|compartir|subo|subir|olvide|falta|le salio|tiene una|encontre)\b/
+
+function buscarComolo(pregunta: string): string | null {
+  const q = normalizar(pregunta)
+  // Sin un verbo de acción no es una pregunta de navegación. Sin esto,
+  // "¿qué vacunas vienen?" caería acá en vez de dar las fechas.
+  if (!VERBOS_COMO.test(q)) return null
+
+  // Gana el que más raíces comparte. Una frase literal no sirve: la
+  // gente escribe "¿dónde registro UNA vacuna?" y la palabra sobrante
+  // rompe la coincidencia exacta.
+  let mejor: { texto: string; puntos: number } | null = null
+  for (const c of COMOLO) {
+    let puntos = 0
+    for (const p of c.palabras) {
+      if (q.includes(p)) puntos += p.length
+    }
+    if (puntos > 0 && (!mejor || puntos > mejor.puntos)) {
+      mejor = { texto: c.texto, puntos }
+    }
+  }
+  return mejor ? mejor.texto : null
+}
+
+// ============================================================
 // INTENCIONES
 // ============================================================
 // Cada tema con sus formas de preguntarlo. Se puntúa por cuántas
@@ -321,8 +408,10 @@ const INTENCIONES: Intencion[] = [
       'parasito', 'simparica', 'pipeta'] },
   { tema: 'medicamentos', frases: ['medicament', 'remedio', 'pastilla', 'tratamiento',
       'antibiotic', 'dosis', 'esta tomando'] },
+  // 'salio' NO va: capturaba "le salió una masa" y respondía sobre
+  // paseos. Las formas específicas sí.
   { tema: 'paseos', frases: ['pase', 'paseo', 'paseos', 'camin', 'salid', 'ejercicio',
-      'cuanto camina', 'lo saque', 'salio'] },
+      'cuanto camina', 'lo saque', 'salio a pasear', 'salieron'] },
   { tema: 'examenes', frases: ['examen', 'examenes', 'hemograma', 'creatinina', 'urea',
       'perfil bio', 'resultado', 'laboratorio', 'analisis de sangre'] },
   { tema: 'vet', frases: ['que le cuento', 'le cuento al', 'llevarlo al vet', 'para la consulta',
@@ -370,6 +459,7 @@ const MENU = [
   '💊 Medicamentos',
   '🧪 Exámenes',
   '💡 Chiqui Tips',
+  '❓ ¿Cómo uso la app?',
 ]
 
 // ============================================================
@@ -440,6 +530,12 @@ function responder(
     }
   }
 
+  // --- 1b. CÓMO SE HACE ALGO EN LA APP ---
+  // Va antes que los datos: "¿dónde registro el peso?" pregunta por el
+  // camino, no por cuántos kilos pesa.
+  const como = buscarComolo(pregunta)
+  if (como) return { texto: como, tema: null }
+
   // --- 2. PALABRA SUELTA: preguntar, no adivinar ---
   // "heces" puede ser "¿cómo han estado?" o "¿qué significa el color?".
   // Son cosas distintas y adivinar mal es peor que preguntar.
@@ -493,6 +589,17 @@ function responder(
   // heredaran el tema anterior y respondieran cualquier cosa.
   const esContinuacion = /^(y|pero|entonces|ademas|tambien)\b/.test(q)
     || /\b(algo mas|otra cosa|que mas|mas tips|mas consejos|otro consejo|dime mas|cuentame mas|sigue|continua)\b/.test(q)
+
+  // "¿Cómo uso la app?" desde el menú: las cosas que más se preguntan.
+  if (/como uso la app|como funciona|no se usar|ayuda con la app/.test(q)) {
+    return {
+      texto: `Dime qué quieres hacer y te digo dónde:`,
+      tema: null,
+      opciones: ['¿Dónde registro una vacuna?', '¿Cómo edito su perfil?',
+                 '¿Cómo agrego un co-tutor?', '¿Dónde guardo una observación?',
+                 '¿Para qué sirve el registro diario?', '¿Cómo le comparto al veterinario?'],
+    }
+  }
 
   // "Chiqui Tips" desde el menú: se ofrecen los temas disponibles.
   if (/\bchiqui tips\b|\btips\b/.test(q)) {
