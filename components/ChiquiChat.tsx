@@ -168,34 +168,87 @@ const CONSEJOS: Consejo[] = [
     tema: 'ansiedad',
     palabras: ['ansios', 'ansiedad', 'inquiet', 'nervios', 'estres', 'no para', 'no se queda quieto',
                'destroza', 'llora cuando', 'ladra cuando', 'solo en casa', 'dejarlo solo', 'quedarse solo',
-               'se calme', 'calmarlo', 'relajarlo', 'tranquilizarlo'],
+               'se calme', 'calmarlo', 'relajarlo', 'tranquilizarlo', 'kong', 'lick mat', 'snuffle'],
     opciones: [
       'Un Kong relleno y congelado le da algo en qué concentrarse justo cuando te vas. Lamer y masticar lo relaja de verdad.',
       'Deja algo con tu olor cerca de donde duerme: una polera usada le da compañía cuando no estás.',
-      'Cansarlo antes de salir ayuda mucho. Quince minutos de buscar premios escondidos cansan más que una caminata larga.',
+      'Buscar comida con el olfato despierta su instinto y lo relaja. Un snuffle mat lo puedes hacer en casa con una alfombra y tiras de polar.',
+      'Lamer libera serotonina y lo calma. Un lick mat antes de quedarse solo puede ser un buen compañero.',
       'Que las despedidas y las llegadas sean tranquilas. Si te despides con mucha efusividad, le enseñas que irte es algo importante.',
-      'Música tranquila o la radio de fondo ayuda a que el silencio no se sienta tan grande.',
     ],
   },
   {
-    tema: 'aburrimiento',
+    tema: 'juego',
     palabras: ['aburr', 'entreten', 'juego', 'juegos', 'jugar', 'que hago con', 'actividad para',
-               'estimul', 'enriquec', 'kong', 'juguete'],
+               'estimul', 'enriquec', 'juguete', 'caja', 'catnip'],
     opciones: [
       'Esconder premios por la casa y dejar que los busque: quince minutos de olfato cansan más que una hora de caminata.',
-      'Un Kong relleno lo mantiene ocupado un buen rato. Si lo congelas, dura más.',
       'Cambiar los juguetes cada tanto en vez de tenerlos todos afuera: los guardados vuelven a ser nuevos.',
       'Enseñarle algo nuevo, aunque sea un truco simple, lo cansa mentalmente y refuerza la relación entre ustedes.',
+      'A los gatos una caja de cartón les basta para pasarlo bien. Y una ventana con vista los entretiene horas.',
     ],
   },
   {
     tema: 'heces',
-    palabras: ['que significa', 'de que color', 'color de', 'como deben ser', 'normal las heces',
-               'heces normales', 'caca normal'],
+    palabras: ['color de las heces', 'que significa el color', 'como deben ser las heces',
+               'heces normales', 'caca normal', 'forma de las heces', 'heces blandas cuando'],
     opciones: [
-      'Lo normal es que sean firmes, marrones y fáciles de recoger. Los cambios de un día suelen ser por algo que comió.',
-      'Muy blandas o líquidas por más de un día, o con sangre o mucosidad, sí valen una consulta.',
-      'Muy duras o secas pueden ser falta de agua o poca fibra. Si le cuesta hacer o pasa más de un día sin hacer, coméntalo.',
+      'Lo normal es que sean marrón chocolate, firmes y fáciles de recoger. Si son verdes, amarillas, blancas, grises, negras o con sangre, vale anotarlo y consultar si el cambio persiste.',
+      'Muy duras suelen ser falta de agua. Blandas, que el intestino está irritado. Líquidas ya es diarrea.',
+      'Heces blandas una vez pueden ser por algo que comió o por estrés. Si duran más de 48 horas, o vienen con vómitos, sangre o decaimiento, necesita que lo revisen.',
+    ],
+  },
+  {
+    tema: 'movilidad',
+    palabras: ['le cuesta levantarse', 'no quiere saltar', 'se cansa mas rapido', 'articulacion',
+               'rigidez', 'dolor al caminar', 'camina raro', 'cojea', 'cojera', 'renguea'],
+    opciones: [
+      'Si necesita unos segundos para levantarse después de dormir, podría estar sintiendo rigidez o molestias articulares.',
+      'Una cojera nunca es normal, aunque dure solo un rato. Anótala en la app para comentarla con tu veterinario.',
+      'Si antes saltaba con facilidad y ahora duda o necesita ayuda, puede ser dolor al moverse.',
+      'Si camina más lento, se detiene seguido o se cansa antes de lo habitual, vale la pena observarlo.',
+      'El dolor también cambia el ánimo. Si evita jugar, se aísla o se molesta cuando lo tocan, obsérvalo.',
+    ],
+  },
+  {
+    tema: 'peso',
+    palabras: ['peso ideal', 'peso saludable', 'esta gordo', 'esta flaco', 'sobrepeso', 'bajo peso',
+               'cuanto deberia pesar', 'esta en su peso'],
+    opciones: [
+      'Está en buen peso cuando se le ve la cintura desde arriba, las costillas se palpan sin verse marcadas, y se mantiene activo.',
+      'Si las costillas, la columna o la pelvis se ven demasiado, o perdió masa muscular, podría estar bajo peso.',
+      'Si cuesta palpar las costillas, ya no se le ve cintura, o se cansa más fácil en los paseos, podría tener sobrepeso.',
+      'El peso ideal depende del tamaño, la raza y la edad. Los rangos generales son orientativos: quien lo evalúa de verdad es el veterinario.',
+    ],
+  },
+  {
+    tema: 'vitales',
+    palabras: ['temperatura normal', 'frecuencia cardiaca', 'corazon', 'latidos', 'respiracion normal',
+               'cuanta agua', 'agua al dia', 'dientes', 'sarro', 'cepillar los dientes'],
+    opciones: [
+      'La temperatura normal está entre 38 °C y 39,2 °C. Sobre 40 °C necesita atención veterinaria.',
+      'En reposo el corazón late entre 60 y 140 veces por minuto. En razas pequeñas, un poco más rápido.',
+      'Lo normal es cerca de 50 ml de agua por kilo de peso al día. Con calor o mucho ejercicio, algo más.',
+      'Cepillarle los dientes dos o tres veces por semana evita el sarro, que puede llegar a afectar el corazón.',
+    ],
+  },
+  {
+    tema: 'seguridad',
+    palabras: ['planta', 'plantas', 'toxica', 'peligro en casa', 'azalea', 'lirio', 'hortensia',
+               'que es peligroso'],
+    opciones: [
+      'Las azaleas, hortensias, lirios y áloe vera son peligrosas. Mejor mantenerlas lejos de su alcance.',
+      'Los lirios son especialmente graves en gatos: incluso el polen puede causarles daño renal.',
+    ],
+  },
+  {
+    tema: 'alerta',
+    palabras: ['signo de alerta', 'signos de alerta', 'emergencia', 'urgencia', 'convulsion',
+               'atragant', 'golpe de calor', 'intoxic', 'no respira', 'se desmayo'],
+    opciones: [
+      'Los signos que necesitan veterinario de inmediato: convulsiones, dificultad para respirar, pérdida de conciencia, sangrado abundante, golpe de calor, intoxicación, un accidente o parálisis.',
+      'Ante una convulsión: aleja objetos, cronometra cuánto dura y llévalo al veterinario. No lo sujetes ni le pongas nada en la boca.',
+      'Ante un golpe de calor: llévalo a un lugar fresco, mójale las patas y la barriga con agua a temperatura ambiente, y al veterinario. Nunca agua helada.',
     ],
   },
 ]
@@ -281,7 +334,7 @@ function responder(
   ultimoTema: Tema,
   vecesPorTema: Record<string, number>,
 ): Respuesta {
-  const q = normalizar(pregunta).replace(/[¿?¡!.,;:]/g, ' ')
+  const q = normalizar(pregunta).replace(/[¿?¡!.,;:]/g, ' ').trim()
 
   // --- 1. ALIMENTOS: siempre primero, y por nombre exacto ---
   const alimento = buscarAlimento(pregunta)
@@ -294,45 +347,60 @@ function responder(
     }
   }
 
-  // --- 2. PREGUNTA INCOMPLETA: usa el tema anterior ---
-  // "¿Y antes?" o "¿y las uñas?" solo se entienden sabiendo de qué se
-  // venía hablando.
-  const esSeguimiento = /^\s*(y|pero|entonces)\b/.test(q) || q.trim().length < 12
-  if (esSeguimiento && ultimoTema === 'peso' && /\b(antes|anterior|previo|era|estaba)\b/.test(q)) {
-    if (d.peso?.anterior != null) {
-      return { texto: `Antes pesaba ${d.peso.anterior} kg.`, tema: 'peso' }
-    }
-    return { texto: `Solo tengo un control de peso, así que no puedo comparar.`, tema: 'peso' }
+  // --- 2. PALABRA SUELTA: preguntar, no adivinar ---
+  // "heces" puede ser "¿cómo han estado?" o "¿qué significa el color?".
+  // Son cosas distintas y adivinar mal es peor que preguntar.
+  const AMBIGUAS: { palabras: string[]; pregunta: string; opciones: string[] }[] = [
+    { palabras: ['heces', 'caca', 'popo'],
+      pregunta: '¿Quieres saber cómo han estado sus heces, o qué significan el color y la forma?',
+      opciones: ['¿Cómo han estado sus heces?', '¿Qué significa el color de las heces?'] },
+    { palabras: ['vomito', 'vomitos'],
+      pregunta: '¿Quieres saber cuándo vomitó, o cuándo el vómito preocupa?',
+      opciones: ['¿Cuándo vomitó?', '¿Cuándo el vómito preocupa?'] },
+    { palabras: ['peso', 'kilos'],
+      pregunta: '¿Quieres saber cuánto pesa, o cómo saber si está en su peso ideal?',
+      opciones: ['¿Cuánto pesa?', '¿Está en su peso ideal?'] },
+    { palabras: ['vacuna', 'vacunas'],
+      pregunta: '¿Quieres saber cuál le toca ahora, o cuáles tiene puestas?',
+      opciones: ['¿Qué vacuna le toca?', '¿Qué vacunas tiene puestas?'] },
+    { palabras: ['movilidad', 'cojera', 'patas'],
+      pregunta: '¿Quieres saber si registraste cojera, o las señales de molestias articulares?',
+      opciones: ['¿Ha cojeado?', '¿Cuáles son las señales de dolor articular?'] },
+    { palabras: ['ansiedad', 'ansioso'],
+      pregunta: '¿Quieres ideas para ayudarlo con la ansiedad, o ver si la registraste estos días?',
+      opciones: ['¿Qué hago si está ansioso?', '¿Registré ansiedad?'] },
+    { palabras: ['agua', 'sed'],
+      pregunta: '¿Quieres saber cómo ha tomado agua, o cuánta necesita al día?',
+      opciones: ['¿Cómo ha tomado agua?', '¿Cuánta agua necesita al día?'] },
+    { palabras: ['alimentacion', 'comida', 'comer'],
+      pregunta: '¿Quieres saber cómo ha estado su apetito, o qué puede comer?',
+      opciones: ['¿Cómo ha estado su apetito?', '¿Qué frutas puede comer?'] },
+    { palabras: ['temperatura', 'fiebre'],
+      pregunta: '¿Quieres saber su temperatura normal, o si registraste algo?',
+      opciones: ['¿Cuál es su temperatura normal?', '¿Cómo ha estado?'] },
+  ]
+  const soloUna = q.split(/\s+/).filter(Boolean).length === 1
+  if (soloUna) {
+    const amb = AMBIGUAS.find(a => a.palabras.includes(q))
+    if (amb) return { texto: amb.pregunta, tema: null, opciones: amb.opciones }
   }
 
-  // --- 3. CONSEJOS DE COMPORTAMIENTO ---
-  // (esSeguimiento ya está declarado arriba, en el bloque 2)
-  const consejo = buscarConsejo(pregunta, vecesPorTema)
+  // --- 3. ¿ES UN TEMA NUEVO O UNA CONTINUACIÓN? ---
+  // Solo es continuación si empieza con "y/pero/entonces" Y no trae
+  // ningún tema propio. Antes bastaba con ser corta, y por eso
+  // "¿cuánto pesa?" seguía respondiendo sobre ansiedad.
+  const empiezaConY = /^(y|pero|entonces|ademas|tambien)\b/.test(q)
+  const muyCorta = q.split(/\s+/).filter(Boolean).length <= 3
+
+  // --- 4. ¿PIDE DATOS O PIDE CONSEJO? ---
+  // "¿ha cojeado?" pregunta por SUS registros. "¿por qué cojea?" pide
+  // explicación. Sin esta distinción los consejos se comían todas las
+  // preguntas por datos.
+  const pideDatos = /\b(ha |han |hubo|cuando|cuantas veces|registr|esta semana|este mes|ultimos dias|ayer|hoy)\b/.test(q)
+
+  const consejo = pideDatos ? null : buscarConsejo(pregunta, vecesPorTema)
   if (consejo) {
     return { texto: consejo.texto, tema: `consejo:${consejo.tema}` as Tema }
-  }
-
-  // "¿Y qué más?" después de un consejo: se da el siguiente del mismo
-  // tema en vez de responder que no se entiende.
-  if (esSeguimiento && ultimoTema && ultimoTema.startsWith('consejo:')) {
-    const temaConsejo = ultimoTema.slice('consejo:'.length)
-    const c = CONSEJOS.find(x => x.tema === temaConsejo)
-    if (c) {
-      const n = vecesPorTema[temaConsejo] || 0
-      return { texto: c.opciones[n % c.opciones.length], tema: ultimoTema }
-    }
-  }
-
-  // --- 4. AMBIGUAS: preguntar en vez de adivinar ---
-  const soloUnaPalabra = q.trim().split(/\s+/).length === 1
-  if (soloUnaPalabra) {
-    if (/^\s*vacunas?\s*$/.test(q)) {
-      return {
-        texto: `¿Quieres saber cuál le toca ahora, o cuáles tiene puestas?`,
-        tema: null,
-        opciones: ['¿Qué vacuna le toca?', '¿Qué vacunas tiene puestas?'],
-      }
-    }
   }
 
   // --- 5. LA INTENCIÓN QUE MÁS COINCIDE ---
@@ -355,8 +423,25 @@ function responder(
     }
   }
 
-  // Seguimiento sin intención propia: se hereda el tema anterior.
-  if (mejor.puntos === 0 && esSeguimiento && ultimoTema) {
+  // CONTINUACIÓN: solo si la pregunta NO trae tema propio. Un tema
+  // nuevo siempre le gana al anterior — antes bastaba con que la
+  // pregunta fuera corta, y por eso "¿cuánto pesa?" seguía respondiendo
+  // sobre ansiedad.
+  if (mejor.puntos === 0 && (empiezaConY || muyCorta) && ultimoTema) {
+    // "¿Y qué más?" después de un consejo: el siguiente del mismo tema.
+    if (ultimoTema.startsWith('consejo:')) {
+      const temaConsejo = ultimoTema.slice('consejo:'.length)
+      const c = CONSEJOS.find(x => x.tema === temaConsejo)
+      if (c) {
+        const n = vecesPorTema[temaConsejo] || 0
+        return { texto: c.opciones[n % c.opciones.length], tema: ultimoTema }
+      }
+    }
+    // "¿Y antes?" después del peso.
+    if (ultimoTema === 'peso' && /\b(antes|anterior|previo|era|estaba)\b/.test(q)) {
+      if (d.peso?.anterior != null) return { texto: `Antes pesaba ${d.peso.anterior} kg.`, tema: 'peso' }
+      return { texto: `Solo tengo un control de peso, así que no puedo comparar.`, tema: 'peso' }
+    }
     mejor = { tema: ultimoTema, puntos: 1 }
   }
 
@@ -457,6 +542,13 @@ function responder(
       if (d.episodios.length === 0) return { texto: `En ${d.textoPeriodo} no registraste episodios destacables en ${d.nombre}. Energía y ánimo normales o mejores en el ${d.pctBien}% de los días.`, tema: 'resumen' }
       return { texto: `Esto registraste en ${d.textoPeriodo}:\n\n${d.episodios.map(e => `· ${e}`).join('\n\n')}`, tema: 'resumen' }
     }
+  }
+
+  // Si pedía datos pero no calzó ninguna intención, se ofrece el
+  // consejo como segunda opción antes de rendirse.
+  if (pideDatos) {
+    const c = buscarConsejo(pregunta, vecesPorTema)
+    if (c) return { texto: c.texto, tema: `consejo:${c.tema}` as Tema }
   }
 
   // --- No se entendió: se dice, sin inventar ---
