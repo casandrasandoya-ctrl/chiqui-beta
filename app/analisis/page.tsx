@@ -625,7 +625,10 @@ export default function AnalisisPage() {
     return d >= hace30dias
   }).length
 
-  const insights = []
+  // El tipo va explicito: sin el, TypeScript lo deducia de los push()
+  // de mas abajo, y eso dejo de alcanzar cuando el chat empezo a LEER
+  // los insights para armar sus episodios.
+  const insights: { icon: string; text: string; tipo: string }[] = []
   if (total === 0) {
     insights.push({ icon: '🐶', text: `Aún no hay registros. Empieza a registrar las señales de ${mascota?.nombre} para ver tendencias aquí.`, tipo: 'info' })
   } else {
@@ -2327,11 +2330,8 @@ export default function AnalisisPage() {
     especie: mascota?.especie || '',
     // Los episodios salen de los insights: las mismas frases que ya se
     // muestran, sin el ícono.
-    // El tipo va explicito: este bloque se calcula ANTES de donde se
-    // declara insights, y ahi TypeScript todavia no sabe que contiene.
-    episodios: (insights as { icon: string; text: string; tipo: string }[])
-      .filter(i => i.icon === '🔍')
-      .map(i => i.text),
+    // Las mismas frases que ya se muestran en pantalla, sin el ícono.
+    episodios: insights.filter(i => i.icon === '🔍').map(i => i.text),
     totalRegistros: total,
     pctBien,
     textoPeriodo,
