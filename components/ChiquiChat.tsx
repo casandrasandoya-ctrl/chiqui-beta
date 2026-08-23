@@ -44,6 +44,8 @@ export interface DatosChat {
   cuidados?: { label: string; palabras: string[]; diasDesde: number; cadaCuantos: number | null }[]
   examenes?: { nombre: string; fecha: string }[]
   visitasVet?: string[]
+  // La fecha de hoy en Chile, para poder recortar al período pedido.
+  hoyISO?: string
   // Para poder mostrar la fecha en formato legible sin repetir el
   // formateador acá.
   fmtVisita?: (iso: string) => string
@@ -224,8 +226,11 @@ const CONSEJOS: Consejo[] = [
   },
   {
     tema: 'heces',
-    palabras: ['color de las heces', 'que significa el color', 'como deben ser las heces',
-               'heces normales', 'caca normal', 'forma de las heces', 'heces blandas cuando'],
+    // Frases cortas: con el comparador nuevo, "deben ser heces" calza
+    // con "¿cómo deben ser SUS heces?" aunque haya palabras en medio.
+    palabras: ['color heces', 'significa color', 'deben ser heces', 'deben heces',
+               'heces normales', 'caca normal', 'forma heces', 'como son heces',
+               'normal heces', 'heces sanas'],
     opciones: [
       'Lo normal es que sean marrón chocolate, firmes y fáciles de recoger. Si son verdes, amarillas, blancas, grises, negras o con sangre, vale anotarlo y consultar si el cambio persiste.',
       'Muy duras suelen ser falta de agua. Blandas, que el intestino está irritado. Líquidas ya es diarrea.',
@@ -255,15 +260,43 @@ const CONSEJOS: Consejo[] = [
       'El peso ideal depende del tamaño, la raza y la edad. Los rangos generales son orientativos: quien lo evalúa de verdad es el veterinario.',
     ],
   },
+  // 'vitales' se partio en cuatro. Antes era UN tema con cuatro
+  // opciones que rotaban, asi que preguntar "¿cuanta agua necesita?"
+  // cuatro veces devolvia temperatura, corazon, agua y dientes en
+  // orden. La rotacion solo tiene sentido cuando las opciones son
+  // variaciones de LO MISMO — como en ansiedad, donde hay cinco formas
+  // de ayudar con el mismo problema.
   {
-    tema: 'vitales',
-    palabras: ['temperatura normal', 'frecuencia cardiaca', 'corazon', 'latidos', 'respiracion normal',
-               'cuanta agua', 'agua al dia', 'dientes', 'sarro', 'cepillar los dientes'],
+    tema: 'agua',
+    palabras: ['cuanta agua', 'agua al dia', 'agua necesita', 'agua debe tomar',
+               'agua tiene que tomar', 'hidrata', 'cuanta agua toma'],
     opciones: [
-      'La temperatura normal está entre 38 °C y 39,2 °C. Sobre 40 °C necesita atención veterinaria.',
-      'En reposo el corazón late entre 60 y 140 veces por minuto. En razas pequeñas, un poco más rápido.',
-      'Lo normal es cerca de 50 ml de agua por kilo de peso al día. Con calor o mucho ejercicio, algo más.',
-      'Cepillarle los dientes dos o tres veces por semana evita el sarro, que puede llegar a afectar el corazón.',
+      'Lo normal es cerca de 50 ml de agua por kilo de peso al día. Un perro de 10 kg toma alrededor de medio litro.\n\nCon calor o después de ejercicio, algo más. Si toma mucha más de lo habitual y no es por calor, vale anotarlo.',
+    ],
+  },
+  {
+    tema: 'temperatura',
+    palabras: ['temperatura normal', 'cuanta temperatura', 'tiene fiebre', 'que temperatura',
+               'temperatura corporal'],
+    opciones: [
+      'La temperatura normal está entre 38 °C y 39,2 °C. Sobre 40 °C necesita atención veterinaria.\n\nSe mide en el recto con un termómetro digital. La nariz seca o caliente no dice nada: es un mito.',
+    ],
+  },
+  {
+    tema: 'corazon',
+    palabras: ['frecuencia cardiaca', 'corazon', 'latidos', 'pulso', 'respiracion normal',
+               'cuanto respira', 'respiraciones por minuto'],
+    opciones: [
+      'En reposo el corazón late entre 60 y 140 veces por minuto: en razas pequeñas más rápido, en grandes más lento.\n\nLa respiración normal en reposo es de 10 a 30 veces por minuto.',
+    ],
+  },
+  {
+    tema: 'dientes',
+    palabras: ['dientes', 'sarro', 'cepillar los dientes', 'higiene dental', 'boca',
+               'mal aliento cuando'],
+    opciones: [
+      'Cepillarle los dientes dos o tres veces por semana evita el sarro. Usa pasta para mascotas: la de personas les hace mal.',
+      'El sarro no es solo estético: las bacterias pueden llegar al corazón y a los riñones. Por eso importa.',
     ],
   },
   {
@@ -292,12 +325,100 @@ const CONSEJOS: Consejo[] = [
 function buscarConsejo(pregunta: string, vecesPorTema: Record<string, number>): { texto: string; tema: string } | null {
   const q = normalizar(pregunta)
   for (const c of CONSEJOS) {
-    if (c.palabras.some(p => q.includes(p))) {
+    if (c.palabras.some(p => coincide(q, p))) {
       const n = vecesPorTema[c.tema] || 0
       return { texto: c.opciones[n % c.opciones.length], tema: c.tema }
     }
   }
   return null
+}
+
+// ============================================================
+// CÓMO SE COMPARA UNA PREGUNTA
+// ============================================================
+// El problema que resuelve: la comparación literal fallaba por una
+// palabra en medio. "¿Cómo deben ser SUS heces?" no coincidía con
+// "como deben ser LAS heces", y caía en la categoría equivocada.
+//
+// Ahora una frase de varias palabras coincide si TODAS sus palabras
+// están presentes, en cualquier orden y con lo que sea en medio. Una
+// frase de una sola palabra sigue comparándose como texto, para que
+// "agua" encuentre "agua" dentro de "cuánta agua".
+//
+// Y las terminaciones se recortan: desparasit-ación, desparasit-ado y
+// desparasit-arse llegan todas al mismo lugar.
+function coincide(q: string, frase: string): boolean {
+  const palabras = frase.split(/\s+/).filter(Boolean)
+  if (palabras.length === 1) return q.includes(frase)
+  return palabras.every(p => q.includes(p))
+}
+
+// Puntúa una lista de frases contra la pregunta. Gana la más
+// específica: una frase de tres palabras vale más que una de una, y por
+// eso "próxima desparasitación" le gana a "vacuna" suelto.
+function puntuar(q: string, frases: string[]): number {
+  let puntos = 0
+  for (const f of frases) {
+    if (coincide(q, f)) puntos += f.length
+  }
+  return puntos
+}
+
+// ============================================================
+// PERÍODOS DE TIEMPO
+// ============================================================
+// Antes no existían: todo respondía "los últimos 30 días" aunque se
+// preguntara por la última semana. Ahora el período que pide la persona
+// manda sobre el valor por defecto, y la respuesta dice cuál se usó.
+interface Periodo { dias: number; texto: string }
+
+const PERIODOS: { frases: string[]; dias: number; texto: string }[] = [
+  { frases: ['hoy'], dias: 0, texto: 'hoy' },
+  { frases: ['ayer'], dias: 1, texto: 'ayer' },
+  { frases: ['anteayer', 'antes de ayer'], dias: 2, texto: 'los últimos dos días' },
+  { frases: ['ultimos 3 dias', 'ultimos tres dias'], dias: 3, texto: 'los últimos 3 días' },
+  { frases: ['ultima semana', 'ultimos 7 dias', 'ultimos siete dias', 'esta semana',
+             'semana pasada'], dias: 7, texto: 'la última semana' },
+  { frases: ['ultimos 14 dias', 'ultimas dos semanas', 'ultimas 2 semanas'], dias: 14, texto: 'las últimas dos semanas' },
+  { frases: ['este mes', 'ultimo mes', 'ultimos 30 dias', 'ultimos treinta dias'], dias: 30, texto: 'este mes' },
+  { frases: ['ultimos 3 meses', 'ultimos tres meses'], dias: 90, texto: 'los últimos 3 meses' },
+  { frases: ['este año', 'ultimo año', 'ultimos 12 meses'], dias: 365, texto: 'el último año' },
+  // "recientemente" y "ultimamente" son vagos a propósito: una semana
+  // es lo que la gente suele tener en mente al decirlo.
+  { frases: ['recientemente', 'ultimamente', 'estos dias'], dias: 7, texto: 'los últimos días' },
+]
+
+// Extrae el período de la pregunta. Si no hay ninguno, devuelve null y
+// quien llama decide el valor por defecto.
+function detectarPeriodo(q: string): Periodo | null {
+  let mejor: { dias: number; texto: string; largo: number } | null = null
+  for (const p of PERIODOS) {
+    for (const f of p.frases) {
+      if (coincide(q, f) && (!mejor || f.length > mejor.largo)) {
+        mejor = { dias: p.dias, texto: p.texto, largo: f.length }
+      }
+    }
+  }
+  return mejor ? { dias: mejor.dias, texto: mejor.texto } : null
+}
+
+// Filtra las señales al período pedido. Trabaja sobre fechaISO, que es
+// la fecha sin formatear.
+function filtrarPorPeriodo<T extends { fechaISO?: string }>(
+  lista: T[], dias: number, hoyISO: string,
+): T[] {
+  // Mediodía: restar días sobre medianoche se cae en los cambios de
+  // horario de verano.
+  const limite = new Date(hoyISO + 'T12:00:00')
+  limite.setDate(limite.getDate() - dias)
+  const desde = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(limite)
+  return lista.filter(x => {
+    if (!x.fechaISO) return true
+    // "hoy" y "ayer" son días puntuales, no ventanas.
+    if (dias === 0) return x.fechaISO === hoyISO
+    if (dias === 1) return x.fechaISO === desde
+    return x.fechaISO >= desde
+  })
 }
 
 // ============================================================
@@ -378,7 +499,7 @@ function buscarComolo(pregunta: string): string | null {
   for (const c of COMOLO) {
     let puntos = 0
     for (const p of c.palabras) {
-      if (q.includes(p)) puntos += p.length
+      if (coincide(q, p)) puntos += p.length
     }
     if (puntos > 0 && (!mejor || puntos > mejor.puntos)) {
       mejor = { texto: c.texto, puntos }
@@ -398,7 +519,8 @@ type Tema = 'peso' | 'vacunas' | 'antiparasitarios' | 'medicamentos' | 'paseos'
   // Los consejos también son un tema, para que "¿y qué más?" después de
   // uno de ansiedad devuelva el siguiente en vez de no entender.
   | 'consejo:ansiedad' | 'consejo:juego' | 'consejo:heces' | 'consejo:movilidad'
-  | 'consejo:peso' | 'consejo:vitales' | 'consejo:seguridad' | 'consejo:alerta'
+  | 'consejo:peso' | 'consejo:agua' | 'consejo:temperatura' | 'consejo:corazon'
+  | 'consejo:dientes' | 'consejo:seguridad' | 'consejo:alerta'
   | 'consejo:viaje_casa' | 'consejo:viaje_auto' | null
 
 interface Intencion { tema: Exclude<Tema, null>; frases: string[] }
@@ -434,7 +556,10 @@ const SENALES_INT: { campo: string; nombre: string; frases: string[] }[] = [
   { campo: 'digestion', nombre: 'su digestión', frases: ['vomit', 'vomito', 'devolvio', 'gases', 'nausea', 'digestion', 'aliento'] },
   { campo: 'heces', nombre: 'sus heces', frases: ['heces', 'caca', 'diarre', 'popo', 'deposicion', 'hizo bien'] },
   { campo: 'arenero', nombre: 'su orina', frases: ['orina', 'pipi', 'arenero', 'orino', 'hace pis'] },
-  { campo: 'apetito', nombre: 'su apetito', frases: ['apetito', 'comio', 'comiendo', 'esta comiendo', 'con hambre', 'sin hambre'] },
+  // 'comida' y 'alimentacion' faltaban: preguntar por la comida no
+  // encontraba nada y respondia que no habia registros.
+  { campo: 'apetito', nombre: 'su apetito', frases: ['apetito', 'comio', 'comiendo', 'esta comiendo',
+      'con hambre', 'sin hambre', 'la comida', 'su comida', 'alimentacion', 'come bien'] },
   { campo: 'agua', nombre: 'el agua', frases: ['agua', 'tomando agua', 'sed', 'bebe', 'toma agua'] },
   { campo: 'energia', nombre: 'su energía', frases: ['energia', 'decaid', 'cansad', 'activ', 'sin ganas', 'con ganas'] },
   { campo: 'animo', nombre: 'su ánimo', frases: ['animo', 'triste', 'humor', 'irritab', 'contento', 'feliz'] },
@@ -445,12 +570,10 @@ const SENALES_INT: { campo: string; nombre: string; frases: string[] }[] = [
 
 // Puntúa: gana la intención con más coincidencias, y entre empates la
 // que coincide con una frase más larga (más específica).
+// Se mantiene el nombre por compatibilidad: ahora delega en puntuar,
+// que tolera palabras intermedias.
 function detectar(q: string, frases: string[]): number {
-  let puntos = 0
-  for (const f of frases) {
-    if (q.includes(f)) puntos += f.length
-  }
-  return puntos
+  return puntuar(q, frases)
 }
 
 // El menú que se ofrece cuando no se entiende o cuando no hay datos.
@@ -484,6 +607,9 @@ function responder(
     .replace(/[¿?¡!.,;:]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+
+  // El período que pide la persona, si hay alguno.
+  const periodo = detectarPeriodo(q)
 
   // --- 0. EMERGENCIAS: antes que absolutamente todo ---
   // Si alguien escribe que su mascota convulsiona, no es momento de
@@ -620,9 +746,25 @@ function responder(
   // "¿ha cojeado?" pregunta por SUS registros. "¿por qué cojea?" pide
   // explicación. Sin esta distinción los consejos se comían todas las
   // preguntas por datos.
-  const pideDatos = /\b(ha |han |hubo|cuando|cuantas veces|registr|esta semana|este mes|ultimos dias|ayer|hoy)\b/.test(q)
+  // ¿PREGUNTA POR SUS DATOS O POR CÓMO DEBERÍA SER?
+  //
+  //   "¿cómo HAN SIDO sus heces?"   -> sus registros
+  //   "¿cómo DEBEN SER sus heces?"  -> información general
+  //
+  // La diferencia está en el tiempo verbal y en el posesivo, no en el
+  // tema. Antes esto era un regex de diez palabras y cualquier forma
+  // fuera de esas diez caía del lado equivocado.
+  const SENAL_DATOS = /\b(ha |han |hubo|tuvo|estuvo|cuando|cuantas veces|registr|anote|le paso|esta semana|este mes|ultimos|ayer|hoy|ultimamente|recientemente)\b/
+  const SENAL_EDUCATIVA = /\b(deben|debe|deberia|es normal|son normales|se supone|cuanto es|cuanta es|que significa|por que|para que|sirve|cual es|como son|normalmente)\b/
 
-  const consejo = pideDatos ? null : buscarConsejo(pregunta, vecesPorTema)
+  const pideDatos = SENAL_DATOS.test(q) && !SENAL_EDUCATIVA.test(q)
+  const pideEducativa = SENAL_EDUCATIVA.test(q)
+
+  // Si hay período explícito, es una pregunta por datos: nadie dice
+  // "¿cómo deben ser sus heces esta semana?".
+  const esPorDatos = pideDatos || (periodo !== null && !pideEducativa)
+
+  const consejo = esPorDatos ? null : buscarConsejo(pregunta, vecesPorTema)
   if (consejo) {
     return { texto: consejo.texto, tema: `consejo:${consejo.tema}` as Tema }
   }
@@ -630,6 +772,11 @@ function responder(
   // --- 5. LA INTENCIÓN QUE MÁS COINCIDE ---
   let mejor: { tema: Tema; puntos: number; campo?: string; nombre?: string } = { tema: null, puntos: 0 }
   for (const i of INTENCIONES) {
+    // 'resumen' es el CAJÓN DE SASTRE: se evalúa solo si nada
+    // específico calzó. Sin esto, "¿cómo ha estado su ÁNIMO?" caía en
+    // resumen porque la frase "como ha estado" es más larga que
+    // "animo", y devolvía el mes entero en vez del ánimo.
+    if (i.tema === 'resumen') continue
     const p = detectar(q, i.frases)
     if (p > mejor.puntos) mejor = { tema: i.tema, puntos: p }
   }
@@ -647,13 +794,34 @@ function responder(
     }
   }
 
+  // Recién ahora el resumen, y solo si nada específico calzó.
+  if (mejor.puntos === 0) {
+    const intResumen = INTENCIONES.find(i => i.tema === 'resumen')
+    if (intResumen) {
+      const p = detectar(q, intResumen.frases)
+      if (p > 0) mejor = { tema: 'resumen', puntos: p }
+    }
+  }
+
   // CONTINUACIÓN: solo si la pregunta NO trae tema propio. Un tema
   // nuevo siempre le gana al anterior — antes bastaba con que la
   // pregunta fuera corta, y por eso "¿cuánto pesa?" seguía respondiendo
   // sobre ansiedad.
   // Solo continúa si la pregunta PIDE continuar. Un tema nuevo siempre
   // gana.
-  if (mejor.puntos === 0 && esContinuacion && ultimoTema) {
+  // LA CATEGORÍA NUNCA SE HEREDA POR NO ENTENDER.
+  //
+  // Antes, si el clasificador daba cero puntos y la frase empezaba con
+  // "y", se asumía continuación. Un error de tipeo bastaba: "Y si
+  // próxima desparaCitada?" daba cero, heredaba vacunas y respondía
+  // Felocell a una pregunta de antiparasitarios.
+  //
+  // Ahora se exige que la frase PIDA continuar explícitamente. Si no
+  // entiende, se admite — que es lo correcto.
+  const PIDE_CONTINUAR = /^(y|pero|entonces|ademas|tambien)\s+(que|cual|cuando|como|cuanto|antes|despues|ahora|el|la|los|las|mas)\b/
+    .test(q) || /\b(algo mas|otra cosa|que mas|mas tips|mas consejos|otro consejo|dime mas|cuentame mas|sigue|continua)\b/.test(q)
+
+  if (mejor.puntos === 0 && PIDE_CONTINUAR && ultimoTema) {
     // "¿Y qué más?" después de un consejo: el siguiente del mismo tema.
     if (ultimoTema.startsWith('consejo:')) {
       const temaConsejo = ultimoTema.slice('consejo:'.length)
@@ -735,12 +903,28 @@ function responder(
     }
 
     case 'senal': {
-      const suyas = (d.senales || []).filter(s => s.campo === mejor.campo)
+      // El período que pidió la persona manda. Sin esto, preguntar por
+      // "la última semana" respondía con 30 días y encima lo decía.
+      const todas = (d.senales || []).filter(s => s.campo === mejor.campo)
+      const suyas = periodo && d.hoyISO
+        ? filtrarPorPeriodo(todas, periodo.dias, d.hoyISO)
+        : todas
+      const cuando = periodo ? periodo.texto : d.textoPeriodo
+
       if (suyas.length === 0) {
-        return { texto: `No registraste nada fuera de lo normal en ${mejor.nombre} durante ${d.textoPeriodo}.`, tema: 'senal' }
+        // Si en el período pedido no hay nada pero SÍ hay antes, se
+        // dice: es más útil que un "no hay nada" a secas.
+        if (periodo && todas.length > 0) {
+          return {
+            texto: `En ${cuando} no registraste nada fuera de lo normal en ${mejor.nombre}.\n\nSí hay registros más atrás: ${todas.length} en ${d.textoPeriodo}.`,
+            tema: 'senal',
+            opciones: [`¿Cómo ha estado ${mejor.nombre} este mes?`],
+          }
+        }
+        return { texto: `No registraste nada fuera de lo normal en ${mejor.nombre} durante ${cuando}.`, tema: 'senal' }
       }
       const lineas = suyas.slice(0, 6).map(s => `· ${s.fecha} — ${s.etiqueta}${s.nota ? ` 💬 "${s.nota}"` : ''}`)
-      const cabecera = suyas.length === 1 ? `Una vez en ${d.textoPeriodo}:` : `${suyas.length} veces en ${d.textoPeriodo}:`
+      const cabecera = suyas.length === 1 ? `Una vez en ${cuando}:` : `${suyas.length} veces en ${cuando}:`
       const cola = suyas.length > 6 ? `\n\n(te muestro las 6 más recientes)` : ''
       return { texto: `${cabecera}\n${lineas.join('\n')}${cola}`, tema: 'senal' }
     }
@@ -812,6 +996,16 @@ function responder(
     }
 
     case 'resumen': {
+      // Con período pedido se responde desde las señales, que sí se
+      // pueden recortar. Los episodios vienen ya agrupados por mes.
+      if (periodo && d.hoyISO && d.senales && d.senales.length > 0) {
+        const enRango = filtrarPorPeriodo(d.senales, periodo.dias, d.hoyISO)
+        if (enRango.length === 0) {
+          return { texto: `En ${periodo.texto} no registraste nada fuera de lo normal en ${d.nombre}.`, tema: 'resumen' }
+        }
+        const lineas = enRango.slice(0, 8).map(x => `· ${x.fecha} — ${x.etiqueta}${x.nota ? ` 💬 "${x.nota}"` : ''}`)
+        return { texto: `Esto registraste en ${periodo.texto}:\n${lineas.join('\n')}`, tema: 'resumen' }
+      }
       if (d.episodios.length === 0) return { texto: `En ${d.textoPeriodo} no registraste episodios destacables en ${d.nombre}. Energía y ánimo normales o mejores en el ${d.pctBien}% de los días.`, tema: 'resumen' }
       return { texto: `Esto registraste en ${d.textoPeriodo}:\n\n${d.episodios.map(e => `· ${e}`).join('\n\n')}`, tema: 'resumen' }
     }
@@ -819,7 +1013,7 @@ function responder(
 
   // Si pedía datos pero no calzó ninguna intención, se ofrece el
   // consejo como segunda opción antes de rendirse.
-  if (pideDatos) {
+  if (esPorDatos) {
     const c = buscarConsejo(pregunta, vecesPorTema)
     if (c) return { texto: c.texto, tema: `consejo:${c.tema}` as Tema }
   }
@@ -828,8 +1022,11 @@ function responder(
   // Se admite sin rodeos y se ofrece el menú. Antes heredaba el tema
   // anterior y respondía sobre exámenes a "¿sabes codificar?", que es
   // peor que decir que no se sabe.
+  // No se entendió. Se admite sin inventar y sin heredar: devolver algo
+  // de otra categoría "para no quedar mal" es peor que decir que no se
+  // sabe, porque suena igual de seguro.
   return {
-    texto: `Eso está fuera de lo que puedo consultar 🐾\n\nYo conozco la historia de ${d.nombre}: lo que registras día a día, sus cuidados y su salud. Sobre otros temas no sé.\n\n¿Qué quieres hacer?`,
+    texto: `No estoy segura de qué quieres consultar 🐾\n\nConozco la historia de ${d.nombre}: lo que registras día a día, sus cuidados y su salud. También puedo decirte si un alimento le hace mal, o dónde se hace algo en la app.\n\n¿Qué quieres hacer?`,
     tema: null,
     opciones: MENU,
   }
