@@ -1282,7 +1282,10 @@ export default function AnalisisPage() {
   // normalizado — 'ban' cubre bañé, bañar y baño.
   const CUIDADOS_CHAT: { campo: string; label: string; palabras: string[] }[] = [
     { campo: 'se_bano', label: 'Baño', palabras: ['ban', 'ducha'] },
-    { campo: 'corte_unas', label: 'Corte de uñas', palabras: ['una', 'unas', 'garra'] },
+    // 'una' NO va: esta dentro de "vacUNAs" y respondia el corte de
+    // uñas a preguntas de vacunas. El chat ademas revisa vacunas
+    // primero, pero mejor no depender solo de eso.
+    { campo: 'corte_unas', label: 'Corte de uñas', palabras: ['unas', 'unita', 'garra', 'cortar las'] },
     { campo: 'limpieza_dental', label: 'Limpieza dental', palabras: ['diente', 'dental', 'cepill'] },
     { campo: 'limpieza_oidos', label: 'Limpieza de oídos', palabras: ['oido', 'oreja'] },
     { campo: 'compro_alimento', label: 'Compra de alimento', palabras: ['comida', 'alimento', 'comprar', 'saco', 'croqueta'] },
@@ -1314,6 +1317,49 @@ export default function AnalisisPage() {
     return { label: c.label, palabras: c.palabras, diasDesde: dias, cadaCuantos: cada }
   }).filter(Boolean) as { label: string; palabras: string[]; diasDesde: number; cadaCuantos: number | null }[]
 
+  // Señales sueltas, para poder responder por una sola: "¿cuándo
+  // vomitó?" tiene que hablar solo de vómito. Se arma con el mismo
+  // criterio que los episodios, pero sin agrupar por días.
+  const SENALES_CHAT: Record<string, string[]> = {
+    digestion: ['normal'], heces: ['normal'], apetito: ['normal'], agua: ['normal'],
+    energia: ['normal', 'alta', 'muy_alta'], animo: ['normal', 'feliz', 'muy_feliz'],
+    movilidad: ['normal'], pelaje: ['brillante', 'normal'], conducta: ['sociable', 'normal'],
+    arenero: ['normal'],
+  }
+  const ETQ_CHAT: Record<string, string> = {
+    'digestion:vomito': 'vomitó', 'digestion:diarrea': 'diarrea', 'digestion:nauseas': 'náuseas',
+    'digestion:gases': 'gases', 'digestion:mal_aliento': 'mal aliento',
+    'heces:con_sangre': 'heces con sangre', 'heces:blandas': 'heces blandas',
+    'heces:duras': 'heces duras', 'heces:no_hizo': 'no hizo heces', 'heces:diarrea': 'diarrea',
+    'apetito:nada': 'no comió', 'apetito:menos': 'comió menos', 'apetito:mas': 'comió más',
+    'agua:menos': 'tomó menos agua', 'agua:mas': 'tomó más agua', 'agua:nada': 'no tomó agua',
+    'energia:muy_baja': 'energía muy baja', 'energia:baja': 'energía baja',
+    'animo:decaido': 'decaído', 'animo:ansioso': 'ansioso', 'animo:irritable': 'irritable',
+    'movilidad:cojera': 'cojera', 'movilidad:rigidez': 'rigidez',
+    'movilidad:dificultad': 'dificultad al moverse',
+    'pelaje:rasca': 'se rascó', 'pelaje:lame_exceso': 'se lamió mucho', 'pelaje:caida': 'caída de pelo',
+    'conducta:esconde': 'se escondió', 'conducta:agresivo': 'agresivo',
+    'arenero:sangre': 'sangre en la orina', 'arenero:dificultad': 'dificultad al orinar',
+  }
+  const senalesChat: { campo: string; etiqueta: string; fecha: string; nota: string }[] = []
+  for (const r of (registros || [])) {
+    if (!r.fecha) continue
+    for (const [campo, normales] of Object.entries(SENALES_CHAT)) {
+      const v = (r as any)[campo]
+      if (v && !normales.includes(v)) {
+        senalesChat.push({
+          campo,
+          etiqueta: ETQ_CHAT[`${campo}:${v}`] || String(v).replace(/_/g, ' '),
+          fecha: fmtChat(r.fecha),
+          nota: (r.nota || '').trim(),
+        })
+      }
+    }
+  }
+  // Las más recientes primero: lo de ayer importa más que lo del mes
+  // pasado.
+  senalesChat.reverse()
+
   const datosChat = {
     nombre: mascota?.nombre || 'tu mascota',
     especie: mascota?.especie || '',
@@ -1342,6 +1388,7 @@ export default function AnalisisPage() {
       proxima: a.proxima_fecha ? fmtChat(a.proxima_fecha) : null,
       dias: diasHastaChat(a.proxima_fecha),
     })),
+    senales: senalesChat,
     cuidados: cuidadosChat,
     examenes: (examenesChat || []).map((e: any) => ({
       nombre: e.nombre || e.tipo || e.categoria || 'Examen',

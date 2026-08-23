@@ -30,6 +30,10 @@ export interface DatosChat {
   medicamentos?: { nombre: string; desde: string }[]
   vacunas?: { nombre: string; proxima: string | null; dias: number | null }[]
   antiparasitarios?: { nombre: string; proxima: string | null; dias: number | null }[]
+  // Días con cada señal registrada, para poder responder por una sola:
+  // "¿cuándo vomitó?" tiene que hablar SOLO de vómito, no soltar todo
+  // el episodio con las heces y el agua encima.
+  senales?: { campo: string; etiqueta: string; fecha: string; nota: string }[]
   // Cuidados: cuándo fue la última vez y cada cuánto suele hacerse.
   // OJO: las palabras son RAÍCES y se comparan contra texto
   // NORMALIZADO (sin tildes ni ñ). Hay que escribirlas ya normalizadas
@@ -173,45 +177,10 @@ function responder(pregunta: string, d: DatosChat): string {
     return `Tengo ${n} examen${n === 1 ? '' : 'es'} guardado${n === 1 ? '' : 's'}:\n${lista}\n\nInterpretarlos es cosa de tu veterinario. Si quieres, genera el link desde tu perfil y los ve todos.`
   }
 
-  // --- 3. CUIDADOS: cuándo fue la última vez, cuánto falta ---
-  if (d.cuidados && d.cuidados.length > 0) {
-    // Se compara por RAIZ, no por palabra completa: "bañé" normalizado
-    // queda "bane", y exigir la palabra entera nunca calzaria con
-    // "banar" ni con "bano". Con la raiz "ban" los tres funcionan.
-    const c = d.cuidados.find(x => x.palabras.some(p => q.includes(p)))
-    if (c) {
-      const cuando = c.diasDesde === 0 ? 'hoy' : c.diasDesde === 1 ? 'ayer' : `hace ${c.diasDesde} días`
-      let r = `${c.label}: la última vez fue ${cuando}.`
-      if (c.cadaCuantos) {
-        const faltan = c.cadaCuantos - c.diasDesde
-        r += faltan > 1 ? ` Sueles hacerlo cada ${c.cadaCuantos} días, así que te quedan unos ${faltan}.`
-          : faltan === 1 ? ` Sueles hacerlo cada ${c.cadaCuantos} días: mañana tocaría.`
-          : faltan === 0 ? ` Sueles hacerlo cada ${c.cadaCuantos} días: hoy tocaría.`
-          : ` Sueles hacerlo cada ${c.cadaCuantos} días, así que va ${Math.abs(faltan)} ${Math.abs(faltan) === 1 ? 'día' : 'días'} atrasado.`
-      }
-      return r
-    }
-  }
-
-  // --- 4. PESO ---
-  if (tiene('peso', 'pesa', 'kilo', 'engord', 'adelgaz', 'bajo de peso', 'subio de peso')) {
-    if (!d.peso) return `No tengo controles de peso de ${d.nombre}. Puedes anotarlos en Salud → Peso: sirven mucho para ver cambios a tiempo.`
-    let r = `${d.nombre} pesa ${d.peso.actual} kg, según el control del ${d.peso.fecha}.`
-    if (d.peso.anterior != null) {
-      const dif = +(d.peso.actual - d.peso.anterior).toFixed(1)
-      if (dif === 0) r += ' Igual que el control anterior.'
-      else {
-        const pct = Math.abs(dif / d.peso.anterior) * 100
-        r += ` ${dif > 0 ? 'Subió' : 'Bajó'} ${Math.abs(dif)} kg desde el control anterior (${d.peso.anterior} kg).`
-        // Un 5% de cambio sin causa conocida es el umbral que la app ya
-        // usa en la vista del veterinario. Se menciona, no se diagnostica.
-        if (pct >= 5) r += ` Es un cambio de más del 5%, así que vale la pena comentarlo en la próxima consulta.`
-      }
-    }
-    return r
-  }
-
-  // --- 5. VACUNAS Y ANTIPARASITARIOS ---
+  // --- 3. VACUNAS Y ANTIPARASITARIOS ---
+  // VA ANTES QUE LOS CUIDADOS: la raiz "una" del corte de uñas esta
+  // dentro de "vacUNAs", y respondia sobre las uñas a una pregunta de
+  // vacunas.
   if (tiene('vacuna', 'antiparasit', 'desparasit', 'pulga', 'garrapata', 'refuerzo')) {
     const soloAnti = tiene('antiparasit', 'desparasit', 'pulga', 'garrapata')
     const soloVac = tiene('vacuna', 'refuerzo') && !soloAnti
@@ -233,6 +202,44 @@ function responder(pregunta: string, d: DatosChat): string {
     return partes.join('\n\n')
   }
 
+  // --- 4. CUIDADOS: cuándo fue la última vez, cuánto falta ---
+  if (d.cuidados && d.cuidados.length > 0) {
+    // Se compara por RAIZ, no por palabra completa: "bañé" normalizado
+    // queda "bane", y exigir la palabra entera nunca calzaria con
+    // "banar" ni con "bano". Con la raiz "ban" los tres funcionan.
+    const c = d.cuidados.find(x => x.palabras.some(p => q.includes(p)))
+    if (c) {
+      const cuando = c.diasDesde === 0 ? 'hoy' : c.diasDesde === 1 ? 'ayer' : `hace ${c.diasDesde} días`
+      let r = `${c.label}: la última vez fue ${cuando}.`
+      if (c.cadaCuantos) {
+        const faltan = c.cadaCuantos - c.diasDesde
+        r += faltan > 1 ? ` Sueles hacerlo cada ${c.cadaCuantos} días, así que te quedan unos ${faltan}.`
+          : faltan === 1 ? ` Sueles hacerlo cada ${c.cadaCuantos} días: mañana tocaría.`
+          : faltan === 0 ? ` Sueles hacerlo cada ${c.cadaCuantos} días: hoy tocaría.`
+          : ` Sueles hacerlo cada ${c.cadaCuantos} días, así que va ${Math.abs(faltan)} ${Math.abs(faltan) === 1 ? 'día' : 'días'} atrasado.`
+      }
+      return r
+    }
+  }
+
+  // --- 5. PESO ---
+  if (tiene('peso', 'pesa', 'kilo', 'engord', 'adelgaz', 'bajo de peso', 'subio de peso')) {
+    if (!d.peso) return `No tengo controles de peso de ${d.nombre}. Puedes anotarlos en Salud → Peso: sirven mucho para ver cambios a tiempo.`
+    let r = `${d.nombre} pesa ${d.peso.actual} kg, según el control del ${d.peso.fecha}.`
+    if (d.peso.anterior != null) {
+      const dif = +(d.peso.actual - d.peso.anterior).toFixed(1)
+      if (dif === 0) r += ' Igual que el control anterior.'
+      else {
+        const pct = Math.abs(dif / d.peso.anterior) * 100
+        r += ` ${dif > 0 ? 'Subió' : 'Bajó'} ${Math.abs(dif)} kg desde el control anterior (${d.peso.anterior} kg).`
+        // Un 5% de cambio sin causa conocida es el umbral que la app ya
+        // usa en la vista del veterinario. Se menciona, no se diagnostica.
+        if (pct >= 5) r += ` Es un cambio de más del 5%, así que vale la pena comentarlo en la próxima consulta.`
+      }
+    }
+    return r
+  }
+
   // --- 6. MEDICAMENTOS ---
   if (tiene('medicament', 'remedio', 'pastilla', 'tratamiento', 'antibiotic', 'dosis')) {
     if (!d.medicamentos || d.medicamentos.length === 0) return `${d.nombre} no tiene tratamientos activos.`
@@ -250,9 +257,44 @@ function responder(pregunta: string, d: DatosChat): string {
     return `En ${d.paseosMes.nombreMes} llevas ${d.paseosMes.cantidad} paseo${d.paseosMes.cantidad === 1 ? '' : 's'}, ${dur} en total.`
   }
 
-  // --- 8. SÍNTOMAS Y EPISODIOS ---
-  if (tiene('vomit', 'diarre', 'heces', 'caca', 'sintoma', 'malestar', 'enferm', 'raro',
-           'episodi', 'como ha estado', 'como esta', 'que le paso', 'que paso')) {
+  // --- 8. UNA SEÑAL EN PARTICULAR ---
+  // Si preguntan por vómito, se responde SOLO sobre vómito. Antes
+  // cualquier pregunta soltaba el episodio completo, con las heces y el
+  // agua encima de lo que se estaba preguntando.
+  const PORCAMPO: { campo: string; palabras: string[]; nombre: string }[] = [
+    { campo: 'digestion', palabras: ['vomit', 'gases', 'nausea', 'digestion', 'aliento'], nombre: 'su digestión' },
+    { campo: 'heces', palabras: ['heces', 'caca', 'diarre', 'popo', 'deposicion'], nombre: 'sus heces' },
+    { campo: 'arenero', palabras: ['orina', 'pipi', 'arenero', 'orino'], nombre: 'su orina' },
+    { campo: 'apetito', palabras: ['apetito', 'comio', 'comiendo', 'come'], nombre: 'su apetito' },
+    { campo: 'agua', palabras: ['agua', 'tomando', 'sed', 'bebe'], nombre: 'el agua' },
+    { campo: 'energia', palabras: ['energia', 'decaid', 'cansad', 'activ'], nombre: 'su energía' },
+    { campo: 'animo', palabras: ['animo', 'triste', 'ansios', 'humor', 'irritab'], nombre: 'su ánimo' },
+    { campo: 'movilidad', palabras: ['cojera', 'cojea', 'movilidad', 'camina', 'pata', 'rigidez'], nombre: 'su movilidad' },
+    { campo: 'pelaje', palabras: ['pelaje', 'pelo', 'rasca', 'rascando', 'piel', 'lame'], nombre: 'su piel y pelaje' },
+    { campo: 'conducta', palabras: ['conducta', 'comporta', 'escond'], nombre: 'su conducta' },
+  ]
+  const porCampo = PORCAMPO.find(x => x.palabras.some(p => q.includes(p)))
+  if (porCampo && d.senales) {
+    const suyas = d.senales.filter(s => s.campo === porCampo.campo)
+    if (suyas.length === 0) {
+      return `No registraste nada fuera de lo normal en ${porCampo.nombre} durante ${d.textoPeriodo}.`
+    }
+    // Las más recientes primero: lo de ayer importa más.
+    const lineas = suyas.slice(0, 6).map(s => {
+      const nota = s.nota ? ` 💬 "${s.nota}"` : ''
+      return `· ${s.fecha} — ${s.etiqueta}${nota}`
+    })
+    const veces = suyas.length
+    const cabecera = veces === 1
+      ? `Una vez en ${d.textoPeriodo}:`
+      : `${veces} veces en ${d.textoPeriodo}:`
+    const cola = veces > 6 ? `\n\n(te muestro las 6 más recientes)` : ''
+    return `${cabecera}\n${lineas.join('\n')}${cola}`
+  }
+
+  // --- 8b. TODO LO DEL PERÍODO ---
+  if (tiene('sintoma', 'malestar', 'enferm', 'raro', 'episodi',
+           'como ha estado', 'como esta', 'que le paso', 'que paso', 'todo')) {
     if (d.episodios.length === 0) return `En ${d.textoPeriodo} no registraste episodios destacables en ${d.nombre}. Energía y ánimo normales o mejores en el ${d.pctBien}% de los días.`
     return `Esto registraste en ${d.textoPeriodo}:\n\n${d.episodios.map(e => `· ${e}`).join('\n\n')}`
   }
@@ -274,7 +316,7 @@ function responder(pregunta: string, d: DatosChat): string {
   }
 
   // --- No reconocida: se admite, sin adivinar ---
-  return `De eso no sé.\n\nPuedo contarte sobre ${d.nombre}: su peso, sus vacunas, sus paseos, sus medicamentos, cuándo lo bañaste, o qué síntomas registraste. También si un alimento es tóxico.`
+  return `De eso no sé.\n\nPuedo contarte sobre ${d.nombre}: cuándo vomitó, cómo estuvieron sus heces, su energía, su apetito, su peso, sus vacunas, sus paseos, sus medicamentos o cuándo lo bañaste. También si un alimento es tóxico.`
 }
 
 export default function ChiquiChat({ datos }: { datos: DatosChat }) {
