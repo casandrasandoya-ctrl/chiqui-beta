@@ -183,6 +183,31 @@ const CONSEJOS: Consejo[] = [
     ],
   },
   {
+    tema: 'viaje_casa',
+    palabras: ['se queda en casa', 'dejarlo en casa', 'dejarla en casa', 'lo dejo solo', 'me voy de viaje',
+               'salir de viaje', 'vacaciones', 'quien lo cuida', 'lo dejo en casa',
+               'me voy unos dias', 'dejarlo solo varios dias'],
+    opciones: [
+      'Pide a alguien de confianza que lo visite al menos una vez al día: agua fresca, comida y limpiar el arenero o su espacio.',
+      'Deja una prenda con tu olor y sus juguetes favoritos. Ayuda mucho a que la ausencia se sienta menos.',
+      'Asegura ventanas y lugares peligrosos antes de irte, sobre todo si se queda solo varias horas.',
+      'Un comedero automático ayuda, pero no reemplaza a alguien que lo vea. Si se enferma o se atasca algo, nadie se entera.',
+    ],
+  },
+  {
+    tema: 'viaje_auto',
+    palabras: ['viajo con el', 'viajo con ella', 'viajar en auto', 'llevarlo en auto', 'en el auto', 'viaje en auto',
+               'lo llevo en el auto', 'transportin', 'transportadora', 'se marea en el auto',
+               'viajar con el', 'viajar con ella', 'llevarlo de viaje'],
+    opciones: [
+      'Nunca suelto: un transportín firme o un arnés de seguridad anclado al cinturón. En una frenada, un animal suelto sale despedido.',
+      'No le des comida 3 o 4 horas antes de salir. Ayuda a prevenir mareos y vómitos.',
+      'Para cada 2 horas: que estire las patas, tome agua y haga sus necesidades.',
+      'Mantén el auto fresco y no lo dejes sacar la cabeza por la ventana: le puede entrar algo al ojo o al oído.',
+      'Nunca lo dejes solo dentro del auto cerrado, ni con la ventana entreabierta. En minutos la temperatura sube lo suficiente para matarlo.',
+    ],
+  },
+  {
     tema: 'juego',
     palabras: ['aburr', 'entreten', 'juego', 'juegos', 'jugar', 'que hago con', 'actividad para',
                'estimul', 'enriquec', 'juguete', 'caja', 'catnip'],
@@ -281,7 +306,9 @@ type Tema = 'peso' | 'vacunas' | 'antiparasitarios' | 'medicamentos' | 'paseos'
   | 'senal' | 'cuidado' | 'examenes' | 'resumen' | 'vet' | 'visitas'
   // Los consejos también son un tema, para que "¿y qué más?" después de
   // uno de ansiedad devuelva el siguiente en vez de no entender.
-  | 'consejo:ansiedad' | 'consejo:aburrimiento' | 'consejo:heces' | null
+  | 'consejo:ansiedad' | 'consejo:juego' | 'consejo:heces' | 'consejo:movilidad'
+  | 'consejo:peso' | 'consejo:vitales' | 'consejo:seguridad' | 'consejo:alerta'
+  | 'consejo:viaje_casa' | 'consejo:viaje_auto' | null
 
 interface Intencion { tema: Exclude<Tema, null>; frases: string[] }
 
@@ -298,12 +325,13 @@ const INTENCIONES: Intencion[] = [
       'cuanto camina', 'lo saque', 'salio'] },
   { tema: 'examenes', frases: ['examen', 'examenes', 'hemograma', 'creatinina', 'urea',
       'perfil bio', 'resultado', 'laboratorio', 'analisis de sangre'] },
-  { tema: 'vet', frases: ['que le cuento', 'le cuento al', 'llevar al vet', 'para la consulta',
-      'preparar la consulta', 'que le digo al'] },
+  { tema: 'vet', frases: ['que le cuento', 'le cuento al', 'llevarlo al vet', 'para la consulta',
+      'preparar la consulta', 'que le digo al', 'que le muestro'] },
   // Preguntar por la ÚLTIMA visita es distinto de preparar la próxima.
-  { tema: 'visitas', frases: ['fue al veterinario', 'fuimos al vet', 'ultima vez al vet',
-      'cuando fue al vet', 'lo lleve al vet', 'visita al veterinario', 'visitas al vet',
-      'ha ido al vet', 'consulta veterinaria', 'ultima consulta'] },
+  { tema: 'visitas', frases: ['fue al veterinario', 'fue al vet', 'fuimos al vet', 'ultima vez al vet',
+      'cuando fue al vet', 'lo lleve al vet', 'la lleve al vet', 'visita al veterinario',
+      'visitas al vet', 'ha ido al vet', 'consulta veterinaria', 'ultima consulta',
+      'ultima visita', 'cuando lo lleve', 'cuando fuimos'] },
   { tema: 'resumen', frases: ['como ha estado', 'como esta', 'que le paso', 'que paso',
       'ha estado enfermo', 'estuvo enfermo', 'ultimamente', 'todo', 'resumen', 'episodi'] },
 ]
@@ -440,6 +468,12 @@ function responder(
     { palabras: ['alimentacion', 'comida', 'comer'],
       pregunta: '¿Quieres saber cómo ha estado su apetito, o qué puede comer?',
       opciones: ['¿Cómo ha estado su apetito?', '¿Qué frutas puede comer?'] },
+    { palabras: ['vet', 'veterinario', 'veterinaria'],
+      pregunta: '¿Quieres saber cuándo fue la última visita, o preparar la próxima consulta?',
+      opciones: ['¿Cuándo fue al veterinario?', '¿Qué le cuento al veterinario?'] },
+    { palabras: ['viaje', 'viajar', 'vacaciones'],
+      pregunta: '¿Viajas con él, o se queda en casa?',
+      opciones: ['Viajo con él en auto', 'Se queda en casa'] },
     { palabras: ['temperatura', 'fiebre'],
       pregunta: '¿Quieres saber su temperatura normal, o si registraste algo?',
       opciones: ['¿Cuál es su temperatura normal?', '¿Cómo ha estado?'] },
@@ -454,8 +488,11 @@ function responder(
   // Solo es continuación si empieza con "y/pero/entonces" Y no trae
   // ningún tema propio. Antes bastaba con ser corta, y por eso
   // "¿cuánto pesa?" seguía respondiendo sobre ansiedad.
-  const empiezaConY = /^(y|pero|entonces|ademas|tambien)\b/.test(q)
-  const muyCorta = q.split(/\s+/).filter(Boolean).length <= 3
+  // Formas de pedir "sigue con lo mismo". Van explícitas en vez de
+  // "cualquier pregunta corta": esa regla hacía que "calor" o "vet"
+  // heredaran el tema anterior y respondieran cualquier cosa.
+  const esContinuacion = /^(y|pero|entonces|ademas|tambien)\b/.test(q)
+    || /\b(algo mas|otra cosa|que mas|mas tips|mas consejos|otro consejo|dime mas|cuentame mas|sigue|continua)\b/.test(q)
 
   // "Chiqui Tips" desde el menú: se ofrecen los temas disponibles.
   if (/\bchiqui tips\b|\btips\b/.test(q)) {
@@ -463,7 +500,8 @@ function responder(
       texto: `Puedo contarte sobre estos temas:`,
       tema: null,
       opciones: ['¿Qué puede comer?', '¿Qué hago si está ansioso?', '¿Cómo deben ser sus heces?',
-                 '¿Cuánta agua necesita?', '¿Está en su peso ideal?', '¿Cuáles son los signos de alerta?'],
+                 '¿Cuánta agua necesita?', '¿Está en su peso ideal?', '¿Cuáles son los signos de alerta?',
+                 'Voy a viajar'],
     }
   }
 
@@ -502,10 +540,9 @@ function responder(
   // nuevo siempre le gana al anterior — antes bastaba con que la
   // pregunta fuera corta, y por eso "¿cuánto pesa?" seguía respondiendo
   // sobre ansiedad.
-  // SOLO con "y/pero/entonces" al principio. Antes bastaba con que la
-  // pregunta fuera corta, y por eso "calor", "vet" o "codifica"
-  // heredaban el tema anterior y respondian cualquier cosa.
-  if (mejor.puntos === 0 && empiezaConY && ultimoTema) {
+  // Solo continúa si la pregunta PIDE continuar. Un tema nuevo siempre
+  // gana.
+  if (mejor.puntos === 0 && esContinuacion && ultimoTema) {
     // "¿Y qué más?" después de un consejo: el siguiente del mismo tema.
     if (ultimoTema.startsWith('consejo:')) {
       const temaConsejo = ultimoTema.slice('consejo:'.length)
