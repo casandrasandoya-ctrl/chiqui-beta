@@ -447,112 +447,7 @@ export default function AnalisisPage() {
       if (a.promedioDias === null) return 1
       if (b.promedioDias === null) return -1
     
-  // --- Datos para el chat ---
-  // Se arma acá y no en el JSX para que se lea: son bastantes fuentes.
-  const MESES_CHAT = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-  const hoyChat = fechaChile()
-  const inicioMesChat = hoyChat.slice(0, 7) + '-01'
 
-  const diasHastaChat = (f: string | null): number | null => {
-    if (!f) return null
-    // Mediodía: restar días sobre medianoche se cae en los cambios de
-    // horario de verano.
-    const a = new Date(hoyChat + 'T12:00:00').getTime()
-    const b = new Date(String(f).slice(0, 10) + 'T12:00:00').getTime()
-    return Math.round((b - a) / 86400000)
-  }
-  const fmtChat = (f: string | null): string => {
-    if (!f) return ''
-    const d = new Date(String(f).slice(0, 10) + 'T12:00:00')
-    return `${d.getDate()} ${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]}`
-  }
-
-  // Paseos del MES CALENDARIO, no de 30 días móviles: "este mes" tiene
-  // que significar agosto. Se usa paseoHistorial, que ya trae meses
-  // completos justamente por esto.
-  const paseosDelMes = (paseoHistorial || []).filter((r: any) =>
-    r.fecha >= inicioMesChat && r.fecha <= hoyChat && r.paseo && r.paseo !== 'no_paseo'
-  )
-  const MIN_RANGO_CHAT: Record<string, number> = { '10_30min': 20, '30min_1h': 45, '1_2h': 90, '2_4h': 180 }
-  const minutosDelMes = paseosDelMes.reduce((acc: number, r: any) =>
-    acc + (typeof r.paseo_minutos_exactos === 'number' && r.paseo_minutos_exactos > 0
-      ? r.paseo_minutos_exactos
-      : (MIN_RANGO_CHAT[r.paseo] || 0)), 0)
-
-  // Cuidados: cuándo fue la última vez y cada cuánto suele hacerse. Las
-  // palabras van SIN tildes ni ñ, porque se comparan contra texto
-  // normalizado — 'ban' cubre bañé, bañar y baño.
-  const CUIDADOS_CHAT: { campo: string; label: string; palabras: string[] }[] = [
-    { campo: 'se_bano', label: 'Baño', palabras: ['ban', 'ducha'] },
-    { campo: 'corte_unas', label: 'Corte de uñas', palabras: ['una', 'unas', 'garra'] },
-    { campo: 'limpieza_dental', label: 'Limpieza dental', palabras: ['diente', 'dental', 'cepill'] },
-    { campo: 'limpieza_oidos', label: 'Limpieza de oídos', palabras: ['oido', 'oreja'] },
-    { campo: 'compro_alimento', label: 'Compra de alimento', palabras: ['comida', 'alimento', 'comprar', 'saco', 'croqueta'] },
-    { campo: 'cambio_alimento', label: 'Cambio de alimento', palabras: ['cambio de alimento', 'cambiar alimento'] },
-    { campo: 'cargo_dispensador', label: 'Dispensador', palabras: ['dispensador'] },
-    { campo: 'peino', label: 'Cepillado', palabras: ['peina', 'peino', 'cepillar el pelo'] },
-  ]
-  const cuidadosChat = CUIDADOS_CHAT.map(c => {
-    const fechas = (registros || [])
-      .filter((r: any) => r[c.campo])
-      .map((r: any) => String(r.fecha).slice(0, 10))
-      .sort()
-      .reverse()
-    if (fechas.length === 0) return null
-    const dias = Math.abs(diasHastaChat(fechas[0]) || 0)
-    // Cada cuánto: el promedio entre las últimas veces. Con una sola
-    // vez registrada no hay intervalo que calcular.
-    let cada: number | null = null
-    if (fechas.length >= 2) {
-      const difs: number[] = []
-      for (let i = 0; i < Math.min(fechas.length - 1, 5); i++) {
-        const d1 = new Date(fechas[i] + 'T12:00:00').getTime()
-        const d2 = new Date(fechas[i + 1] + 'T12:00:00').getTime()
-        difs.push(Math.round((d1 - d2) / 86400000))
-      }
-      const prom = Math.round(difs.reduce((a, b) => a + b, 0) / difs.length)
-      if (prom > 0) cada = prom
-    }
-    return { label: c.label, palabras: c.palabras, diasDesde: dias, cadaCuantos: cada }
-  }).filter(Boolean) as { label: string; palabras: string[]; diasDesde: number; cadaCuantos: number | null }[]
-
-  const datosChat = {
-    nombre: mascota?.nombre || 'tu mascota',
-    especie: mascota?.especie || '',
-    // Los episodios salen de los insights: las mismas frases que ya se
-    // muestran, sin el ícono.
-    // El tipo va explicito: este bloque se calcula ANTES de donde se
-    // declara insights, y ahi TypeScript todavia no sabe que contiene.
-    episodios: (insights as { icon: string; text: string; tipo: string }[])
-      .filter(i => i.icon === '🔍')
-      .map(i => i.text),
-    totalRegistros: total,
-    pctBien,
-    textoPeriodo,
-    paseosMes: esPerro
-      ? { cantidad: paseosDelMes.length, minutos: minutosDelMes, nombreMes: MESES_CHAT[Number(hoyChat.slice(5, 7)) - 1] }
-      : null,
-    peso: pesoChat,
-    medicamentos: (medsVigentes || []).map((m: any) => ({
-      nombre: m.nombre || 'Medicamento',
-      desde: fmtChat(m.fecha_inicio),
-    })),
-    vacunas: (vacunasChat || []).map((v: any) => ({
-      nombre: v.nombre || 'Vacuna',
-      proxima: v.proxima_fecha ? fmtChat(v.proxima_fecha) : null,
-      dias: diasHastaChat(v.proxima_fecha),
-    })),
-    antiparasitarios: (antisChat || []).map((a: any) => ({
-      nombre: a.nombre || 'Antiparasitario',
-      proxima: a.proxima_fecha ? fmtChat(a.proxima_fecha) : null,
-      dias: diasHastaChat(a.proxima_fecha),
-    })),
-    cuidados: cuidadosChat,
-    examenes: (examenesChat || []).map((e: any) => ({
-      nombre: e.nombre || e.tipo || e.categoria || 'Examen',
-      fecha: fmtChat(e.fecha),
-    })),
-  }
 
   return (a.proximaEstimadaDias ?? 999) - (b.proximaEstimadaDias ?? 999)
     })
@@ -2358,7 +2253,114 @@ export default function AnalisisPage() {
                 const d = new Date(r.fecha + 'T00:00:00')
                 const color = ESTADO_COLOR[r.estado_dia]
                 const labels: Record<string,string> = { verde:'Todo bien', amarillo:'Atención leve', naranjo:'Síntoma notable', rojo:'Alerta' }
-                return (
+                // --- Datos para el chat ---
+  // Se arma acá y no en el JSX para que se lea: son bastantes fuentes.
+  const MESES_CHAT = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+  const hoyChat = fechaChile()
+  const inicioMesChat = hoyChat.slice(0, 7) + '-01'
+
+  const diasHastaChat = (f: string | null): number | null => {
+    if (!f) return null
+    // Mediodía: restar días sobre medianoche se cae en los cambios de
+    // horario de verano.
+    const a = new Date(hoyChat + 'T12:00:00').getTime()
+    const b = new Date(String(f).slice(0, 10) + 'T12:00:00').getTime()
+    return Math.round((b - a) / 86400000)
+  }
+  const fmtChat = (f: string | null): string => {
+    if (!f) return ''
+    const d = new Date(String(f).slice(0, 10) + 'T12:00:00')
+    return `${d.getDate()} ${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]}`
+  }
+
+  // Paseos del MES CALENDARIO, no de 30 días móviles: "este mes" tiene
+  // que significar agosto. Se usa paseoHistorial, que ya trae meses
+  // completos justamente por esto.
+  const paseosDelMes = (paseoHistorial || []).filter((r: any) =>
+    r.fecha >= inicioMesChat && r.fecha <= hoyChat && r.paseo && r.paseo !== 'no_paseo'
+  )
+  const MIN_RANGO_CHAT: Record<string, number> = { '10_30min': 20, '30min_1h': 45, '1_2h': 90, '2_4h': 180 }
+  const minutosDelMes = paseosDelMes.reduce((acc: number, r: any) =>
+    acc + (typeof r.paseo_minutos_exactos === 'number' && r.paseo_minutos_exactos > 0
+      ? r.paseo_minutos_exactos
+      : (MIN_RANGO_CHAT[r.paseo] || 0)), 0)
+
+  // Cuidados: cuándo fue la última vez y cada cuánto suele hacerse. Las
+  // palabras van SIN tildes ni ñ, porque se comparan contra texto
+  // normalizado — 'ban' cubre bañé, bañar y baño.
+  const CUIDADOS_CHAT: { campo: string; label: string; palabras: string[] }[] = [
+    { campo: 'se_bano', label: 'Baño', palabras: ['ban', 'ducha'] },
+    { campo: 'corte_unas', label: 'Corte de uñas', palabras: ['una', 'unas', 'garra'] },
+    { campo: 'limpieza_dental', label: 'Limpieza dental', palabras: ['diente', 'dental', 'cepill'] },
+    { campo: 'limpieza_oidos', label: 'Limpieza de oídos', palabras: ['oido', 'oreja'] },
+    { campo: 'compro_alimento', label: 'Compra de alimento', palabras: ['comida', 'alimento', 'comprar', 'saco', 'croqueta'] },
+    { campo: 'cambio_alimento', label: 'Cambio de alimento', palabras: ['cambio de alimento', 'cambiar alimento'] },
+    { campo: 'cargo_dispensador', label: 'Dispensador', palabras: ['dispensador'] },
+    { campo: 'peino', label: 'Cepillado', palabras: ['peina', 'peino', 'cepillar el pelo'] },
+  ]
+  const cuidadosChat = CUIDADOS_CHAT.map(c => {
+    const fechas = (registros || [])
+      .filter((r: any) => r[c.campo])
+      .map((r: any) => String(r.fecha).slice(0, 10))
+      .sort()
+      .reverse()
+    if (fechas.length === 0) return null
+    const dias = Math.abs(diasHastaChat(fechas[0]) || 0)
+    // Cada cuánto: el promedio entre las últimas veces. Con una sola
+    // vez registrada no hay intervalo que calcular.
+    let cada: number | null = null
+    if (fechas.length >= 2) {
+      const difs: number[] = []
+      for (let i = 0; i < Math.min(fechas.length - 1, 5); i++) {
+        const d1 = new Date(fechas[i] + 'T12:00:00').getTime()
+        const d2 = new Date(fechas[i + 1] + 'T12:00:00').getTime()
+        difs.push(Math.round((d1 - d2) / 86400000))
+      }
+      const prom = Math.round(difs.reduce((a, b) => a + b, 0) / difs.length)
+      if (prom > 0) cada = prom
+    }
+    return { label: c.label, palabras: c.palabras, diasDesde: dias, cadaCuantos: cada }
+  }).filter(Boolean) as { label: string; palabras: string[]; diasDesde: number; cadaCuantos: number | null }[]
+
+  const datosChat = {
+    nombre: mascota?.nombre || 'tu mascota',
+    especie: mascota?.especie || '',
+    // Los episodios salen de los insights: las mismas frases que ya se
+    // muestran, sin el ícono.
+    // El tipo va explicito: este bloque se calcula ANTES de donde se
+    // declara insights, y ahi TypeScript todavia no sabe que contiene.
+    episodios: (insights as { icon: string; text: string; tipo: string }[])
+      .filter(i => i.icon === '🔍')
+      .map(i => i.text),
+    totalRegistros: total,
+    pctBien,
+    textoPeriodo,
+    paseosMes: esPerro
+      ? { cantidad: paseosDelMes.length, minutos: minutosDelMes, nombreMes: MESES_CHAT[Number(hoyChat.slice(5, 7)) - 1] }
+      : null,
+    peso: pesoChat,
+    medicamentos: (medsVigentes || []).map((m: any) => ({
+      nombre: m.nombre || 'Medicamento',
+      desde: fmtChat(m.fecha_inicio),
+    })),
+    vacunas: (vacunasChat || []).map((v: any) => ({
+      nombre: v.nombre || 'Vacuna',
+      proxima: v.proxima_fecha ? fmtChat(v.proxima_fecha) : null,
+      dias: diasHastaChat(v.proxima_fecha),
+    })),
+    antiparasitarios: (antisChat || []).map((a: any) => ({
+      nombre: a.nombre || 'Antiparasitario',
+      proxima: a.proxima_fecha ? fmtChat(a.proxima_fecha) : null,
+      dias: diasHastaChat(a.proxima_fecha),
+    })),
+    cuidados: cuidadosChat,
+    examenes: (examenesChat || []).map((e: any) => ({
+      nombre: e.nombre || e.tipo || e.categoria || 'Examen',
+      fecha: fmtChat(e.fecha),
+    })),
+  }
+
+  return (
                   <Link key={r.id} href={`/registro-diario?fecha=${r.fecha}`} className="flex items-center gap-3 px-4 py-3 border-b border-[#EEE2D4] last:border-0">
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}/>
                     <div className="flex-1">
