@@ -23,6 +23,10 @@ import { useState, useRef, useEffect } from 'react'
 // consejos de comportamiento son los que ya están escritos en la app.
 
 export interface DatosChat {
+  // Identifica de qué mascota son estos datos. Cuando cambia, la
+  // conversación se borra: preguntas hechas sobre un animal no pueden
+  // quedar en pantalla como si fueran de otro.
+  mascotaId?: string
   nombre: string
   especie: string
   episodios: string[]
@@ -875,6 +879,19 @@ export default function ChiquiChat({
       { de: 'chiqui', texto: resumen, opciones: MENU },
     ])
   }, [abierto, mensajes.length, datos])
+
+  // Cambió la mascota: se borra todo. El historial de Chiquito no puede
+  // quedar en pantalla mientras se mira a Michi.
+  const idPrevio = useRef<string | undefined>(datos.mascotaId)
+  useEffect(() => {
+    if (idPrevio.current !== undefined && idPrevio.current !== datos.mascotaId) {
+      setMensajes([])
+      setUltimoTema(null)
+      setVeces({})
+      setAbierto(false)
+    }
+    idPrevio.current = datos.mascotaId
+  }, [datos.mascotaId])
 
   useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [mensajes, pensando])
   useEffect(() => {

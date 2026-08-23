@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { determinarMascotaActiva } from '@/utils/mascotaActiva'
+import { determinarMascotaActiva, obtenerMascotaActivaId } from '@/utils/mascotaActiva'
 import ChiquiChat, { type DatosChat } from '@/components/ChiquiChat'
 
 // ============================================================
@@ -65,12 +65,33 @@ const CUIDADOS: { campo: string; label: string; palabras: string[] }[] = [
 export default function ChiquiFlotante() {
   const pathname = usePathname()
   const [datos, setDatos] = useState<DatosChat | null>(null)
+  // El id de la mascota que se está mirando. Cambiar de mascota NO
+  // cambia la ruta, así que sin esto el chat se quedaba con los datos
+  // de la anterior y respondía el peso de otro animal.
+  //
+  // localStorage no avisa cuando cambia en la misma pestaña, así que se
+  // revisa cada segundo y medio. Es una lectura de memoria: no cuesta
+  // nada y evita tener que tocar el selector.
+  const [idActivo, setIdActivo] = useState<string | null>(null)
+
+  useEffect(() => {
+    const revisar = () => {
+      const id = obtenerMascotaActivaId()
+      setIdActivo(prev => (prev === id ? prev : id))
+    }
+    revisar()
+    const t = setInterval(revisar, 1500)
+    return () => clearInterval(t)
+  }, [])
 
   const oculto = !pathname || SIN_CHAT.some(r => pathname === r || pathname.startsWith(r + '/'))
 
   useEffect(() => {
     if (oculto) return
     let vivo = true
+    // Se borra lo anterior de inmediato: es preferible que el chat no
+    // aparezca por un instante a que muestre datos de otra mascota.
+    setDatos(null)
 
     ;(async () => {
       const supabase = createClient()
@@ -85,7 +106,10 @@ export default function ChiquiFlotante() {
       if (!mascotas || mascotas.length === 0) return
 
       const m = determinarMascotaActiva(mascotas)
-      if (!m) return
+      // determinarMascotaActiva lee un id de localStorage, que podría
+      // ser de otra cuenta si alguien cambió de sesión en el mismo
+      // dispositivo. Se comprueba que esté en la lista del usuario.
+      if (!m || !mascotas.some(x => x.id === m.id)) return
 
       const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
       // Mediodía: restar días sobre medianoche falla en los cambios de
@@ -99,7 +123,7 @@ export default function ChiquiFlotante() {
         { data: regs }, { data: pesos }, { data: vac }, { data: ant },
         { data: meds }, { data: exs }, { data: visitasT }, { data: paseos },
       ] = await Promise.all([
-        supabase.from('registros_diarios').select('*').eq('mascota_id', m.id)
+        supabase.from('registros_diarios').select('*').eq('mascota_id', m.id).eq('user_id', user.id)
           .gte('fecha', desde).order('fecha', { ascending: false }),
         supabase.from('historial_peso').select('peso, fecha').eq('mascota_id', m.id)
           .order('fecha', { ascending: false }).limit(2),
@@ -111,9 +135,9 @@ export default function ChiquiFlotante() {
           .eq('mascota_id', m.id),
         supabase.from('examenes').select('nombre, categoria, fecha').eq('mascota_id', m.id)
           .order('fecha', { ascending: false }).limit(5),
-        supabase.from('visitas_veterinarias').select('fecha').eq('mascota_id', m.id),
+        supabase.from('visitas_veterinarias').select('fecha').eq('mascota_id', m.id).eq('user_id', user.id),
         supabase.from('registros_diarios').select('fecha, paseo, paseo_minutos_exactos')
-          .eq('mascota_id', m.id).gte('fecha', inicioMes).lte('fecha', hoy),
+          .eq('mascota_id', m.id).eq('user_id', user.id).gte('fecha', inicioMes).lte('fecha', hoy),
       ])
 
       if (!vivo) return
@@ -193,6 +217,7 @@ export default function ChiquiFlotante() {
         x.estado === 'activo' && (!x.fecha_inicio || x.fecha_inicio <= hoy) && (!x.fecha_fin || x.fecha_fin >= hoy))
 
       setDatos({
+        mascotaId: m.id,
         nombre: m.nombre || 'tu mascota',
         especie: m.especie || '',
         // La burbuja no muestra episodios agrupados: eso vive en
@@ -230,7 +255,7 @@ export default function ChiquiFlotante() {
     })()
 
     return () => { vivo = false }
-  }, [oculto, pathname])
+  }, [oculto, pathname, idActivo])
 
   if (oculto || !datos) return null
   return <ChiquiChat datos={datos} flotante />
