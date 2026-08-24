@@ -304,6 +304,26 @@ const CONSEJOS: Consejo[] = [
     ],
   },
   {
+    tema: 'presentacion',
+    // Raíces, no conjugaciones: 'present' cubre presentar, presento y
+    // presentarlos. Las frases largas fallaban por una palabra en medio.
+    palabras: ['present', 'se lleven bien', 'nueva mascota', 'nuevo perro', 'nuevo gato',
+               'nueva perrita', 'nuevo cachorro', 'adopte', 'llego otro', 'se pelean',
+               'convivencia', 'los junto', 'primer encuentro', 'aceptar al nuevo',
+               'nueva gata', 'otro animal'],
+    opciones: [
+      'Los primeros días, cada uno en su espacio. Que el nuevo viva en una sola habitación mientras se acostumbran a oírse y olerse sin verse.',
+      'Intercambia olores antes de que se vean: frota una manta en uno y déjasela al otro. Se van conociendo sin la tensión del encuentro.',
+      'Recursos dobles y separados: dos platos de comida, dos de agua, dos camas, dos areneros. La mayoría de las peleas son por recursos, no por antipatía.',
+      'El primer encuentro en terreno neutral. Si son perros, en la calle o un parque con la correa floja — no en la casa de uno de ellos.',
+      'Si son gatos, que se vean primero a través de una puerta entreabierta o una reja. Verse sin poder llegar al otro baja mucho la tensión.',
+      'Mantén la calma tú: si gritas o te pones nerviosa, ellos lo leen y se ponen peor. Tu tranquilidad los tranquiliza.',
+      'Saluda y dale de comer primero al que ya vivía ahí. Respetar ese orden le baja la ansiedad y evita que sienta que perdió su lugar.',
+      'No los dejes solos hasta que se vean cómodos de verdad. Puede tomar días o semanas, y apurarlo suele salir caro.',
+      'Premia cuando estén cerca sin pelear: una galleta, unas palabras. Así aprenden que la presencia del otro trae cosas buenas.',
+    ],
+  },
+  {
     tema: 'seguridad',
     palabras: ['planta', 'plantas', 'toxica', 'peligro en casa', 'azalea', 'lirio', 'hortensia',
                'que es peligroso'],
@@ -564,6 +584,48 @@ const COMOLO: Comolo[] = [
   { palabras: ['notificacion', 'recordatorio', 'que me avise', 'aviso'],
     texto: 'En el **Perfil**, baja hasta **Recordatorio diario** y actívalo. Puedes elegir a qué hora.\n\nSi no te llegan, revisa también los ajustes de tu teléfono: Ajustes → Aplicaciones → CHIQUI → Notificaciones.' },
 
+  { palabras: ['revision corporal', 'revisarlo', 'revisar cuerpo', 'bultos', 'reviso'],
+    texto: 'Desde el dashboard, en **Próximos**, toca **Revisión corporal**. Te voy guiando parte por parte: ojos, oídos, boca, piel, patas.\n\nNo es una evaluación médica — es tu mirada de siempre, con más atención. Aparece desde los 5 años, cada 3 meses (o cada mes si ya es senior).' },
+
+  { palabras: ['respiratoria', 'respiraciones', 'respira'],
+    texto: 'Toca **Salud** y busca **Frecuencia respiratoria**. Cuentas cuántas veces respira en reposo durante un minuto y lo anotas.\n\nEs uno de los datos que más le sirve a tu veterinario, sobre todo si hay algo del corazón.' },
+
+  { palabras: ['temperatura'],
+    texto: 'Toca **Salud** y busca **Temperatura corporal**. Ahí anotas los grados y la fecha.\n\nSe mide en el recto con un termómetro digital: la nariz seca no dice nada, es un mito.' },
+
+  { palabras: ['celo', 'celos'],
+    texto: 'Toca **Salud** y busca **Celos**. Anota cuándo empieza y cuándo termina cada uno.\n\nCon dos o más registrados puedo estimarte cuándo viene el próximo, y aparece en **Próximos** en el dashboard.' },
+
+  { palabras: ['enfermedad', 'enfermedades', 'diagnostic', 'condicion cronica'],
+    texto: 'Toca **Salud** y entra a **Enfermedades**. Anota el diagnóstico, la fecha y cuándo toca el próximo control.\n\nSi anotas ese control, te aviso cuando se acerque y aparece en **Próximos**.' },
+
+  { palabras: ['momento', 'momentos', 'hito', 'hitos', 'recuerdo'],
+    texto: 'En el **Perfil**, baja hasta **Momentos**. Ahí puedes guardar los hitos: su primer día en casa, su primer paseo, cuando se le cayó el primer diente.\n\nEs la parte menos clínica de la app, y a veces la más linda de mirar después.' },
+
+  { palabras: ['calendario', 'ver el mes', 'mis registros', 'historial dias'],
+    texto: 'Toca **Calendario** en la barra de abajo. Cada día tiene su color según cómo estuvo: verde si todo normal, amarillo o naranjo si hubo algo, rojo si fue un día de alerta.\n\nToca cualquier día para ver o completar su registro. Y puedes deslizar el dedo para cambiar de mes.' },
+
+  { palabras: ['analisis', 'tendencias', 'estadisticas', 'graficos'],
+    texto: 'Toca **Análisis** en la barra de abajo. Ahí ves cómo ha venido: qué porcentaje de días estuvo bien, sus rutinas, su actividad, y lo que se repitió.\n\nY arriba está el chat, donde puedes preguntarme lo que quieras sobre lo registrado.' },
+
+  { palabras: ['signos alerta', 'algo grave', 'urgencia'],
+    texto: 'En el **registro diario**, en la fila de salud, está **🚨 Alerta**. Ahí marcas eventos graves: convulsiones, dificultad para respirar, sangrado, golpe de calor.\n\nSi marcas alguno, el día queda en rojo y aparece destacado para tu veterinario.' },
+
+  { palabras: ['borrar', 'eliminar', 'corrig', 'corrij', 'me equivoque', 'editar registro', 'modificar registro'],
+    texto: 'En cualquier sección de **Salud**, cada tarjeta tiene un botón **⋮** arriba a la derecha. Desde ahí puedes editarla o eliminarla.\n\nPara un registro diario, entra al **Calendario**, toca ese día y modifica lo que necesites.' },
+
+  { palabras: ['archiv', 'eliminar mascota', 'fallecio', 'se murio', 'ya no esta conmigo'],
+    texto: 'En el **Perfil**, dentro de **Datos del perfil**, está la opción de archivar.\n\nArchivar no borra nada: su historial queda guardado y puedes volver a verlo cuando quieras. Simplemente deja de aparecer en el día a día.' },
+
+  { palabras: ['todo normal', 'registrar rapido'],
+    texto: 'En el **registro diario**, arriba, está el botón **Todo normal ✓**. Con un toque marca todas las señales como normales.\n\nEstá pensado justo para los días en que no pasó nada: registrar igual esos días es lo que después permite ver qué es lo habitual en tu mascota.' },
+
+  { palabras: ['cerrar sesion', 'salir cuenta', 'cambiar de cuenta'],
+    texto: 'Toca las **tres líneas** de arriba a la derecha y busca **Cerrar sesión** al final del menú.' },
+
+  { palabras: ['contraseña', 'clave', 'password'],
+    texto: 'Si no puedes entrar, en la pantalla de inicio de sesión hay un enlace de **¿Olvidaste tu contraseña?**. Te llega un correo para crear una nueva.' },
+
   { palabras: ['examen', 'hemograma', 'perfil bioquimico'],
     texto: 'Toca **Salud** y entra a **Exámenes**. Puedes anotar los valores de un hemograma, un perfil bioquímico y otros, con sus rangos de referencia.\n\nAsí los tienes a mano cuando tu veterinario los pida.' },
 ]
@@ -571,7 +633,7 @@ const COMOLO: Comolo[] = [
 // Verbos que indican que la pregunta es sobre CÓMO HACER algo, no
 // sobre los datos: "¿dónde registro una vacuna?" pregunta el camino,
 // "¿qué vacunas vienen?" pregunta el dato.
-const VERBOS_COMO = /\b(donde|como|puedo|quiero|necesito|se puede|hago para|agrego|agregar|registro|registrar|anoto|anotar|guardo|guardar|pongo|poner|edito|editar|cambio|cambiar|creo|crear|comparto|compartir|subo|subir|olvide|falta|le salio|tiene una|encontre)\b/
+const VERBOS_COMO = /\b(donde|como|puedo|quiero|necesito|se puede|hago para|agrego|agregar|registro|registrar|anoto|anotar|guardo|guardar|pongo|poner|edito|editar|cambio|cambiar|creo|crear|comparto|compartir|subo|subir|olvide|falta|le salio|tiene una|encontre|que son|que es|para que sirve|funciona|anoto|reviso|corrijo|corrijo|elimino|borro|archivo)\b/
 
 function buscarComolo(pregunta: string): string | null {
   const q = normalizar(pregunta)
@@ -608,7 +670,7 @@ type Tema = 'peso' | 'vacunas' | 'antiparasitarios' | 'medicamentos' | 'paseos'
   | 'consejo:ansiedad' | 'consejo:juego' | 'consejo:heces' | 'consejo:movilidad'
   | 'consejo:peso' | 'consejo:agua' | 'consejo:temperatura' | 'consejo:corazon'
   | 'consejo:dientes' | 'consejo:seguridad' | 'consejo:alerta'
-  | 'consejo:viaje_casa' | 'consejo:viaje_auto' | null
+  | 'consejo:viaje_casa' | 'consejo:viaje_auto' | 'consejo:presentacion' | null
 
 interface Intencion { tema: Exclude<Tema, null>; frases: string[] }
 
@@ -817,9 +879,10 @@ function responder(
     return {
       texto: `Dime qué quieres hacer y te digo dónde:`,
       tema: null,
-      opciones: ['¿Dónde registro una vacuna?', '¿Cómo edito su perfil?',
-                 '¿Cómo agrego un co-tutor?', '¿Dónde guardo una observación?',
-                 '¿Para qué sirve el registro diario?', '¿Cómo le comparto al veterinario?'],
+      opciones: ['¿Para qué sirve el registro diario?', '¿Dónde registro una vacuna?',
+                 '¿Cómo edito su perfil?', '¿Cómo agrego un co-tutor?',
+                 '¿Dónde guardo una observación?', '¿Cómo le comparto al veterinario?',
+                 '¿Cómo funciona el calendario?', '¿Cómo corrijo un registro?'],
     }
   }
 
@@ -830,7 +893,7 @@ function responder(
       tema: null,
       opciones: ['¿Qué puede comer?', '¿Qué hago si está ansioso?', '¿Cómo deben ser sus heces?',
                  '¿Cuánta agua necesita?', '¿Está en su peso ideal?', '¿Cuáles son los signos de alerta?',
-                 'Voy a viajar'],
+                 'Voy a viajar', 'Llega una nueva mascota'],
     }
   }
 
@@ -984,6 +1047,35 @@ function responder(
         if (x.dias === 0) return `· ${x.nombre} — toca hoy`
         return `· ${x.nombre} — en ${x.dias} ${x.dias === 1 ? 'día' : 'días'} (${x.proxima})`
       }
+
+      // "¿CUÁL LE TOCA?" y "¿CUÁLES TIENE?" son preguntas distintas.
+      // La primera quiere UNA respuesta: la más próxima. La segunda
+      // quiere el historial completo.
+      const quiereHistorial = /\b(tiene puestas?|tiene|le han puesto|le puse|historial|todas|cuales|lista)\b/.test(q)
+        && !/\b(toca|proxim|viene|cuando)\b/.test(q)
+
+      if (!quiereHistorial) {
+        // La más urgente primero: vencida antes que pendiente, y entre
+        // pendientes la más cercana.
+        const conFecha = lista.filter(x => x.dias !== null)
+        if (conFecha.length === 0) {
+          return {
+            texto: `${lista.map(linea).join('\n')}\n\nNinguna tiene próxima fecha anotada. Si la agregas, te aviso antes de que venza.`,
+            tema: mejor.tema,
+          }
+        }
+        const proxima = conFecha.slice().sort((a, b) => (a.dias as number) - (b.dias as number))[0]
+        const resto = lista.length - 1
+        const cola = resto > 0
+          ? `\n\n(tiene ${resto} ${resto === 1 ? 'más registrada' : 'más registradas'})`
+          : ''
+        return {
+          texto: `${linea(proxima)}${cola}`,
+          tema: mejor.tema,
+          opciones: resto > 0 ? [mejor.tema === 'vacunas' ? '¿Qué vacunas tiene puestas?' : '¿Qué antiparasitarios le he dado?'] : undefined,
+        }
+      }
+
       return { texto: `${lista.map(linea).join('\n')}`, tema: mejor.tema }
     }
 
