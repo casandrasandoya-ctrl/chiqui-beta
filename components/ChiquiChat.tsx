@@ -875,7 +875,15 @@ function responder(
       const lista = mejor.tema === 'vacunas' ? d.vacunas : d.antiparasitarios
       const que = mejor.tema === 'vacunas' ? 'vacunas' : 'antiparasitarios'
       if (!lista || lista.length === 0) {
-        return { texto: `No tengo ${que} anotados de ${d.nombre}. Puedes agregarlos en Salud → Prevención.`, tema: mejor.tema }
+        // La concordancia va explícita: "vacunas anotadas", no
+        // "vacunas anotados".
+        const frase = mejor.tema === 'vacunas'
+          ? `No tengo vacunas anotadas de ${d.nombre}. Puedes agregarlas`
+          : `No tengo antiparasitarios anotados de ${d.nombre}. Puedes agregarlos`
+        return {
+          texto: `${frase} en Salud → Prevención.\n\nSi anotas su próxima fecha, te aviso antes de que venza.`,
+          tema: mejor.tema,
+        }
       }
       const linea = (x: { nombre: string; proxima: string | null; dias: number | null }) => {
         if (!x.proxima) return `· ${x.nombre} — sin próxima fecha anotada`
@@ -1022,6 +1030,27 @@ function responder(
   // Se admite sin rodeos y se ofrece el menú. Antes heredaba el tema
   // anterior y respondía sobre exámenes a "¿sabes codificar?", que es
   // peor que decir que no se sabe.
+  // UN CUIDADO QUE TODAVÍA NO SE REGISTRA.
+  // Va al final, no antes de la clasificación: la raíz "unas" está
+  // dentro de "vacUNAS" y respondía sobre uñas a preguntas de vacunas.
+  // Acá solo se llega si ninguna categoría calzó, así que no puede
+  // robarle nada a nadie.
+  const CUIDADOS_CONOCIDOS: { label: string; palabras: string[]; donde: string }[] = [
+    { label: 'baños', palabras: ['ban', 'ducha'], donde: 'la fila de piel y aseo' },
+    { label: 'cortes de uñas', palabras: ['cortar las unas', 'corte de unas', 'las unitas'], donde: 'la fila de piel y aseo' },
+    { label: 'limpiezas dentales', palabras: ['diente', 'dental', 'cepill'], donde: 'la fila de piel y aseo' },
+    { label: 'limpiezas de oídos', palabras: ['oido', 'oreja'], donde: 'la fila de piel y aseo' },
+    { label: 'compras de alimento', palabras: ['comprar', 'saco', 'croqueta'], donde: 'la fila de alimentación' },
+    { label: 'cargas del dispensador', palabras: ['dispensador'], donde: 'la fila de alimentación' },
+  ]
+  const preguntado = CUIDADOS_CONOCIDOS.find(c => c.palabras.some(p => coincide(q, p)))
+  if (preguntado) {
+    return {
+      texto: `Todavía no tengo ${preguntado.label} registrados de ${d.nombre}.\n\nSe anotan en el registro diario, en ${preguntado.donde}. Con dos o más ya puedo decirte cada cuánto los sueles hacer.`,
+      tema: 'cuidado',
+    }
+  }
+
   // No se entendió. Se admite sin inventar y sin heredar: devolver algo
   // de otra categoría "para no quedar mal" es peor que decir que no se
   // sabe, porque suena igual de seguro.
