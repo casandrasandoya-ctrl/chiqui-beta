@@ -94,6 +94,7 @@ export default function ChiquiFlotante() {
     setDatos(null)
 
     ;(async () => {
+      try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -121,43 +122,57 @@ export default function ChiquiFlotante() {
       const desde = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d30)
       const inicioMes = hoy.slice(0, 7) + '-01'
 
+      // Una consulta que falla NO puede tumbar el chat entero. Si una
+      // tabla no existe o cambia de nombre, esa parte llega vacía y el
+      // chat dice que no tiene ese dato — pero aparece igual.
+      //
+      // Antes, cualquier error hacía que setDatos nunca se llamara y el
+      // flotante no se mostraba en ninguna pantalla.
+      const seguro = async <T,>(p: PromiseLike<{ data: T[] | null }>): Promise<{ data: T[] | null }> => {
+        try {
+          return await p
+        } catch {
+          return { data: null }
+        }
+      }
+
       const [
         { data: regs }, { data: pesos }, { data: vac }, { data: ant },
         { data: meds }, { data: exs }, { data: visitasT }, { data: paseos },
         { data: celos }, { data: lab }, { data: temps }, { data: resp },
         { data: revis }, { data: momentos }, { data: enfs },
       ] = await Promise.all([
-        supabase.from('registros_diarios').select('*').eq('mascota_id', m.id).eq('user_id', user.id)
-          .gte('fecha', desde).order('fecha', { ascending: false }),
-        supabase.from('historial_peso').select('peso, fecha').eq('mascota_id', m.id)
-          .order('fecha', { ascending: false }).limit(2),
-        supabase.from('vacunas').select('nombre, fecha_aplicacion, proxima_fecha')
-          .eq('mascota_id', m.id).order('fecha_aplicacion', { ascending: false }),
-        supabase.from('antiparasitarios').select('nombre, fecha_aplicacion, proxima_fecha')
-          .eq('mascota_id', m.id).order('fecha_aplicacion', { ascending: false }),
-        supabase.from('medicamentos').select('nombre, fecha_inicio, fecha_fin, estado')
-          .eq('mascota_id', m.id),
-        supabase.from('examenes').select('nombre, categoria, fecha').eq('mascota_id', m.id)
-          .order('fecha', { ascending: false }).limit(5),
-        supabase.from('visitas_veterinarias').select('fecha').eq('mascota_id', m.id).eq('user_id', user.id),
-        supabase.from('registros_diarios').select('fecha, paseo, paseo_minutos_exactos')
-          .eq('mascota_id', m.id).eq('user_id', user.id).gte('fecha', inicioMes).lte('fecha', hoy),
+        seguro(supabase.from('registros_diarios').select('*').eq('mascota_id', m.id).eq('user_id', user.id)
+          .gte('fecha', desde).order('fecha', { ascending: false })),
+        seguro(supabase.from('historial_peso').select('peso, fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(2)),
+        seguro(supabase.from('vacunas').select('nombre, fecha_aplicacion, proxima_fecha')
+          .eq('mascota_id', m.id).order('fecha_aplicacion', { ascending: false })),
+        seguro(supabase.from('antiparasitarios').select('nombre, fecha_aplicacion, proxima_fecha')
+          .eq('mascota_id', m.id).order('fecha_aplicacion', { ascending: false })),
+        seguro(supabase.from('medicamentos').select('nombre, fecha_inicio, fecha_fin, estado')
+          .eq('mascota_id', m.id)),
+        seguro(supabase.from('examenes').select('nombre, categoria, fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(5)),
+        seguro(supabase.from('visitas_veterinarias').select('fecha').eq('mascota_id', m.id).eq('user_id', user.id)),
+        seguro(supabase.from('registros_diarios').select('fecha, paseo, paseo_minutos_exactos')
+          .eq('mascota_id', m.id).eq('user_id', user.id).gte('fecha', inicioMes).lte('fecha', hoy)),
         // Lo que faltaba: celos, exámenes de laboratorio, temperatura,
         // respiración, revisiones corporales, momentos y enfermedades.
-        supabase.from('celos').select('fecha_inicio, fecha_fin').eq('mascota_id', m.id)
-          .order('fecha_inicio', { ascending: false }).limit(4),
-        supabase.from('examenes_lab').select('tipo, fecha').eq('mascota_id', m.id)
-          .order('fecha', { ascending: false }).limit(5),
-        supabase.from('temperatura_corporal').select('temperatura, fecha').eq('mascota_id', m.id)
-          .order('fecha', { ascending: false }).limit(2),
-        supabase.from('frecuencia_respiratoria').select('respiraciones, fecha').eq('mascota_id', m.id)
-          .order('fecha', { ascending: false }).limit(2),
-        supabase.from('revisiones_corporales').select('fecha').eq('mascota_id', m.id)
-          .order('fecha', { ascending: false }).limit(1),
-        supabase.from('momentos').select('titulo, fecha').eq('mascota_id', m.id)
-          .order('fecha', { ascending: false }).limit(5),
-        supabase.from('enfermedades').select('diagnostico, fecha_diagnostico, proxima_revision')
-          .eq('mascota_id', m.id).order('fecha_diagnostico', { ascending: false }),
+        seguro(supabase.from('celos').select('fecha_inicio, fecha_fin').eq('mascota_id', m.id)
+          .order('fecha_inicio', { ascending: false }).limit(4)),
+        seguro(supabase.from('examenes_lab').select('tipo, fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(5)),
+        seguro(supabase.from('temperatura_corporal').select('temperatura, fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(2)),
+        seguro(supabase.from('frecuencia_respiratoria').select('respiraciones, fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(2)),
+        seguro(supabase.from('revisiones_corporales').select('fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(1)),
+        seguro(supabase.from('momentos').select('titulo, fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(5)),
+        seguro(supabase.from('enfermedades').select('diagnostico, fecha_diagnostico, proxima_revision')
+          .eq('mascota_id', m.id).order('fecha_diagnostico', { ascending: false })),
       ])
 
       if (!vivo) return
@@ -244,8 +259,8 @@ export default function ChiquiFlotante() {
       // de tres días es distinto a tres malestares sueltos en el mes.
       const porDia = new Map<string, { etiquetas: string[]; nota: string }>()
       for (const x of (senales || [])) {
-        // fechaISO es opcional en el tipo, así que hay que
-        // comprobarlo: acá siempre viene, pero TypeScript no lo sabe.
+        // fechaISO es opcional en el tipo, así que hay que comprobarlo:
+        // acá siempre viene, pero TypeScript no lo sabe.
         const f = x.fechaISO
         if (!f) continue
         const prev = porDia.get(f) || { etiquetas: [] as string[], nota: '' }
@@ -338,6 +353,23 @@ export default function ChiquiFlotante() {
         })),
         fmtVisita: fmt,
       })
+      } catch (e) {
+        // Si algo se rompió, el chat aparece igual con lo mínimo. Es
+        // preferible un chat que solo sabe el nombre a ningún chat: la
+        // persona puede seguir preguntando por alimentos, por cómo usar
+        // la app, o recibir las instrucciones de una urgencia.
+        console.error('ChiquiFlotante:', e)
+        if (vivo) {
+          setDatos(prev => prev || {
+            nombre: 'tu mascota',
+            especie: '',
+            episodios: [],
+            totalRegistros: 0,
+            pctBien: 0,
+            textoPeriodo: 'los últimos 30 días',
+          })
+        }
+      }
     })()
 
     return () => { vivo = false }
