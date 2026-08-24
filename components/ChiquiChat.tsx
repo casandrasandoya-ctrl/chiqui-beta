@@ -46,6 +46,24 @@ export interface DatosChat {
   visitasVet?: string[]
   // La fecha de hoy en Chile, para poder recortar al período pedido.
   hoyISO?: string
+  // El perfil completo. Cada campo puede faltar: el chat dice dónde
+  // anotarlo en vez de inventar.
+  perfil?: {
+    raza: string | null
+    sexo: string | null
+    nacimiento: string | null
+    esterilizado: boolean | null
+    alergias: string | null
+    color: string | null
+    microchip: string | null
+  }
+  celos?: { inicio: string; fin: string | null; inicioISO: string }[]
+  examenesLab?: { tipo: string; fecha: string }[]
+  temperatura?: { valor: number; fecha: string } | null
+  respiracion?: { valor: number; fecha: string } | null
+  ultimaRevision?: string | null
+  momentos?: { titulo: string; fecha: string }[]
+  enfermedades?: { diagnostico: string; fecha: string; proximaRevision: string | null }[]
   // Para poder mostrar la fecha en formato legible sin repetir el
   // formateador acá.
   fmtVisita?: (iso: string) => string
@@ -288,8 +306,10 @@ const CONSEJOS: Consejo[] = [
   },
   {
     tema: 'corazon',
+    // 'cuanto respira' NO va: es una pregunta por el dato registrado,
+    // no por lo que es normal. Las formas educativas llevan "normal".
     palabras: ['frecuencia cardiaca', 'corazon', 'latidos', 'pulso', 'respiracion normal',
-               'cuanto respira', 'respiraciones por minuto'],
+               'respiraciones normales', 'cuanto es normal respirar'],
     opciones: [
       'En reposo el corazón late entre 60 y 140 veces por minuto: en razas pequeñas más rápido, en grandes más lento.\n\nLa respiración normal en reposo es de 10 a 30 veces por minuto.',
     ],
@@ -665,6 +685,8 @@ function buscarComolo(pregunta: string): string | null {
 // vacunas vienen?" no cae en el corte de uñas por la raíz "una".
 type Tema = 'peso' | 'vacunas' | 'antiparasitarios' | 'medicamentos' | 'paseos'
   | 'senal' | 'cuidado' | 'examenes' | 'resumen' | 'vet' | 'visitas'
+  | 'perfil' | 'alergias' | 'celos' | 'lab' | 'temperatura' | 'respiracion'
+  | 'revision' | 'momentos' | 'enfermedades'
   // Los consejos también son un tema, para que "¿y qué más?" después de
   // uno de ansiedad devuelva el siguiente en vez de no entender.
   | 'consejo:ansiedad' | 'consejo:juego' | 'consejo:heces' | 'consejo:movilidad'
@@ -696,6 +718,23 @@ const INTENCIONES: Intencion[] = [
       'cuando fue al vet', 'lo lleve al vet', 'la lleve al vet', 'visita al veterinario',
       'visitas al vet', 'ha ido al vet', 'consulta veterinaria', 'ultima consulta',
       'ultima visita', 'cuando lo lleve', 'cuando fuimos'] },
+  // Las frases van SIN ñ ni tildes: se comparan contra texto ya
+  // normalizado, donde "años" quedó como "anos".
+  { tema: 'perfil', frases: ['que raza', 'raza es', 'de que raza', 'cuantos anos', 'que edad',
+      'cuando nacio', 'su cumpleanos', 'es macho', 'es hembra', 'que sexo', 'esterilizad',
+      'castrad', 'operad', 'de que color', 'microchip', 'chip', 'sus datos', 'su perfil'] },
+  { tema: 'alergias', frases: ['alergia', 'alergias', 'es alergic', 'le hace alergia'] },
+  { tema: 'celos', frases: ['celo', 'celos', 'esta en celo', 'ultimo celo', 'proximo celo'] },
+  { tema: 'lab', frases: ['examen de laboratorio', 'examenes de laboratorio', 'hemograma',
+      'perfil bioquimico', 'examenes lab', 'analisis de sangre', 'lab'] },
+  { tema: 'temperatura', frases: ['que temperatura tiene', 'su temperatura', 'temperatura registrada',
+      'ultima temperatura'] },
+  { tema: 'respiracion', frases: ['frecuencia respiratoria', 'cuanto respira', 'sus respiraciones',
+      'respiracion registrada'] },
+  { tema: 'revision', frases: ['revision corporal', 'ultima revision', 'lo revise'] },
+  { tema: 'momentos', frases: ['momentos', 'sus hitos', 'sus recuerdos', 'que momentos'] },
+  { tema: 'enfermedades', frases: ['enfermedad', 'enfermedades', 'diagnostico', 'diagnosticos',
+      'que tiene', 'condicion'] },
   { tema: 'resumen', frases: ['como ha estado', 'como esta', 'que le paso', 'que paso',
       'ha estado enfermo', 'estuvo enfermo', 'ultimamente', 'todo', 'resumen', 'episodi'] },
 ]
@@ -909,7 +948,9 @@ function responder(
   // La diferencia está en el tiempo verbal y en el posesivo, no en el
   // tema. Antes esto era un regex de diez palabras y cualquier forma
   // fuera de esas diez caía del lado equivocado.
-  const SENAL_DATOS = /\b(ha |han |hubo|tuvo|estuvo|cuando|cuantas veces|registr|anote|le paso|esta semana|este mes|ultimos|ayer|hoy|ultimamente|recientemente)\b/
+  // "tiene" pide el dato: "¿qué temperatura TIENE?" quiere el valor
+  // registrado, no la explicación de cuál es lo normal.
+  const SENAL_DATOS = /\b(ha |han |hubo|tuvo|tiene|estuvo|cuando|cuantas veces|registr|anote|le paso|esta semana|este mes|ultimos|ayer|hoy|ultimamente|recientemente|su |sus )\b/
   const SENAL_EDUCATIVA = /\b(deben|debe|deberia|es normal|son normales|se supone|cuanto es|cuanta es|que significa|por que|para que|sirve|cual es|como son|normalmente)\b/
 
   const pideDatos = SENAL_DATOS.test(q) && !SENAL_EDUCATIVA.test(q)
@@ -1185,6 +1226,163 @@ function responder(
       if (d.medicamentos && d.medicamentos.length > 0) partes.push(`· En tratamiento: ${d.medicamentos.map(m => m.nombre).join(', ')}`)
       partes.push('\nDesde tu perfil puedes generar un link para que lo vea completo, sin crear cuenta.')
       return { texto: partes.join('\n'), tema: 'vet' }
+    }
+
+    case 'perfil': {
+      const p = d.perfil
+      if (!p) return { texto: `No tengo los datos del perfil de ${d.nombre} a mano.`, tema: 'perfil' }
+      const lineas: string[] = []
+      if (p.raza) lineas.push(`· Raza: ${p.raza}`)
+      if (p.nacimiento) {
+        const nace = new Date(p.nacimiento + 'T12:00:00')
+        const hoyD = new Date((d.hoyISO || '') + 'T12:00:00')
+        const meses = (hoyD.getFullYear() - nace.getFullYear()) * 12 + (hoyD.getMonth() - nace.getMonth())
+        const años = Math.floor(meses / 12)
+        const resto = meses % 12
+        const edad = años > 0
+          ? `${años} ${años === 1 ? 'año' : 'años'}${resto > 0 ? ` y ${resto} ${resto === 1 ? 'mes' : 'meses'}` : ''}`
+          : `${meses} ${meses === 1 ? 'mes' : 'meses'}`
+        lineas.push(`· Edad: ${edad}`)
+      }
+      if (p.sexo) {
+        // El estado reproductivo va junto al sexo: son la misma
+        // pregunta para quien la hace.
+        const estado = p.esterilizado === true ? ', esterilizado/a'
+          : p.esterilizado === false ? ', fértil' : ''
+        lineas.push(`· Sexo: ${p.sexo}${estado}`)
+      }
+      if (p.color) lineas.push(`· Color: ${p.color}`)
+      if (p.microchip) lineas.push(`· Microchip: ${p.microchip}`)
+      if (d.peso) lineas.push(`· Peso: ${d.peso.actual} kg (${d.peso.fecha})`)
+      if (p.alergias) lineas.push(`· ⚠️ Alergia: ${p.alergias}`)
+
+      if (lineas.length === 0) {
+        return {
+          texto: `Todavía no tengo datos del perfil de ${d.nombre}.\n\nPuedes completarlos desde el menú de las tres líneas → Perfil y cuenta → Datos del perfil.`,
+          tema: 'perfil',
+        }
+      }
+      return { texto: `${d.nombre}:\n${lineas.join('\n')}`, tema: 'perfil' }
+    }
+
+    case 'alergias': {
+      if (!d.perfil?.alergias) {
+        return {
+          texto: `No tengo alergias registradas en ${d.nombre}.\n\nSi tiene alguna, anótala en su perfil: aparece marcada en rojo para que tu veterinario la vea de inmediato.`,
+          tema: 'alergias',
+        }
+      }
+      return {
+        texto: `⚠️ ${d.nombre} tiene registrada alergia a: **${d.perfil.alergias}**.\n\nSi alguna vez lo atiende otro veterinario, es lo primero que conviene mencionar.`,
+        tema: 'alergias',
+      }
+    }
+
+    case 'celos': {
+      const cs = d.celos || []
+      if (cs.length === 0) {
+        return {
+          texto: `No tengo celos registrados de ${d.nombre}.\n\nSe anotan en Salud → Celos. Con dos o más puedo estimarte cuándo viene el próximo.`,
+          tema: 'celos',
+        }
+      }
+      const lineas = cs.slice(0, 3).map(c => `· ${c.inicio}${c.fin ? ` al ${c.fin}` : ' (sin fecha de término)'}`)
+      let cola = ''
+      if (cs.length >= 2 && d.hoyISO) {
+        // El intervalo promedio entre celos, para estimar el próximo.
+        const difs: number[] = []
+        for (let i = 0; i < Math.min(cs.length - 1, 3); i++) {
+          const a = new Date(cs[i].inicioISO + 'T12:00:00').getTime()
+          const b = new Date(cs[i + 1].inicioISO + 'T12:00:00').getTime()
+          difs.push(Math.round((a - b) / 86400000))
+        }
+        const prom = Math.round(difs.reduce((x, y) => x + y, 0) / difs.length)
+        if (prom > 0) {
+          const desde = Math.round(
+            (new Date(d.hoyISO + 'T12:00:00').getTime() - new Date(cs[0].inicioISO + 'T12:00:00').getTime()) / 86400000
+          )
+          const faltan = prom - desde
+          cola = faltan > 0
+            ? `\n\nSuelen venirle cada ${prom} días, así que el próximo sería en unos ${faltan}.`
+            : `\n\nSuelen venirle cada ${prom} días, y ya pasaron ${desde} desde el último.`
+        }
+      }
+      return { texto: `Últimos celos:\n${lineas.join('\n')}${cola}`, tema: 'celos' }
+    }
+
+    case 'lab': {
+      const ls = d.examenesLab || []
+      if (ls.length === 0) {
+        return {
+          texto: `No tengo exámenes de laboratorio de ${d.nombre}.\n\nSe guardan en Salud → Exámenes de laboratorio, con sus valores y rangos de referencia.`,
+          tema: 'lab',
+        }
+      }
+      return {
+        texto: `Exámenes de laboratorio guardados:\n${ls.map(x => `· ${x.tipo} — ${x.fecha}`).join('\n')}\n\nInterpretarlos es cosa de tu veterinario: los valores dependen de la edad y del laboratorio.`,
+        tema: 'lab',
+      }
+    }
+
+    case 'temperatura': {
+      if (!d.temperatura) {
+        return {
+          texto: `No tengo temperaturas registradas de ${d.nombre}.\n\nSe anotan en Salud → Temperatura corporal. Lo normal está entre 38 °C y 39,2 °C.`,
+          tema: 'temperatura',
+        }
+      }
+      const t = d.temperatura.valor
+      // Se dice si está fuera del rango normal, sin diagnosticar.
+      const nota = t >= 40 ? '\n\nEso está sobre el rango normal (38 a 39,2 °C). Sobre 40 °C conviene consultar.'
+        : t < 37.5 ? '\n\nEso está bajo el rango normal (38 a 39,2 °C). Vale la pena comentarlo.'
+        : '\n\nEstá dentro del rango normal (38 a 39,2 °C).'
+      return { texto: `La última temperatura que anotaste fue **${t} °C**, el ${d.temperatura.fecha}.${nota}`, tema: 'temperatura' }
+    }
+
+    case 'respiracion': {
+      if (!d.respiracion) {
+        return {
+          texto: `No tengo frecuencias respiratorias de ${d.nombre}.\n\nSe anotan en Salud → Frecuencia respiratoria: cuentas cuántas veces respira en reposo durante un minuto.`,
+          tema: 'respiracion',
+        }
+      }
+      const r = d.respiracion.valor
+      const nota = r > 30 ? '\n\nEn reposo lo normal son 10 a 30 por minuto, así que vale la pena comentarlo.'
+        : '\n\nEstá dentro de lo normal en reposo (10 a 30 por minuto).'
+      return { texto: `La última que anotaste fue **${r} respiraciones por minuto**, el ${d.respiracion.fecha}.${nota}`, tema: 'respiracion' }
+    }
+
+    case 'revision': {
+      if (!d.ultimaRevision) {
+        return {
+          texto: `Todavía no has hecho una revisión corporal de ${d.nombre}.\n\nEstá en el dashboard, en Próximos. Te va guiando parte por parte: ojos, oídos, boca, piel, patas.`,
+          tema: 'revision',
+        }
+      }
+      return { texto: `La última revisión corporal fue el **${d.ultimaRevision}**.`, tema: 'revision' }
+    }
+
+    case 'momentos': {
+      const ms = d.momentos || []
+      if (ms.length === 0) {
+        return {
+          texto: `Todavía no has guardado momentos de ${d.nombre}.\n\nEstán en el Perfil, más abajo. Sirven para los hitos: su primer día en casa, su primer paseo, lo que quieras recordar.`,
+          tema: 'momentos',
+        }
+      }
+      return { texto: `Momentos guardados:\n${ms.map(x => `· ${x.fecha} — ${x.titulo}`).join('\n')}`, tema: 'momentos' }
+    }
+
+    case 'enfermedades': {
+      const es = d.enfermedades || []
+      if (es.length === 0) {
+        return {
+          texto: `No tengo diagnósticos registrados de ${d.nombre}.\n\nSi le diagnostican algo, anótalo en Salud → Enfermedades: puedes guardar la fecha y cuándo toca el próximo control.`,
+          tema: 'enfermedades',
+        }
+      }
+      const lineas = es.map(x => `· ${x.diagnostico} — desde el ${x.fecha}${x.proximaRevision ? `, control el ${x.proximaRevision}` : ''}`)
+      return { texto: `Diagnósticos registrados:\n${lineas.join('\n')}`, tema: 'enfermedades' }
     }
 
     case 'resumen': {

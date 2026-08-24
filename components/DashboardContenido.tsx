@@ -191,7 +191,7 @@ export default function DashboardContenido({
 
       {/* HERO — invita a registrar. Los datos de la mascota viven en
           el perfil; la pantalla de entrada pregunta. */}
-      <Link href="/registro-diario" className="relative mx-4 mb-3 rounded-3xl p-5 overflow-hidden block" style={{ background: '#3fac9c' }}>
+      <Link href="/registro-diario" className="relative mx-4 mb-3 rounded-3xl p-5 overflow-hidden block" style={{ background: '#8C572F', boxShadow: '0 3px 12px rgba(140,87,47,.22)' }}>
         <div className="flex items-center gap-3.5">
           {m.foto_url ? (
             <div className="relative w-[70px] h-[70px] rounded-full overflow-hidden border-[3px] border-white/50 flex-shrink-0">

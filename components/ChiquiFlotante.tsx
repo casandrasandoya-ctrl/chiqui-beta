@@ -100,7 +100,9 @@ export default function ChiquiFlotante() {
 
       const { data: mascotas } = await supabase
         .from('mascotas')
-        .select('id, nombre, especie')
+        // Todo lo del perfil: el chat responde sobre la mascota
+        // completa, no solo sobre lo que se registra a diario.
+        .select('id, nombre, especie, raza, sexo, fecha_nacimiento, esterilizado, alergias, peso_actual, color, microchip, foto_url')
         .eq('user_id', user.id)
         .is('archivada_en', null)
       if (!mascotas || mascotas.length === 0) return
@@ -122,6 +124,8 @@ export default function ChiquiFlotante() {
       const [
         { data: regs }, { data: pesos }, { data: vac }, { data: ant },
         { data: meds }, { data: exs }, { data: visitasT }, { data: paseos },
+        { data: celos }, { data: lab }, { data: temps }, { data: resp },
+        { data: revis }, { data: momentos }, { data: enfs },
       ] = await Promise.all([
         supabase.from('registros_diarios').select('*').eq('mascota_id', m.id).eq('user_id', user.id)
           .gte('fecha', desde).order('fecha', { ascending: false }),
@@ -138,6 +142,22 @@ export default function ChiquiFlotante() {
         supabase.from('visitas_veterinarias').select('fecha').eq('mascota_id', m.id).eq('user_id', user.id),
         supabase.from('registros_diarios').select('fecha, paseo, paseo_minutos_exactos')
           .eq('mascota_id', m.id).eq('user_id', user.id).gte('fecha', inicioMes).lte('fecha', hoy),
+        // Lo que faltaba: celos, exámenes de laboratorio, temperatura,
+        // respiración, revisiones corporales, momentos y enfermedades.
+        supabase.from('celos').select('fecha_inicio, fecha_fin').eq('mascota_id', m.id)
+          .order('fecha_inicio', { ascending: false }).limit(4),
+        supabase.from('examenes_lab').select('tipo, fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(5),
+        supabase.from('temperatura_corporal').select('temperatura, fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(2),
+        supabase.from('frecuencia_respiratoria').select('respiraciones, fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(2),
+        supabase.from('revisiones_corporales').select('fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(1),
+        supabase.from('momentos').select('titulo, fecha').eq('mascota_id', m.id)
+          .order('fecha', { ascending: false }).limit(5),
+        supabase.from('enfermedades').select('diagnostico, fecha_diagnostico, proxima_revision')
+          .eq('mascota_id', m.id).order('fecha_diagnostico', { ascending: false }),
       ])
 
       if (!vivo) return
@@ -291,6 +311,28 @@ export default function ChiquiFlotante() {
           fecha: fmt(e.fecha),
         })),
         visitasVet: Array.from(fechasVisita).sort(),
+        // El perfil completo. Cada campo puede faltar: el chat dice
+        // dónde anotarlo en vez de inventar.
+        perfil: {
+          raza: m.raza || null,
+          sexo: m.sexo || null,
+          nacimiento: m.fecha_nacimiento || null,
+          esterilizado: m.esterilizado,
+          alergias: m.alergias || null,
+          color: m.color || null,
+          microchip: m.microchip || null,
+        },
+        celos: (celos || []).map((x: any) => ({ inicio: fmt(x.fecha_inicio), fin: x.fecha_fin ? fmt(x.fecha_fin) : null, inicioISO: String(x.fecha_inicio).slice(0, 10) })),
+        examenesLab: (lab || []).map((x: any) => ({ tipo: x.tipo || 'Examen', fecha: fmt(x.fecha) })),
+        temperatura: temps && temps.length > 0 ? { valor: temps[0].temperatura, fecha: fmt(temps[0].fecha) } : null,
+        respiracion: resp && resp.length > 0 ? { valor: resp[0].respiraciones, fecha: fmt(resp[0].fecha) } : null,
+        ultimaRevision: revis && revis.length > 0 ? fmt(revis[0].fecha) : null,
+        momentos: (momentos || []).map((x: any) => ({ titulo: x.titulo || 'Momento', fecha: fmt(x.fecha) })),
+        enfermedades: (enfs || []).map((x: any) => ({
+          diagnostico: x.diagnostico || 'Diagnóstico',
+          fecha: fmt(x.fecha_diagnostico),
+          proximaRevision: x.proxima_revision ? fmt(x.proxima_revision) : null,
+        })),
         fmtVisita: fmt,
       })
     })()
