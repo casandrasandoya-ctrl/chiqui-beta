@@ -56,7 +56,11 @@ interface Mensaje { de: 'chiqui' | 'tu'; texto: string; opciones?: string[] }
 // Quita tildes y baja a minúsculas: "cuánto" y "cuanto" tienen que
 // encontrar lo mismo.
 function normalizar(s: string): string {
-  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    // El guion pasa a espacio: "co-tutor" y "co tutor" son lo mismo
+    // para quien pregunta, y no debería importar cómo lo escriba.
+    .replace(/[-_]/g, ' ')
 }
 
 // ============================================================
@@ -365,6 +369,85 @@ function puntuar(q: string, frases: string[]): number {
 }
 
 // ============================================================
+// "¿QUISISTE DECIR...?"
+// ============================================================
+// Solo se usa cuando el clasificador YA SE RINDIÓ. Nunca antes: si
+// corrigiera de entrada podría "arreglar" una palabra que estaba bien y
+// mandar la pregunta a otra categoría, que es peor que no entender.
+//
+// Y PREGUNTA, no asume. Corregir en silencio significa responder sobre
+// algo que la persona no preguntó, con la misma seguridad de siempre.
+// Preferimos una confirmación de un toque.
+//
+// Compara por DISTANCIA DE EDICIÓN: cuántas letras hay que cambiar para
+// pasar de una palabra a otra. "desparacitada" a "desparasitada" es una
+// sola letra, así que se ofrece. "programar" no se parece a nada de la
+// lista, así que no se ofrece nada — que es lo correcto.
+const VOCABULARIO: { palabra: string; pregunta: string }[] = [
+  { palabra: 'desparasitacion', pregunta: '¿Cuándo le toca la próxima desparasitación?' },
+  { palabra: 'desparasitar', pregunta: '¿Cuándo le toca la próxima desparasitación?' },
+  { palabra: 'antiparasitario', pregunta: '¿Cuándo le toca el antiparasitario?' },
+  { palabra: 'vacuna', pregunta: '¿Qué vacuna le toca?' },
+  { palabra: 'vacunas', pregunta: '¿Qué vacunas tiene puestas?' },
+  { palabra: 'medicamento', pregunta: '¿Qué medicamentos toma?' },
+  { palabra: 'medicamentos', pregunta: '¿Qué medicamentos toma?' },
+  { palabra: 'observacion', pregunta: '¿Dónde guardo una observación?' },
+  { palabra: 'veterinario', pregunta: '¿Cuándo fue al veterinario?' },
+  { palabra: 'examenes', pregunta: '¿Qué exámenes tiene?' },
+  { palabra: 'alimentacion', pregunta: '¿Cómo ha estado su apetito?' },
+  { palabra: 'movilidad', pregunta: '¿Ha cojeado?' },
+  { palabra: 'ansiedad', pregunta: '¿Qué hago si está ansioso?' },
+  { palabra: 'cotutor', pregunta: '¿Cómo agrego un co-tutor?' },
+  { palabra: 'temperatura', pregunta: '¿Cuál es su temperatura normal?' },
+  { palabra: 'chocolate', pregunta: '¿Puede comer chocolate?' },
+  { palabra: 'digestion', pregunta: '¿Cómo ha estado su digestión?' },
+  { palabra: 'antiparasitarios', pregunta: '¿Cuándo le toca el antiparasitario?' },
+]
+
+// Cuántas letras hay que cambiar para pasar de una palabra a otra.
+// Corta apenas se pasa del máximo aceptable: no interesa saber si son
+// 8 o 12 diferencias, solo si son pocas.
+function distancia(a: string, b: string, maximo: number): number {
+  if (Math.abs(a.length - b.length) > maximo) return maximo + 1
+  let fila = Array.from({ length: b.length + 1 }, (_, i) => i)
+  for (let i = 1; i <= a.length; i++) {
+    const nueva = [i]
+    let minimoFila = i
+    for (let j = 1; j <= b.length; j++) {
+      const costo = a[i - 1] === b[j - 1] ? 0 : 1
+      const v = Math.min(nueva[j - 1] + 1, fila[j] + 1, fila[j - 1] + costo)
+      nueva.push(v)
+      if (v < minimoFila) minimoFila = v
+    }
+    // Si toda la fila ya supera el máximo, no hay forma de bajar.
+    if (minimoFila > maximo) return maximo + 1
+    fila = nueva
+  }
+  return fila[b.length]
+}
+
+// Busca una palabra parecida a alguna de la pregunta. Devuelve la
+// sugerencia o null si nada se parece lo suficiente.
+function quisisteDecir(q: string): string | null {
+  const palabras = q.split(/\s+/).filter(p => p.length >= 5)
+  let mejor: { pregunta: string; dist: number } | null = null
+
+  for (const p of palabras) {
+    for (const v of VOCABULARIO) {
+      // El margen crece con el largo: en una palabra de 15 letras un
+      // par de erratas es normal; en una de 5, dos ya la vuelven otra
+      // palabra distinta.
+      const maximo = p.length >= 12 ? 3 : p.length >= 8 ? 2 : 1
+      const d = distancia(p, v.palabra, maximo)
+      if (d <= maximo && d > 0 && (!mejor || d < mejor.dist)) {
+        mejor = { pregunta: v.pregunta, dist: d }
+      }
+    }
+  }
+  return mejor ? mejor.pregunta : null
+}
+
+// ============================================================
 // PERÍODOS DE TIEMPO
 // ============================================================
 // Antes no existían: todo respondía "los últimos 30 días" aunque se
@@ -442,8 +525,12 @@ const COMOLO: Comolo[] = [
   { palabras: ['perfil', 'sus datos', 'el nombre', 'la raza', 'el sexo', 'la foto', 'esterilizad'],
     texto: 'Toca las **tres líneas** de arriba a la derecha, entra a **Perfil y cuenta**, y ahí abre **Datos del perfil**.\n\nCon el botón **Editar** puedes corregir el nombre, la raza, el sexo, la fecha de nacimiento y todo lo demás. La foto se cambia tocando el botoncito sobre la imagen.' },
 
-  { palabras: ['cotutor', 'co tutor', 'otra persona', 'mi pareja', 'mi familia',
-               'alguien mas', 'otro cuidador'],
+  // "cotutor" y "co-tutor" a secas faltaban: preguntar "¿cómo creo un
+  // co-tutor?" caía en "no sé" porque solo reconocía las formas
+  // indirectas ("otra persona", "mi pareja").
+  { palabras: ['cotutor', 'co tutor', 'co-tutor', 'cuidador', 'otra persona',
+               'mi pareja', 'mi familia', 'alguien mas', 'segunda persona',
+               'compartir mascota', 'codigo de invitacion'],
     texto: 'En el **Perfil** hay una tarjeta de **Co-tutor**. Toca **+ Generar código** y comparte ese código con quien quieras.\n\nEsa persona lo ingresa desde el botón **+** del selector de mascotas, en "Tengo un código". Desde ahí las dos pueden registrar a la misma mascota.' },
 
   { palabras: ['observacion', 'herida', 'masa', 'bulto', 'lesion', 'seguimiento'],
@@ -665,6 +752,11 @@ function responder(
   // camino, no por cuántos kilos pesa.
   const como = buscarComolo(pregunta)
   if (como) return { texto: como, tema: null }
+
+  // "No, era otra cosa": se ofrece el menú completo.
+  if (/\bno era otra cosa\b|\bera otra cosa\b/.test(q)) {
+    return { texto: `Dime entonces: ¿qué quieres hacer?`, tema: null, opciones: MENU }
+  }
 
   // --- 2. PALABRA SUELTA: preguntar, no adivinar ---
   // "heces" puede ser "¿cómo han estado?" o "¿qué significa el color?".
@@ -1054,6 +1146,17 @@ function responder(
   // No se entendió. Se admite sin inventar y sin heredar: devolver algo
   // de otra categoría "para no quedar mal" es peor que decir que no se
   // sabe, porque suena igual de seguro.
+  // Antes de rendirse del todo: ¿se parece a algo conocido? Se ofrece
+  // como PREGUNTA, no se corrige en silencio.
+  const sugerido = quisisteDecir(q)
+  if (sugerido) {
+    return {
+      texto: `No estoy segura de qué quieres consultar 🐾\n\n¿Quizás quisiste preguntar esto?`,
+      tema: null,
+      opciones: [sugerido, 'No, era otra cosa'],
+    }
+  }
+
   return {
     texto: `No estoy segura de qué quieres consultar 🐾\n\nConozco la historia de ${d.nombre}: lo que registras día a día, sus cuidados y su salud. También puedo decirte si un alimento le hace mal, o dónde se hace algo en la app.\n\n¿Qué quieres hacer?`,
     tema: null,

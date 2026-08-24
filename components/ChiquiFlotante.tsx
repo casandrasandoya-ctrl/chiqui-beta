@@ -216,19 +216,57 @@ export default function ChiquiFlotante() {
       const activos = (meds || []).filter((x: any) =>
         x.estado === 'activo' && (!x.fecha_inicio || x.fecha_inicio <= hoy) && (!x.fecha_fin || x.fecha_fin >= hoy))
 
+      // Episodios: los días con señales, agrupados en rachas. Antes el
+      // flotante abría sin nada porque este cálculo solo existía en
+      // Análisis, y el saludo quedaba pobre.
+      //
+      // Se agrupan los días seguidos o separados por uno: un malestar
+      // de tres días es distinto a tres malestares sueltos en el mes.
+      const porDia = new Map<string, { etiquetas: string[]; nota: string }>()
+      for (const x of (senales || [])) {
+        const f = x.fechaISO
+        const prev = porDia.get(f) || { etiquetas: [], nota: '' }
+        if (!prev.etiquetas.includes(x.etiqueta)) prev.etiquetas.push(x.etiqueta)
+        if (!prev.nota && x.nota) prev.nota = x.nota
+        porDia.set(f, prev)
+      }
+      const dias = Array.from(porDia.keys()).sort()
+      const grupos: string[][] = []
+      for (const f of dias) {
+        const ultimo = grupos[grupos.length - 1]
+        const fin = ultimo?.[ultimo.length - 1]
+        const sep = fin
+          ? Math.round((new Date(f + 'T12:00:00').getTime() - new Date(fin + 'T12:00:00').getTime()) / 86400000)
+          : 999
+        if (ultimo && sep <= 2) ultimo.push(f)
+        else grupos.push([f])
+      }
+      // Los más recientes primero, y solo los tres últimos: el saludo
+      // no puede ser una pared de texto.
+      const episodios = grupos.slice().reverse().slice(0, 3).map(g => {
+        const desde = g[0], hasta = g[g.length - 1]
+        const titulo = desde === hasta ? `El ${fmt(desde)}` : `Del ${fmt(desde)} al ${fmt(hasta)}`
+        const etiquetas: string[] = []
+        let nota = ''
+        for (const f of g) {
+          const d = porDia.get(f)!
+          for (const e of d.etiquetas) if (!etiquetas.includes(e)) etiquetas.push(e)
+          if (!nota && d.nota) nota = d.nota
+        }
+        return `${titulo} — ${etiquetas.join(', ')}.${nota ? ` 💬 "${nota}"` : ''}`
+      })
+
       setDatos({
         mascotaId: m.id,
         nombre: m.nombre || 'tu mascota',
         especie: m.especie || '',
-        // La burbuja no muestra episodios agrupados: eso vive en
-        // Análisis, que tiene el cálculo completo.
-        episodios: [],
+        episodios,
         totalRegistros: (regs || []).length,
-        pctBien: 0,
+        // Días sin nada anotado fuera de lo normal.
+        pctBien: (regs || []).length > 0
+          ? Math.round(((regs || []).length - porDia.size) / (regs || []).length * 100)
+          : 0,
         textoPeriodo: 'los últimos 30 días',
-        // La fecha de hoy en Chile: sin ella el chat no puede
-        // recortar las señales al período que pide la persona.
-        hoyISO: hoy,
         paseosMes: m.especie === 'Perro'
           ? { cantidad: paseosMes.length, minutos: minutosMes, nombreMes: MESES_LARGO[Number(hoy.slice(5, 7)) - 1] }
           : null,
