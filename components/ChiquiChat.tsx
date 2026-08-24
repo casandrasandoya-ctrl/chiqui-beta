@@ -64,6 +64,10 @@ export interface DatosChat {
     veterinaria: string | null
     tamanoEsperado: string | null
   }
+  // El historial completo, para "¿cuáles le he dado?" — distinto de
+  // vacunas/antiparasitarios, que traen solo lo vigente.
+  historialVacunas?: { nombre: string; aplicada: string }[]
+  historialAntis?: { nombre: string; aplicada: string }[]
   celos?: { inicio: string; fin: string | null; inicioISO: string }[]
   examenesLab?: { tipo: string; fecha: string }[]
   temperatura?: { valor: number; fecha: string } | null
@@ -494,6 +498,29 @@ function quisisteDecir(q: string): string | null {
   return mejor ? mejor.pregunta : null
 }
 
+// La edad, en palabras. Devuelve null si no hay fecha de nacimiento o
+// si algo sale mal — nunca "NaN meses", que es lo que aparecía cuando
+// hoyISO no llegaba.
+function calcularEdad(nacimiento: string | null, hoyISO?: string): string | null {
+  if (!nacimiento) return null
+  const nace = new Date(String(nacimiento).slice(0, 10) + 'T12:00:00')
+  // Si hoyISO no viene, se usa la fecha del dispositivo. Es preferible
+  // a no responder: la diferencia de zona horaria no cambia una edad.
+  const hoy = hoyISO ? new Date(hoyISO + 'T12:00:00') : new Date()
+  if (isNaN(nace.getTime()) || isNaN(hoy.getTime())) return null
+
+  let meses = (hoy.getFullYear() - nace.getFullYear()) * 12 + (hoy.getMonth() - nace.getMonth())
+  // Si aún no llega el día del mes, ese mes no se cumplió.
+  if (hoy.getDate() < nace.getDate()) meses--
+  if (meses < 0) return null
+
+  const años = Math.floor(meses / 12)
+  const resto = meses % 12
+  if (años === 0) return meses === 0 ? 'menos de un mes' : `${meses} ${meses === 1 ? 'mes' : 'meses'}`
+  if (resto === 0) return `${años} ${años === 1 ? 'año' : 'años'}`
+  return `${años} ${años === 1 ? 'año' : 'años'} y ${resto} ${resto === 1 ? 'mes' : 'meses'}`
+}
+
 // ============================================================
 // PERÍODOS DE TIEMPO
 // ============================================================
@@ -727,7 +754,7 @@ const INTENCIONES: Intencion[] = [
       'ultima visita', 'cuando lo lleve', 'cuando fuimos'] },
   // Las frases van SIN ñ ni tildes: se comparan contra texto ya
   // normalizado, donde "años" quedó como "anos".
-  { tema: 'perfil', frases: ['que raza', 'raza es', 'de que raza', 'cuantos anos', 'que edad',
+  { tema: 'perfil', frases: ['edad', 'que raza', 'raza es', 'de que raza', 'cuantos anos', 'que edad',
       'cuando nacio', 'su cumpleanos', 'es macho', 'es hembra', 'que sexo', 'esterilizad',
       'castrad', 'operad', 'de que color', 'microchip', 'chip', 'sus datos', 'su perfil'] },
   { tema: 'alergias', frases: ['alergia', 'alergias', 'es alergic', 'le hace alergia'] },
@@ -740,8 +767,10 @@ const INTENCIONES: Intencion[] = [
       'respiracion registrada'] },
   { tema: 'revision', frases: ['revision corporal', 'ultima revision', 'lo revise'] },
   { tema: 'momentos', frases: ['momentos', 'sus hitos', 'sus recuerdos', 'que momentos'] },
-  { tema: 'enfermedades', frases: ['enfermedad', 'enfermedades', 'diagnostico', 'diagnosticos',
-      'que tiene', 'condicion'] },
+  // 'que tiene' NO va: capturaba "¿qué EDAD TIENE?" y respondía sobre
+  // diagnósticos. Las formas específicas sí.
+  { tema: 'enfermedades', frases: ['enfermedad', 'enfermedades', 'diagnostic',
+      'condicion cronica', 'esta enferm', 'le detectaron'] },
   { tema: 'resumen', frases: ['como ha estado', 'como esta', 'que le paso', 'que paso',
       'ha estado enfermo', 'estuvo enfermo', 'ultimamente', 'todo', 'resumen', 'episodi'] },
 ]
@@ -1099,7 +1128,10 @@ function responder(
       // "¿CUÁL LE TOCA?" y "¿CUÁLES TIENE?" son preguntas distintas.
       // La primera quiere UNA respuesta: la más próxima. La segunda
       // quiere el historial completo.
-      const quiereHistorial = /\b(tiene puestas?|tiene|le han puesto|le puse|historial|todas|cuales|lista)\b/.test(q)
+      // Formas de pedir el HISTORIAL en vez de lo próximo. "le he dado"
+      // y "lleva" faltaban, y por eso preguntar cuáles le habían dado
+      // devolvía el próximo.
+      const quiereHistorial = /\b(tiene puestas?|tiene|le han puesto|le puse|le he dado|le has dado|le di|historial|todas|todos|cuales|lista|lleva|ha recibido)\b/.test(q)
         && !/\b(toca|proxim|viene|cuando)\b/.test(q)
 
       if (!quiereHistorial) {
@@ -1124,6 +1156,15 @@ function responder(
         }
       }
 
+      // El historial completo: TODAS las dosis, no una por nombre.
+      const hist = mejor.tema === 'vacunas' ? d.historialVacunas : d.historialAntis
+      if (hist && hist.length > 0) {
+        const que = mejor.tema === 'vacunas' ? 'vacunas' : 'antiparasitarios'
+        return {
+          texto: `${d.nombre} lleva ${hist.length} ${hist.length === 1 ? que.slice(0, -1) : que}:\n${hist.map(x => `· ${x.nombre} — ${x.aplicada}`).join('\n')}`,
+          tema: mejor.tema,
+        }
+      }
       return { texto: `${lista.map(linea).join('\n')}`, tema: mejor.tema }
     }
 
@@ -1237,20 +1278,52 @@ function responder(
 
     case 'perfil': {
       const p = d.perfil
+      // Si la pregunta es POR UN CAMPO en particular, se responde solo
+      // ese. Soltar la ficha entera cuando alguien pregunta la edad es
+      // ruido: la respuesta correcta son tres palabras.
+      if (p) {
+        if (/\b(edad|anos|cumple|nacio|viejo|joven|cachorro)/.test(q)) {
+          const e = calcularEdad(p.nacimiento, d.hoyISO)
+          return {
+            texto: e
+              ? `${d.nombre} tiene **${e}**.`
+              : `No tengo la fecha de nacimiento de ${d.nombre}. Puedes agregarla en su perfil: sirve para saber en qué etapa de vida está.`,
+            tema: 'perfil',
+          }
+        }
+        // Sin \b al final: 'esteriliz' tiene que calzar con
+        // esterilizado, esterilizada y esterilizar.
+        if (/\b(esteriliz|castrad|operad|reproductiv|fertil|entero)/.test(q)) {
+          const estado = p.estadoReproductivo || (p.castrado === true ? 'Esterilizado/a' : p.castrado === false ? 'Fértil' : null)
+          return {
+            texto: estado
+              ? `${d.nombre} está registrado/a como **${estado.toLowerCase()}**.`
+              : `No tengo el estado reproductivo de ${d.nombre}. Puedes anotarlo en su perfil.`,
+            tema: 'perfil',
+          }
+        }
+        if (/\braza\b/.test(q)) {
+          return {
+            texto: p.raza
+              ? `${d.nombre} es **${p.raza}**.`
+              : `No tengo la raza de ${d.nombre} anotada. Puedes agregarla en su perfil.`,
+            tema: 'perfil',
+          }
+        }
+        if (/\b(microchip|chip)\b/.test(q)) {
+          return {
+            texto: p.microchip
+              ? `El microchip de ${d.nombre} es **${p.microchip}**.`
+              : `No tengo microchip registrado en ${d.nombre}.`,
+            tema: 'perfil',
+          }
+        }
+      }
       if (!p) return { texto: `No tengo los datos del perfil de ${d.nombre} a mano.`, tema: 'perfil' }
       const lineas: string[] = []
       if (p.raza) lineas.push(`· Raza: ${p.raza}`)
-      if (p.nacimiento) {
-        const nace = new Date(p.nacimiento + 'T12:00:00')
-        const hoyD = new Date((d.hoyISO || '') + 'T12:00:00')
-        const meses = (hoyD.getFullYear() - nace.getFullYear()) * 12 + (hoyD.getMonth() - nace.getMonth())
-        const años = Math.floor(meses / 12)
-        const resto = meses % 12
-        const edad = años > 0
-          ? `${años} ${años === 1 ? 'año' : 'años'}${resto > 0 ? ` y ${resto} ${resto === 1 ? 'mes' : 'meses'}` : ''}`
-          : `${meses} ${meses === 1 ? 'mes' : 'meses'}`
-        lineas.push(`· Edad: ${edad}`)
-      }
+      const edad = calcularEdad(p.nacimiento, d.hoyISO)
+      if (edad) lineas.push(`· Edad: ${edad}`)
       if (p.sexo) {
         // El estado reproductivo va junto al sexo: son la misma
         // pregunta para quien la hace. Se prefiere el texto de

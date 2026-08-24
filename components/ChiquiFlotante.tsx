@@ -254,8 +254,20 @@ export default function ChiquiFlotante() {
         return { label: c.label, palabras: c.palabras, diasDesde: dias, cadaCuantos: cada }
       }).filter(Boolean) as DatosChat['cuidados']
 
-      // Solo la dosis más reciente de cada tipo: la regla del proyecto.
-      const masReciente = (lista: any[] | null) => {
+      // VACUNAS y ANTIPARASITARIOS siguen reglas DISTINTAS, y esto
+      // importa:
+      //
+      // Una vacuna solo la reemplaza otra del MISMO tipo: la antirrábica
+      // no reemplaza a la triple felina. Por eso se agrupa por nombre y
+      // se toma la más reciente de cada grupo.
+      //
+      // Un antiparasitario reemplaza a cualquier otro, sea de la marca
+      // que sea: si en agosto le diste Simparica, el Bravecto de marzo
+      // ya no está pendiente. Por eso solo cuenta el último.
+      //
+      // Sin esta distinción el chat mostraba el de marzo como "vencido"
+      // aunque ya se hubiera dado uno nuevo en agosto.
+      const masRecientePorTipo = (lista: any[] | null) => {
         const porNombre = new Map<string, any>()
         for (const x of (lista || [])) {
           const k = (x.nombre || '').toLowerCase().trim()
@@ -263,6 +275,9 @@ export default function ChiquiFlotante() {
         }
         return Array.from(porNombre.values())
       }
+      // Vienen ordenados por fecha_aplicacion descendente, así que el
+      // primero es el último que se dio.
+      const soloElUltimo = (lista: any[] | null) => (lista && lista.length > 0 ? [lista[0]] : [])
 
       // Las visitas vienen de DOS lugares, igual que en Análisis.
       const fechasVisita = new Set<string>()
@@ -339,15 +354,25 @@ export default function ChiquiFlotante() {
           ? { actual: pesos[0].peso, fecha: fmt(pesos[0].fecha), anterior: pesos.length > 1 ? pesos[1].peso : null }
           : null,
         medicamentos: activos.map((x: any) => ({ nombre: x.nombre || 'Medicamento', desde: fmt(x.fecha_inicio) })),
-        vacunas: masReciente(vac).map((v: any) => ({
+        vacunas: masRecientePorTipo(vac).map((v: any) => ({
           nombre: v.nombre || 'Vacuna',
           proxima: v.proxima_fecha ? fmt(v.proxima_fecha) : null,
           dias: diasHasta(v.proxima_fecha),
         })),
-        antiparasitarios: masReciente(ant).map((a: any) => ({
+        antiparasitarios: soloElUltimo(ant).map((a: any) => ({
           nombre: a.nombre || 'Antiparasitario',
           proxima: a.proxima_fecha ? fmt(a.proxima_fecha) : null,
           dias: diasHasta(a.proxima_fecha),
+        })),
+        // El historial completo, para cuando preguntan "¿cuáles le he
+        // dado?" en vez de "¿cuál le toca?".
+        historialVacunas: (vac || []).map((v: any) => ({
+          nombre: v.nombre || 'Vacuna',
+          aplicada: fmt(v.fecha_aplicacion),
+        })),
+        historialAntis: (ant || []).map((a: any) => ({
+          nombre: a.nombre || 'Antiparasitario',
+          aplicada: fmt(a.fecha_aplicacion),
         })),
         senales,
         cuidados,
