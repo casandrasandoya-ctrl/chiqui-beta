@@ -244,8 +244,11 @@ export default function ChiquiFlotante() {
       // de tres días es distinto a tres malestares sueltos en el mes.
       const porDia = new Map<string, { etiquetas: string[]; nota: string }>()
       for (const x of (senales || [])) {
+        // fechaISO es opcional en el tipo, así que hay que
+        // comprobarlo: acá siempre viene, pero TypeScript no lo sabe.
         const f = x.fechaISO
-        const prev = porDia.get(f) || { etiquetas: [], nota: '' }
+        if (!f) continue
+        const prev = porDia.get(f) || { etiquetas: [] as string[], nota: '' }
         if (!prev.etiquetas.includes(x.etiqueta)) prev.etiquetas.push(x.etiqueta)
         if (!prev.nota && x.nota) prev.nota = x.nota
         porDia.set(f, prev)
