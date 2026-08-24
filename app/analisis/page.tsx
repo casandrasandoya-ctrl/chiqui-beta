@@ -1364,6 +1364,12 @@ export default function AnalisisPage() {
   senalesChat.reverse()
 
   const datosChat = {
+    // El id: al cambiar de mascota, el chat borra la conversación. Sin
+    // esto el historial de una quedaba en pantalla al mirar la otra.
+    mascotaId: mascota?.id,
+    // La fecha de hoy: sin ella no se puede recortar al período que
+    // pide la persona ("¿cómo ha estado esta semana?").
+    hoyISO: hoyChat,
     nombre: mascota?.nombre || 'tu mascota',
     especie: mascota?.especie || '',
     // Los episodios salen de los insights: las mismas frases que ya se
