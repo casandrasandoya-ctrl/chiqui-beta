@@ -128,7 +128,11 @@ export default function ChiquiFlotante() {
       try {
         const { data } = await supabase
           .from('mascotas')
-          .select('raza, sexo, fecha_nacimiento, esterilizado, alergias, color, microchip')
+          // Los nombres REALES de la tabla: 'castrado' y
+          // 'estado_reproductivo', no 'esterilizado'. Pedir una columna
+          // que no existe hace fallar TODA la consulta — por eso antes
+          // no llegaba ni la raza ni la edad.
+          .select('raza, sexo, fecha_nacimiento, castrado, estado_reproductivo, alergias, color, microchip, peso_actual, alimentacion_tipo, alimentacion_marca, veterinaria, tamano_esperado')
           .eq('id', m.id)
           .single()
         if (data) perfilM = data
@@ -181,8 +185,9 @@ export default function ChiquiFlotante() {
           .eq('mascota_id', m.id).eq('user_id', user.id).gte('fecha', inicioMes).lte('fecha', hoy)),
         // Lo que faltaba: celos, exámenes de laboratorio, temperatura,
         // respiración, revisiones corporales, momentos y enfermedades.
-        seguro(supabase.from('celos').select('fecha_inicio, fecha_fin').eq('mascota_id', m.id)
-          .order('fecha_inicio', { ascending: false }).limit(4)),
+        // La tabla 'celos' no existe en esta base: se pide de
+        // seguimiento_reproductivo, que es donde vive el dato.
+        seguro(supabase.from('mascotas').select('seguimiento_reproductivo').eq('id', m.id)),
         seguro(supabase.from('examenes_lab').select('tipo, fecha').eq('mascota_id', m.id)
           .order('fecha', { ascending: false }).limit(5)),
         seguro(supabase.from('temperatura_corporal').select('temperatura, fecha').eq('mascota_id', m.id)
@@ -357,12 +362,16 @@ export default function ChiquiFlotante() {
           raza: perfilM.raza || null,
           sexo: perfilM.sexo || null,
           nacimiento: perfilM.fecha_nacimiento || null,
-          esterilizado: perfilM.esterilizado ?? null,
+          castrado: perfilM.castrado ?? null,
+          estadoReproductivo: perfilM.estado_reproductivo || null,
           alergias: perfilM.alergias || null,
           color: perfilM.color || null,
           microchip: perfilM.microchip || null,
+          alimentacion: perfilM.alimentacion_marca || perfilM.alimentacion_tipo || null,
+          veterinaria: perfilM.veterinaria || null,
+          tamanoEsperado: perfilM.tamano_esperado || null,
         },
-        celos: (celos || []).map((x: any) => ({ inicio: fmt(x.fecha_inicio), fin: x.fecha_fin ? fmt(x.fecha_fin) : null, inicioISO: String(x.fecha_inicio).slice(0, 10) })),
+        celos: [],
         examenesLab: (lab || []).map((x: any) => ({ tipo: x.tipo || 'Examen', fecha: fmt(x.fecha) })),
         temperatura: temps && temps.length > 0 ? { valor: temps[0].temperatura, fecha: fmt(temps[0].fecha) } : null,
         respiracion: resp && resp.length > 0 ? { valor: resp[0].respiraciones, fecha: fmt(resp[0].fecha) } : null,

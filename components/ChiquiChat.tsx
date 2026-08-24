@@ -52,10 +52,17 @@ export interface DatosChat {
     raza: string | null
     sexo: string | null
     nacimiento: string | null
-    esterilizado: boolean | null
+    // La tabla tiene 'castrado' Y 'estado_reproductivo': el segundo es
+    // más rico (puede decir "fértil", "castrado", "en celo") así que se
+    // prefiere cuando existe.
+    castrado: boolean | null
+    estadoReproductivo: string | null
     alergias: string | null
     color: string | null
     microchip: string | null
+    alimentacion: string | null
+    veterinaria: string | null
+    tamanoEsperado: string | null
   }
   celos?: { inicio: string; fin: string | null; inicioISO: string }[]
   examenesLab?: { tipo: string; fecha: string }[]
@@ -1246,14 +1253,19 @@ function responder(
       }
       if (p.sexo) {
         // El estado reproductivo va junto al sexo: son la misma
-        // pregunta para quien la hace.
-        const estado = p.esterilizado === true ? ', esterilizado/a'
-          : p.esterilizado === false ? ', fértil' : ''
+        // pregunta para quien la hace. Se prefiere el texto de
+        // estado_reproductivo, que dice más que un sí/no.
+        const estado = p.estadoReproductivo
+          ? `, ${p.estadoReproductivo.toLowerCase()}`
+          : p.castrado === true ? ', esterilizado/a'
+          : p.castrado === false ? ', fértil' : ''
         lineas.push(`· Sexo: ${p.sexo}${estado}`)
       }
       if (p.color) lineas.push(`· Color: ${p.color}`)
       if (p.microchip) lineas.push(`· Microchip: ${p.microchip}`)
       if (d.peso) lineas.push(`· Peso: ${d.peso.actual} kg (${d.peso.fecha})`)
+      if (p.alimentacion) lineas.push(`· Alimento: ${p.alimentacion}`)
+      if (p.veterinaria) lineas.push(`· Veterinaria: ${p.veterinaria}`)
       if (p.alergias) lineas.push(`· ⚠️ Alergia: ${p.alergias}`)
 
       if (lineas.length === 0) {
@@ -1281,8 +1293,10 @@ function responder(
     case 'celos': {
       const cs = d.celos || []
       if (cs.length === 0) {
+        // El seguimiento reproductivo se activa desde el perfil, no hay
+        // una sección de celos aparte.
         return {
-          texto: `No tengo celos registrados de ${d.nombre}.\n\nSe anotan en Salud → Celos. Con dos o más puedo estimarte cuándo viene el próximo.`,
+          texto: `No tengo celos registrados de ${d.nombre}.\n\nEl seguimiento reproductivo se activa desde el perfil, en Datos del perfil. Con eso puedo llevarte la cuenta.`,
           tema: 'celos',
         }
       }
