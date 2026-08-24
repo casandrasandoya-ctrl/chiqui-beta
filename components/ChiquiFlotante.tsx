@@ -96,14 +96,22 @@ export default function ChiquiFlotante() {
     ;(async () => {
       try {
       const supabase = createClient()
+      // Los tres cortes de abajo son a propósito: sin sesión o sin
+      // mascotas el chat no tiene de qué hablar. Cualquier OTRO fallo
+      // debe dejarlo aparecer igual — de eso se encarga el catch.
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // SOLO LO IMPRESCINDIBLE. Esta consulta decide si el chat existe:
+      // si falla, nada más se ejecuta y el chat no aparece en ninguna
+      // pantalla.
+      //
+      // Pedir columnas de más acá es peligroso: si una no existe, toda
+      // la consulta falla. El resto del perfil se pide aparte, donde un
+      // fallo solo significa que ese dato no está.
       const { data: mascotas } = await supabase
         .from('mascotas')
-        // Todo lo del perfil: el chat responde sobre la mascota
-        // completa, no solo sobre lo que se registra a diario.
-        .select('id, nombre, especie, raza, sexo, fecha_nacimiento, esterilizado, alergias, peso_actual, color, microchip, foto_url')
+        .select('id, nombre, especie')
         .eq('user_id', user.id)
         .is('archivada_en', null)
       if (!mascotas || mascotas.length === 0) return
@@ -113,6 +121,20 @@ export default function ChiquiFlotante() {
       // ser de otra cuenta si alguien cambió de sesión en el mismo
       // dispositivo. Se comprueba que esté en la lista del usuario.
       if (!m || !mascotas.some(x => x.id === m.id)) return
+
+      // El resto del perfil, aparte y protegido: si alguna columna no
+      // existe, esto llega vacío y el chat sigue funcionando.
+      let perfilM: any = {}
+      try {
+        const { data } = await supabase
+          .from('mascotas')
+          .select('raza, sexo, fecha_nacimiento, esterilizado, alergias, color, microchip')
+          .eq('id', m.id)
+          .single()
+        if (data) perfilM = data
+      } catch {
+        // Sin perfil extendido: el chat lo dirá cuando se lo pregunten.
+      }
 
       const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
       // Mediodía: restar días sobre medianoche falla en los cambios de
@@ -332,13 +354,13 @@ export default function ChiquiFlotante() {
         // El perfil completo. Cada campo puede faltar: el chat dice
         // dónde anotarlo en vez de inventar.
         perfil: {
-          raza: m.raza || null,
-          sexo: m.sexo || null,
-          nacimiento: m.fecha_nacimiento || null,
-          esterilizado: m.esterilizado,
-          alergias: m.alergias || null,
-          color: m.color || null,
-          microchip: m.microchip || null,
+          raza: perfilM.raza || null,
+          sexo: perfilM.sexo || null,
+          nacimiento: perfilM.fecha_nacimiento || null,
+          esterilizado: perfilM.esterilizado ?? null,
+          alergias: perfilM.alergias || null,
+          color: perfilM.color || null,
+          microchip: perfilM.microchip || null,
         },
         celos: (celos || []).map((x: any) => ({ inicio: fmt(x.fecha_inicio), fin: x.fecha_fin ? fmt(x.fecha_fin) : null, inicioISO: String(x.fecha_inicio).slice(0, 10) })),
         examenesLab: (lab || []).map((x: any) => ({ tipo: x.tipo || 'Examen', fecha: fmt(x.fecha) })),
