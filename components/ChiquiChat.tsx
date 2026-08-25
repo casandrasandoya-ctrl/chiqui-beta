@@ -259,6 +259,17 @@ const CONSEJOS: Consejo[] = [
     ],
   },
   {
+    tema: 'vomito',
+    palabras: ['cuando preocupa un vomito', 'cuando el vomito preocupa', 'vomito preocupa',
+               'es normal que vomite', 'por que vomita'],
+    opciones: [
+      'Un vómito aislado, sin otros síntomas, suele ser pasajero: comió muy rápido, algo le cayó mal, o son bolas de pelo en el caso de los gatos.',
+      'Lo que sí necesita veterinario: vomitar varias veces en un día, que haya sangre, o que deje de comer por más de 24 horas.',
+      'Fíjate en QUÉ vomitó: si es pasto o espuma blanca suele ser irritación leve. Si es amarillo es bilis, y si trae sangre o parece café molido, es urgente.',
+      'Si vomita y además está decaído, no toma agua o le duele la barriga al tocarlo, no esperes: llévalo.',
+    ],
+  },
+  {
     tema: 'heces',
     // Frases cortas: con el comparador nuevo, "deben ser heces" calza
     // con "¿cómo deben ser SUS heces?" aunque haya palabras en medio.
@@ -286,7 +297,7 @@ const CONSEJOS: Consejo[] = [
   {
     tema: 'peso',
     palabras: ['peso ideal', 'peso saludable', 'esta gordo', 'esta flaco', 'sobrepeso', 'bajo peso',
-               'cuanto deberia pesar', 'esta en su peso'],
+               'cuanto deberia pesar', 'esta en su peso', 'como se ve un peso'],
     opciones: [
       'Está en buen peso cuando se le ve la cintura desde arriba, las costillas se palpan sin verse marcadas, y se mantiene activo.',
       'Si las costillas, la columna o la pelvis se ven demasiado, o perdió masa muscular, podría estar bajo peso.',
@@ -727,7 +738,8 @@ type Tema = 'peso' | 'vacunas' | 'antiparasitarios' | 'medicamentos' | 'paseos'
   | 'consejo:ansiedad' | 'consejo:juego' | 'consejo:heces' | 'consejo:movilidad'
   | 'consejo:peso' | 'consejo:agua' | 'consejo:temperatura' | 'consejo:corazon'
   | 'consejo:dientes' | 'consejo:seguridad' | 'consejo:alerta'
-  | 'consejo:viaje_casa' | 'consejo:viaje_auto' | 'consejo:presentacion' | null
+  | 'consejo:viaje_casa' | 'consejo:viaje_auto' | 'consejo:presentacion'
+  | 'consejo:vomito' | null
 
 interface Intencion { tema: Exclude<Tema, null>; frases: string[] }
 
@@ -927,10 +939,12 @@ function responder(
       opciones: ['¿Cómo han estado sus heces?', '¿Qué significa el color de las heces?'] },
     { palabras: ['vomito', 'vomitos'],
       pregunta: '¿Quieres saber cuándo vomitó, o cuándo el vómito preocupa?',
-      opciones: ['¿Cuándo vomitó?', '¿Cuándo el vómito preocupa?'] },
+      opciones: ['¿Cuándo vomitó?', '¿Cuándo preocupa un vómito?'] },
     { palabras: ['peso', 'kilos'],
       pregunta: '¿Quieres saber cuánto pesa, o cómo saber si está en su peso ideal?',
-      opciones: ['¿Cuánto pesa?', '¿Está en su peso ideal?'] },
+      // "cómo se ve un peso ideal" es educativo: lleva al consejo, no
+      // al dato. Antes ambos botones daban el peso registrado.
+      opciones: ['¿Cuánto pesa?', '¿Cómo se ve un peso ideal?'] },
     { palabras: ['vacuna', 'vacunas'],
       pregunta: '¿Quieres saber cuál le toca ahora, o cuáles tiene puestas?',
       opciones: ['¿Qué vacuna le toca?', '¿Qué vacunas tiene puestas?'] },
@@ -960,8 +974,17 @@ function responder(
   // es igual de ambiguo que "viaje": no se sabe si viaja con la mascota
   // o la deja en casa. Ahora se mira si la pregunta es CORTA y no trae
   // nada que la desambigüe.
+  // EL BUCLE QUE HABÍA QUE ROMPER
+  // Tocar "¿Cuándo vomitó?" volvía a preguntar "¿quieres saber cuándo
+  // vomitó o cuándo preocupa?", porque el propio botón contiene la
+  // palabra ambigua. Y así al infinito.
+  //
+  // La salida: si la pregunta YA ES una de las opciones que ofrecí, no
+  // vuelve a desambiguarse. Alguien que tocó el botón ya eligió.
+  const yaEligio = AMBIGUAS.some(a => a.opciones.some(o => normalizar(o).replace(/[¿?¡!.,;:]/g, ' ').trim() === q))
+
   const palabrasQ = q.split(/\s+/).filter(Boolean)
-  if (palabrasQ.length <= 4) {
+  if (!yaEligio && palabrasQ.length <= 4) {
     const amb = AMBIGUAS.find(a => a.palabras.some(p => palabrasQ.includes(p) || q === p))
     if (amb) return { texto: amb.pregunta, tema: null, opciones: amb.opciones }
   }
@@ -1014,7 +1037,9 @@ function responder(
   // "tiene" pide el dato: "¿qué temperatura TIENE?" quiere el valor
   // registrado, no la explicación de cuál es lo normal.
   const SENAL_DATOS = /\b(ha |han |hubo|tuvo|tiene|estuvo|cuando|cuantas veces|registr|anote|le paso|esta semana|este mes|ultimos|ayer|hoy|ultimamente|recientemente|su |sus )\b/
-  const SENAL_EDUCATIVA = /\b(deben|debe|deberia|es normal|son normales|se supone|cuanto es|cuanta es|que significa|por que|para que|sirve|cual es|como son|normalmente)\b/
+  // 'preocupa' y 'cuando hay que' son educativas: preguntan por el
+  // criterio, no por lo que se registro.
+  const SENAL_EDUCATIVA = /\b(deben|debe|deberia|es normal|son normales|se supone|cuanto es|cuanta es|que significa|por que|para que|sirve|cual es|como son|normalmente|preocupa|preocupante|hay que|se ve un)\b/
 
   const pideDatos = SENAL_DATOS.test(q) && !SENAL_EDUCATIVA.test(q)
   const pideEducativa = SENAL_EDUCATIVA.test(q)
