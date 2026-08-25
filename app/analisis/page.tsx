@@ -1425,9 +1425,10 @@ export default function AnalisisPage() {
           responde con dos fuentes: los datos registrados y los Chiqui
           Tips, que ya están escritos y verificados.
           No es una IA, y lo dice al abrirse. */}
-      {mascota && total > 0 && (
-        <ChiquiChat datos={datosChat} />
-      )}
+      {/* El chat vive solo en la burbuja flotante. Tenerlo también acá
+          significaba dos chats con datos distintos: el de Análisis
+          calculaba unas cosas y el flotante otras, y respondían
+          diferente a la misma pregunta. Uno solo, con una sola fuente. */}
       {/* "Lo que Chiqui aprendió este mes" — el resumen del período
           contado con la voz del personaje. Chiqui abre en primera
           persona, comparte la síntesis de datos y cierra con una
