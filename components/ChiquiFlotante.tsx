@@ -166,7 +166,7 @@ export default function ChiquiFlotante() {
         { data: regs }, { data: pesos }, { data: vac }, { data: ant },
         { data: meds }, { data: exs }, { data: visitasT }, { data: paseos },
         { data: celos }, { data: lab }, { data: temps }, { data: resp },
-        { data: revis }, { data: momentos }, { data: enfs },
+        { data: revis }, { data: momentos }, { data: enfs }, { data: obs },
       ] = await Promise.all([
         seguro(supabase.from('registros_diarios').select('*').eq('mascota_id', m.id).eq('user_id', user.id)
           .gte('fecha', desde).order('fecha', { ascending: false })),
@@ -200,6 +200,8 @@ export default function ChiquiFlotante() {
           .order('fecha', { ascending: false }).limit(5)),
         seguro(supabase.from('enfermedades').select('diagnostico, fecha_diagnostico, proxima_revision')
           .eq('mascota_id', m.id).order('fecha_diagnostico', { ascending: false })),
+        seguro(supabase.from('observaciones').select('titulo, fecha_inicio, resuelta')
+          .eq('mascota_id', m.id).order('fecha_inicio', { ascending: false }).limit(8)),
       ])
 
       if (!vivo) return
@@ -402,6 +404,11 @@ export default function ChiquiFlotante() {
         respiracion: resp && resp.length > 0 ? { valor: resp[0].respiraciones, fecha: fmt(resp[0].fecha) } : null,
         ultimaRevision: revis && revis.length > 0 ? fmt(revis[0].fecha) : null,
         momentos: (momentos || []).map((x: any) => ({ titulo: x.titulo || 'Momento', fecha: fmt(x.fecha) })),
+        observaciones: (obs || []).map((x: any) => ({
+          titulo: x.titulo || 'Observación',
+          desde: fmt(x.fecha_inicio),
+          resuelta: !!x.resuelta,
+        })),
         enfermedades: (enfs || []).map((x: any) => ({
           diagnostico: x.diagnostico || 'Diagnóstico',
           fecha: fmt(x.fecha_diagnostico),

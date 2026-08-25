@@ -74,6 +74,7 @@ export interface DatosChat {
   respiracion?: { valor: number; fecha: string } | null
   ultimaRevision?: string | null
   momentos?: { titulo: string; fecha: string }[]
+  observaciones?: { titulo: string; desde: string; resuelta: boolean }[]
   enfermedades?: { diagnostico: string; fecha: string; proximaRevision: string | null }[]
   // Para poder mostrar la fecha en formato legible sin repetir el
   // formateador acá.
@@ -223,9 +224,10 @@ const CONSEJOS: Consejo[] = [
   },
   {
     tema: 'viaje_casa',
-    palabras: ['se queda en casa', 'dejarlo en casa', 'dejarla en casa', 'lo dejo solo', 'me voy de viaje',
-               'salir de viaje', 'vacaciones', 'quien lo cuida', 'lo dejo en casa',
-               'me voy unos dias', 'dejarlo solo varios dias'],
+    // Raíces cortas: 'viaj' cubre viaje, viajar y viajo. Las frases
+    // largas fallaban por una palabra en medio.
+    palabras: ['queda en casa', 'dejarlo', 'dejarla', 'lo dejo solo', 'me voy',
+               'vacacion', 'quien lo cuida', 'unos dias', 'varios dias', 'me ausento'],
     opciones: [
       'Pide a alguien de confianza que lo visite al menos una vez al día: agua fresca, comida y limpiar el arenero o su espacio.',
       'Deja una prenda con tu olor y sus juguetes favoritos. Ayuda mucho a que la ausencia se sienta menos.',
@@ -235,9 +237,8 @@ const CONSEJOS: Consejo[] = [
   },
   {
     tema: 'viaje_auto',
-    palabras: ['viajo con el', 'viajo con ella', 'viajar en auto', 'llevarlo en auto', 'en el auto', 'viaje en auto',
-               'lo llevo en el auto', 'transportin', 'transportadora', 'se marea en el auto',
-               'viajar con el', 'viajar con ella', 'llevarlo de viaje'],
+    palabras: ['viaj', 'auto', 'transportin', 'transportadora', 'se marea', 'carretera',
+               'llevarlo conmigo', 'llevarla conmigo'],
     opciones: [
       'Nunca suelto: un transportín firme o un arnés de seguridad anclado al cinturón. En una frenada, un animal suelto sale despedido.',
       'No le des comida 3 o 4 horas antes de salir. Ayuda a prevenir mareos y vómitos.',
@@ -720,7 +721,7 @@ function buscarComolo(pregunta: string): string | null {
 type Tema = 'peso' | 'vacunas' | 'antiparasitarios' | 'medicamentos' | 'paseos'
   | 'senal' | 'cuidado' | 'examenes' | 'resumen' | 'vet' | 'visitas'
   | 'perfil' | 'alergias' | 'celos' | 'lab' | 'temperatura' | 'respiracion'
-  | 'revision' | 'momentos' | 'enfermedades'
+  | 'revision' | 'momentos' | 'enfermedades' | 'observaciones'
   // Los consejos también son un tema, para que "¿y qué más?" después de
   // uno de ansiedad devuelva el siguiente en vez de no entender.
   | 'consejo:ansiedad' | 'consejo:juego' | 'consejo:heces' | 'consejo:movilidad'
@@ -754,7 +755,9 @@ const INTENCIONES: Intencion[] = [
       'ultima visita', 'cuando lo lleve', 'cuando fuimos'] },
   // Las frases van SIN ñ ni tildes: se comparan contra texto ya
   // normalizado, donde "años" quedó como "anos".
-  { tema: 'perfil', frases: ['edad', 'que raza', 'raza es', 'de que raza', 'cuantos anos', 'que edad',
+  { tema: 'observaciones', frases: ['observacion', 'observaciones', 'que observaciones',
+      'seguimientos', 'que seguimiento', 'lesion', 'lesiones', 'herida', 'heridas'] },
+  { tema: 'perfil', frases: ['edad', 'estado reproductivo', 'reproductivo', 'esterilizad', 'castrad', 'que raza', 'raza es', 'de que raza', 'cuantos anos', 'que edad',
       'cuando nacio', 'su cumpleanos', 'es macho', 'es hembra', 'que sexo', 'esterilizad',
       'castrad', 'operad', 'de que color', 'microchip', 'chip', 'sus datos', 'su perfil'] },
   { tema: 'alergias', frases: ['alergia', 'alergias', 'es alergic', 'le hace alergia'] },
@@ -873,6 +876,26 @@ function responder(
     }
   }
 
+  // "¿Qué frutas puede comer?" es una de las sugerencias del menú y no
+  // tenía respuesta: caía en "no estoy segura" porque buscaba un
+  // alimento concreto y no encontraba ninguno.
+  if (/\b(que|cuales)\b.*\b(frutas?|verduras?|alimentos?)\b.*\b(puede|come|dar|seguros?)\b/.test(q)
+      || /\bque puede comer\b/.test(q) || /\bque le puedo dar\b/.test(q)) {
+    return {
+      texto: `Frutas y verduras que sí puede comer:\n· Manzana y pera, sin semillas\n· Sandía y melón, sin semillas ni cáscara\n· Plátano, en poca cantidad\n· Arándanos\n· Zanahoria — cruda le ayuda a los dientes\n· Pepino y zapallo cocido\n\nY otras cosas seguras: pollo cocido sin sal, arroz cocido, huevo cocido.\n\nSiempre en trozos pequeños y como premio, no como comida principal.`,
+      tema: null,
+      opciones: ['¿Qué NO puede comer?'],
+    }
+  }
+
+  if (/\bque no puede comer\b|\bque le hace mal\b|\bque es toxico\b|\balimentos toxicos\b/.test(q)) {
+    return {
+      texto: `Lo que NUNCA debe comer:\n· Chocolate y café\n· Cebolla, ajo, puerro y ciboulette\n· Uvas y pasas\n· Palta\n· Xilitol (dulces sin azúcar)\n· Alcohol\n· Nueces de macadamia\n· Huesos cocidos\n· Masa cruda con levadura\n\nSi comió alguno de estos, cuéntame cuál y te digo qué hacer.`,
+      tema: null,
+      opciones: ['¿Qué SÍ puede comer?'],
+    }
+  }
+
   // --- 1. ALIMENTOS: siempre primero, y por nombre exacto ---
   const alimento = buscarAlimento(pregunta)
   if (alimento) return { texto: respuestaAlimento(alimento), tema: null }
@@ -926,16 +949,20 @@ function responder(
     { palabras: ['vet', 'veterinario', 'veterinaria'],
       pregunta: '¿Quieres saber cuándo fue la última visita, o preparar la próxima consulta?',
       opciones: ['¿Cuándo fue al veterinario?', '¿Qué le cuento al veterinario?'] },
-    { palabras: ['viaje', 'viajar', 'vacaciones'],
+    { palabras: ['viaje', 'viajar', 'viajo', 'vacaciones', 'vacacion'],
       pregunta: '¿Viajas con él, o se queda en casa?',
       opciones: ['Viajo con él en auto', 'Se queda en casa'] },
     { palabras: ['temperatura', 'fiebre'],
       pregunta: '¿Quieres saber su temperatura normal, o si registraste algo?',
       opciones: ['¿Cuál es su temperatura normal?', '¿Cómo ha estado?'] },
   ]
-  const soloUna = q.split(/\s+/).filter(Boolean).length === 1
-  if (soloUna) {
-    const amb = AMBIGUAS.find(a => a.palabras.includes(q))
+  // Antes solo se activaba con UNA palabra suelta. Pero "voy a viajar"
+  // es igual de ambiguo que "viaje": no se sabe si viaja con la mascota
+  // o la deja en casa. Ahora se mira si la pregunta es CORTA y no trae
+  // nada que la desambigüe.
+  const palabrasQ = q.split(/\s+/).filter(Boolean)
+  if (palabrasQ.length <= 4) {
+    const amb = AMBIGUAS.find(a => a.palabras.some(p => palabrasQ.includes(p) || q === p))
     if (amb) return { texto: amb.pregunta, tema: null, opciones: amb.opciones }
   }
 
@@ -1145,14 +1172,20 @@ function responder(
           }
         }
         const proxima = conFecha.slice().sort((a, b) => (a.dias as number) - (b.dias as number))[0]
-        const resto = lista.length - 1
-        const cola = resto > 0
-          ? `\n\n(tiene ${resto} ${resto === 1 ? 'más registrada' : 'más registradas'})`
+        // El botón de "ver anteriores" sale del HISTORIAL, no de la
+        // lista vigente: en antiparasitarios la lista vigente es de uno
+        // solo, así que antes nunca aparecía la opción.
+        const hist = mejor.tema === 'vacunas' ? d.historialVacunas : d.historialAntis
+        const anteriores = (hist?.length || 0) - 1
+        const cola = anteriores > 0
+          ? `\n\nAntes le diste ${anteriores} ${anteriores === 1 ? 'dosis más' : 'dosis más'}.`
           : ''
         return {
           texto: `${linea(proxima)}${cola}`,
           tema: mejor.tema,
-          opciones: resto > 0 ? [mejor.tema === 'vacunas' ? '¿Qué vacunas tiene puestas?' : '¿Qué antiparasitarios le he dado?'] : undefined,
+          opciones: anteriores > 0
+            ? [mejor.tema === 'vacunas' ? '¿Qué vacunas tiene puestas?' : '¿Qué antiparasitarios le he dado?']
+            : undefined,
         }
       }
 
@@ -1293,12 +1326,17 @@ function responder(
         }
         // Sin \b al final: 'esteriliz' tiene que calzar con
         // esterilizado, esterilizada y esterilizar.
-        if (/\b(esteriliz|castrad|operad|reproductiv|fertil|entero)/.test(q)) {
-          const estado = p.estadoReproductivo || (p.castrado === true ? 'Esterilizado/a' : p.castrado === false ? 'Fértil' : null)
+        // 'reproductiv' cubre "estado reproductivo" y "reproductiva".
+        if (/\b(esteriliz|castrad|operad|reproductiv|fertil|entera?\b|puede tener cria)/.test(q)) {
+          // "desconocido" es un valor real en la base, pero como
+          // respuesta no sirve: es lo mismo que no tener el dato.
+          const bruto = (p.estadoReproductivo || '').trim()
+          const util = bruto && !/^(desconocido|sin dato|no especificado|-)$/i.test(bruto) ? bruto : null
+          const estado = util || (p.castrado === true ? 'Esterilizado/a' : p.castrado === false ? 'Fértil' : null)
           return {
             texto: estado
               ? `${d.nombre} está registrado/a como **${estado.toLowerCase()}**.`
-              : `No tengo el estado reproductivo de ${d.nombre}. Puedes anotarlo en su perfil.`,
+              : `No tengo anotado si ${d.nombre} está esterilizado/a.\n\nPuedes agregarlo en su perfil: toca las tres líneas → Perfil y cuenta → Datos del perfil.`,
             tema: 'perfil',
           }
         }
@@ -1447,6 +1485,26 @@ function responder(
         }
       }
       return { texto: `La última revisión corporal fue el **${d.ultimaRevision}**.`, tema: 'revision' }
+    }
+
+    case 'observaciones': {
+      const obs = d.observaciones || []
+      if (obs.length === 0) {
+        return {
+          texto: `No tengo observaciones registradas de ${d.nombre}.\n\nSirven para seguir algo en el tiempo: una herida, un bulto, una cojera. Se anotan en Salud → Observaciones, y puedes ir sumando cómo evoluciona con fotos.`,
+          tema: 'observaciones',
+        }
+      }
+      const activas = obs.filter(o => !o.resuelta)
+      const cerradas = obs.filter(o => o.resuelta)
+      const partes: string[] = []
+      if (activas.length > 0) {
+        partes.push(`En seguimiento:\n${activas.map(o => `· ${o.titulo} — desde el ${o.desde}`).join('\n')}`)
+      }
+      if (cerradas.length > 0) {
+        partes.push(`Ya resueltas:\n${cerradas.slice(0, 3).map(o => `· ${o.titulo} — ${o.desde}`).join('\n')}`)
+      }
+      return { texto: partes.join('\n\n'), tema: 'observaciones' }
     }
 
     case 'momentos': {
