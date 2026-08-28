@@ -100,7 +100,9 @@ export function proximaOcurrencia(fechaBase: string, hoyStr: string): Ocurrencia
 // Los días "exactos" (7, 15, 30, 45, 100, 365) tienen su ilustración y
 // mensaje propios; los rangos usan la suya. Si la racha se rompe,
 // simplemente vuelve a partir desde chiqui_racha_inicio.
-function hitoRacha(dias: number): { img: string; mensaje: string } {
+// Se exporta para que el modal de racha use LA MISMA funcion: dos
+// listas de imagenes por nivel se desincronizan al primer cambio.
+export function hitoRacha(dias: number): { img: string; mensaje: string } {
   const base = '/chiqui/'
   if (dias >= 500) return { img: base + 'chiqui_racha_superheroe.png', mensaje: `🔥 ${dias} días. ¡LEYENDA! Tu dedicación inspira. Sigue escribiendo esta historia.` }
   if (dias >= 400) return { img: base + 'chiqui_racha_corona_3.png', mensaje: `🔥 ${dias} días seguidos. ¡Estás entre los tutores más comprometidos!` }

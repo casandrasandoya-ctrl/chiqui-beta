@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { hitoRacha } from '@/components/Novedades'
 
 // ============================================================
 // MODAL DE LOGRO — el momento después de guardar
@@ -36,7 +37,7 @@ interface Props {
 }
 
 export default function ModalLogro({
-  nombre, racha, diasDelMes, diasMesPasado, semana, editando, onCerrar,
+  nombre, racha, mejorRacha, diasDelMes, diasMesPasado, ultimos7, editando, onCerrar,
 }: Props) {
   const [entrando, setEntrando] = useState(true)
 
@@ -46,50 +47,17 @@ export default function ModalLogro({
     return () => { clearTimeout(t); document.body.style.overflow = '' }
   }, [])
 
-  // El mensaje se elige por el hito más alto que se haya alcanzado. El
-  // orden importa: primero los hitos grandes, después los cotidianos.
-  const { imagen, mensaje } = (() => {
-    if (editando) {
-      return {
-        imagen: '/chiqui/chiqui_amor.png',
-        mensaje: `Corregiste el registro de ${nombre}. Los datos al día valen más que los datos a medias.`,
-      }
-    }
-    if (racha >= 100) {
-      return {
-        imagen: '/chiqui/chiqui_cool.png',
-        mensaje: `Cien días es muchísimo. Tienes una historia de ${nombre} que casi nadie tiene de su mascota.`,
-      }
-    }
-    if (racha >= 30) {
-      return {
-        imagen: '/chiqui/chiqui_cool.png',
-        mensaje: `Un mes entero sin fallar. Con esto ya se pueden ver patrones de verdad en ${nombre}.`,
-      }
-    }
-    if (racha >= 7) {
-      return {
-        imagen: '/chiqui/chiquiverde.png',
-        mensaje: `Una semana completa. Es justo cuando los registros empiezan a servir para algo.`,
-      }
-    }
-    if (racha >= 3) {
-      return {
-        imagen: '/chiqui/chiquiverde.png',
-        mensaje: `Vas tomando el ritmo. Tres días seguidos ya es un hábito empezando.`,
-      }
-    }
-    if (racha === 1 && diasDelMes === 1) {
-      return {
-        imagen: '/chiqui/chiqui_amor.png',
-        mensaje: `Este es tu primer registro de ${nombre}. Cada día que anotes hace el siguiente más útil.`,
-      }
-    }
-    return {
-      imagen: '/chiqui/chiquiverde.png',
-      mensaje: `Un día más de la historia de ${nombre}.`,
-    }
-  })()
+  // La imagen y el mensaje salen de hitoRacha(), la misma función que
+  // usa Novedades. Hay 15 niveles ya diseñados —inicio, 7, 15, 30, 45,
+  // 100, corona, superhéroe— y duplicarlos acá habría significado dos
+  // sistemas que se desincronizan.
+  const hito = editando
+    ? { img: '/chiqui/chiqui_amor.png', mensaje: `Actualizaste el registro de ${nombre}. Los datos al día valen más que los datos a medias.` }
+    : hitoRacha(racha)
+  const imagen = hito.img
+  // El mensaje de hitoRacha ya trae el número de días adelante; acá el
+  // número va aparte y en grande, así que se recorta esa parte.
+  const mensaje = hito.mensaje.replace(/^🔥 \d+ días?( seguidos)?\.\s*/, '')
 
   // La comparación con el mes pasado solo se muestra si es favorable y
   // si hay con qué comparar. Recordarle a alguien que va peor que el mes
