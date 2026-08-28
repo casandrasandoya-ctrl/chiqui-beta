@@ -8,6 +8,7 @@ import SelectorMascota from '@/components/SelectorMascota'
 import { determinarMascotaActiva, guardarMascotaActivaId } from '@/utils/mascotaActiva'
 import { iconoPorEspecie } from '@/utils/iconoEspecie'
 import FechaSelector from '@/components/FechaSelector'
+import ModalLogro from '@/components/ModalLogro'
 
 interface DetalleSub { titulo: string; opciones: { value: string; emoji: string; label: string }[] }
 interface Opcion { value: string; emoji: string; label: string; detalle?: DetalleSub[] }
@@ -538,6 +539,8 @@ function RegistroContenido() {
   // Modal que aparece tras "Todo normal": ofrece guardar al toque o
   // seguir editando (algunas usuarias creían que marcar ya guardaba).
   const [confirmarGuardado, setConfirmarGuardado] = useState(false)
+  // La racha que se muestra al guardar. null mientras no se ha guardado.
+  const [logro, setLogro] = useState<{ racha: number; mejorRacha: number; ultimos7: { letra: string; hecho: boolean }[]; diasDelMes: number; diasMesPasado: number } | null>(null)
   // Aviso de salida con cambios sin guardar. Guarda a dónde quería
   // ir la persona, para llevarla ahí después de decidir.
   // '__atras__' es el botón de volver, que no tiene URL.
@@ -1321,6 +1324,98 @@ function RegistroContenido() {
         })))
       }
     }
+    // La racha, al guardar. Este es el momento en que la persona ya hizo
+    // el esfuerzo: reconocerlo acá es lo que hace que vuelva mañana.
+    try {
+      const hoyL = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+      const atras = new Date(hoyL + 'T12:00:00')
+      atras.setDate(atras.getDate() - 400)
+      const desdeL = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(atras)
+
+      // Se pide created_at además de fecha: sin saber CUÁNDO se anotó
+      // cada día no hay forma de distinguir un registro puntual de uno
+      // rellenado después.
+      const { data: todos } = await supabase
+        .from('registros_diarios')
+        .select('fecha, created_at')
+        .eq('mascota_id', mascotaId)
+        .gte('fecha', desdeL)
+        .order('fecha', { ascending: false })
+
+      const enChile = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d)
+
+      // LA REGLA DE LA RACHA
+      // Un día cuenta para la racha SOLO si se registró ese mismo día.
+      // Rellenar el lunes desde el martes deja el dato guardado —y eso
+      // está bien, sirve igual— pero no recupera la racha: la racha mide
+      // constancia, no completitud.
+      const aTiempo = new Set<string>()
+      const todasLasFechas = new Set<string>()
+      for (const r of (todos || [])) {
+        const f = String(r.fecha).slice(0, 10)
+        todasLasFechas.add(f)
+        // created_at viene en UTC; se compara en hora de Chile.
+        if (r.created_at && enChile(new Date(r.created_at)) === f) aTiempo.add(f)
+      }
+      // El que se acaba de guardar: cuenta si es de hoy.
+      if (fechaRegistro) {
+        todasLasFechas.add(fechaRegistro)
+        if (fechaRegistro === hoyL) aTiempo.add(fechaRegistro)
+      }
+
+      // Racha: días seguidos hacia atrás, contando solo los puntuales.
+      let r = 0
+      const cursor = new Date(hoyL + 'T12:00:00')
+      while (aTiempo.has(enChile(cursor))) {
+        r++
+        cursor.setDate(cursor.getDate() - 1)
+      }
+
+      // Los últimos 7 días terminando hoy. Acá se muestran TODOS los
+      // registrados, puntuales o no: el calendario no miente sobre lo
+      // que existe, solo la racha es estricta.
+      const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
+      const ult7: { letra: string; hecho: boolean }[] = []
+      for (let i = 6; i >= 0; i--) {
+        const dia = new Date(hoyL + 'T12:00:00')
+        dia.setDate(dia.getDate() - i)
+        ult7.push({ letra: DIAS[dia.getDay()], hecho: todasLasFechas.has(enChile(dia)) })
+      }
+
+      // La mejor racha histórica, con la misma regla estricta.
+      const ordenadas = Array.from(aTiempo).sort()
+      let mejor = 0
+      let seguidos = 0
+      let anterior: string | null = null
+      for (const f of ordenadas) {
+        if (anterior) {
+          const a = new Date(anterior + 'T12:00:00').getTime()
+          const b = new Date(f + 'T12:00:00').getTime()
+          seguidos = Math.round((b - a) / 86400000) === 1 ? seguidos + 1 : 1
+        } else {
+          seguidos = 1
+        }
+        if (seguidos > mejor) mejor = seguidos
+        anterior = f
+      }
+
+      const mesActual = hoyL.slice(0, 7)
+      const mesAnterior = (() => {
+        const d = new Date(hoyL + 'T12:00:00')
+        d.setMonth(d.getMonth() - 1)
+        return enChile(d).slice(0, 7)
+      })()
+      const delMes = Array.from(todasLasFechas).filter(f => f.startsWith(mesActual)).length
+      const delAnterior = Array.from(todasLasFechas).filter(f => f.startsWith(mesAnterior)).length
+
+      setLogro({ racha: r, mejorRacha: mejor, ultimos7: ult7, diasDelMes: delMes, diasMesPasado: delAnterior })
+      setLoading(false)
+      return
+    } catch {
+      // Si el cálculo falla, se vuelve al dashboard como siempre: el
+      // registro ya se guardó, que es lo que importa.
+    }
+
     router.push('/dashboard')
     router.refresh()
   }
@@ -1446,6 +1541,19 @@ function RegistroContenido() {
             )}
           </div>
         </div>
+      )}
+      {/* La racha, al guardar. Va acá porque cubre toda la pantalla. */}
+      {logro && (
+        <ModalLogro
+          nombre={mascotaNombre}
+          racha={logro.racha}
+          mejorRacha={logro.mejorRacha}
+          ultimos7={logro.ultimos7}
+          diasDelMes={logro.diasDelMes}
+          diasMesPasado={logro.diasMesPasado}
+          editando={yaRegistro}
+          onCerrar={() => { router.push('/dashboard'); router.refresh() }}
+        />
       )}
       {/* Modal tras "Todo normal": guardar al toque o seguir editando */}
       {confirmarGuardado && (
