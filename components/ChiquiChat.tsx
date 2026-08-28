@@ -75,6 +75,12 @@ export interface DatosChat {
   ultimaRevision?: string | null
   momentos?: { titulo: string; fecha: string }[]
   observaciones?: { titulo: string; desde: string; resuelta: boolean }[]
+  // Las notas que escribió en sus registros diarios. Son lo más rico
+  // que hay: cuentan el contexto que ningún campo estructurado captura.
+  notas?: { fecha: string; texto: string }[]
+  // Cuándo llegó a casa. Es distinto del cumpleaños y la gente lo
+  // celebra igual.
+  fechaUnion?: string | null
   enfermedades?: { diagnostico: string; fecha: string; proximaRevision: string | null }[]
   // Para poder mostrar la fecha en formato legible sin repetir el
   // formateador acá.
@@ -533,6 +539,33 @@ function calcularEdad(nacimiento: string | null, hoyISO?: string): string | null
   return `${años} ${años === 1 ? 'año' : 'años'} y ${resto} ${resto === 1 ? 'mes' : 'meses'}`
 }
 
+// Cuántos días faltan para el próximo aniversario de una fecha. Sirve
+// tanto para el cumpleaños como para la llegada a casa.
+function diasHastaCumple(fecha: string | null, hoyISO?: string): number | null {
+  if (!fecha) return null
+  const base = new Date(String(fecha).slice(0, 10) + 'T12:00:00')
+  const hoy = hoyISO ? new Date(hoyISO + 'T12:00:00') : new Date()
+  if (isNaN(base.getTime()) || isNaN(hoy.getTime())) return null
+
+  let prox = new Date(hoy.getFullYear(), base.getMonth(), base.getDate(), 12)
+  // Si ya pasó este año, es el del año que viene.
+  if (prox.getTime() < new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 12).getTime()) {
+    prox = new Date(hoy.getFullYear() + 1, base.getMonth(), base.getDate(), 12)
+  }
+  return Math.round((prox.getTime() - new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 12).getTime()) / 86400000)
+}
+
+// "15 de marzo de 2020". Más legible que "15 mar" para una fecha que se
+// menciona una vez.
+function fechaLarga(fecha: string | null): string {
+  if (!fecha) return ''
+  const MESES_L = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+  const d = new Date(String(fecha).slice(0, 10) + 'T12:00:00')
+  if (isNaN(d.getTime())) return ''
+  return `${d.getDate()} de ${MESES_L[d.getMonth()]} de ${d.getFullYear()}`
+}
+
 // ============================================================
 // PERÍODOS DE TIEMPO
 // ============================================================
@@ -733,6 +766,7 @@ type Tema = 'peso' | 'vacunas' | 'antiparasitarios' | 'medicamentos' | 'paseos'
   | 'senal' | 'cuidado' | 'examenes' | 'resumen' | 'vet' | 'visitas'
   | 'perfil' | 'alergias' | 'celos' | 'lab' | 'temperatura' | 'respiracion'
   | 'revision' | 'momentos' | 'enfermedades' | 'observaciones'
+  | 'notas' | 'cumpleanos' | 'union'
   // Los consejos también son un tema, para que "¿y qué más?" después de
   // uno de ansiedad devuelva el siguiente en vez de no entender.
   | 'consejo:ansiedad' | 'consejo:juego' | 'consejo:heces' | 'consejo:movilidad'
@@ -767,6 +801,13 @@ const INTENCIONES: Intencion[] = [
       'ultima visita', 'cuando lo lleve', 'cuando fuimos'] },
   // Las frases van SIN ñ ni tildes: se comparan contra texto ya
   // normalizado, donde "años" quedó como "anos".
+  { tema: 'notas', frases: ['nota', 'notas', 'que anote', 'que escribi', 'mis notas',
+      'que puse', 'comentarios', 'que apunte'] },
+  { tema: 'cumpleanos', frases: ['cumpleanos', 'cumple', 'cuando nacio', 'fecha de nacimiento',
+      'que dia nacio', 'cuando cumple'] },
+  { tema: 'union', frases: ['llego a casa', 'cuando llego', 'aniversario', 'lo adopte',
+      'la adopte', 'llego al hogar', 'cuanto tiempo juntos', 'tiempo juntos',
+      'desde cuando'] },
   { tema: 'observaciones', frases: ['observacion', 'observaciones', 'que observaciones',
       'seguimientos', 'que seguimiento', 'lesion', 'lesiones', 'herida', 'heridas'] },
   { tema: 'perfil', frases: ['edad', 'estado reproductivo', 'reproductivo', 'esterilizad', 'castrad', 'que raza', 'raza es', 'de que raza', 'cuantos anos', 'que edad',
@@ -1510,6 +1551,62 @@ function responder(
         }
       }
       return { texto: `La última revisión corporal fue el **${d.ultimaRevision}**.`, tema: 'revision' }
+    }
+
+    case 'notas': {
+      const ns = d.notas || []
+      if (ns.length === 0) {
+        return {
+          texto: `No tengo notas escritas en los registros de ${d.nombre}.\n\nAl registrar el día hay un campo de nota abajo. Es lo más útil que puedes anotar: el contexto que ningún campo captura — "comió pasto en el parque", "durmió toda la tarde".`,
+          tema: 'notas',
+        }
+      }
+      const lineas = ns.slice(0, 6).map(n => `· ${n.fecha} — "${n.texto}"`)
+      const cola = ns.length > 6 ? `\n\n(te muestro las 6 más recientes de ${ns.length})` : ''
+      return { texto: `Esto anotaste:\n${lineas.join('\n')}${cola}`, tema: 'notas' }
+    }
+
+    case 'cumpleanos': {
+      const nac = d.perfil?.nacimiento
+      if (!nac) {
+        return {
+          texto: `No tengo la fecha de nacimiento de ${d.nombre}.\n\nPuedes agregarla en su perfil: sirve para saber en qué etapa de vida está y para que te avise cuando llegue el día.`,
+          tema: 'cumpleanos',
+        }
+      }
+      const edad = calcularEdad(nac, d.hoyISO)
+      const dias = diasHastaCumple(nac, d.hoyISO)
+      // La frase se arma entera, no por pedazos: "Su cumpleaños faltan
+      // 203 días" era el resultado de pegar un sujeto con un verbo que
+      // no le correspondía.
+      const cuando = dias === 0 ? '\n\n🎉 **Su cumpleaños es hoy.**'
+        : dias === 1 ? '\n\nSu cumpleaños es mañana.'
+        : dias !== null && dias <= 60 ? `\n\nSu cumpleaños es en ${dias} días.`
+        : dias !== null ? `\n\nFaltan ${dias} días para su cumpleaños.`
+        : ''
+      return {
+        texto: `${d.nombre} nació el **${fechaLarga(nac)}**${edad ? `, así que tiene ${edad}` : ''}.${cuando}`,
+        tema: 'cumpleanos',
+      }
+    }
+
+    case 'union': {
+      if (!d.fechaUnion) {
+        return {
+          texto: `No tengo anotado cuándo ${d.nombre} llegó a tu casa.\n\nPuedes agregarlo en su perfil: es una fecha que vale la pena celebrar, y te aviso cuando llegue.`,
+          tema: 'union',
+        }
+      }
+      const juntos = calcularEdad(d.fechaUnion, d.hoyISO)
+      const dias = diasHastaCumple(d.fechaUnion, d.hoyISO)
+      const cuando = dias === 0 ? '\n\n**Su aniversario es hoy** 🎉'
+        : dias === 1 ? '\n\nSu aniversario es mañana.'
+        : dias !== null && dias <= 30 ? `\n\nSu aniversario es en ${dias} días.`
+        : ''
+      return {
+        texto: `${d.nombre} llegó a tu casa el **${fechaLarga(d.fechaUnion)}**${juntos ? `.\n\nLlevan ${juntos} juntos` : ''}.${cuando}`,
+        tema: 'union',
+      }
     }
 
     case 'observaciones': {

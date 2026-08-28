@@ -132,7 +132,7 @@ export default function ChiquiFlotante() {
           // 'estado_reproductivo', no 'esterilizado'. Pedir una columna
           // que no existe hace fallar TODA la consulta — por eso antes
           // no llegaba ni la raza ni la edad.
-          .select('raza, sexo, fecha_nacimiento, castrado, estado_reproductivo, alergias, color, microchip, peso_actual, alimentacion_tipo, alimentacion_marca, veterinaria, tamano_esperado')
+          .select('raza, sexo, fecha_nacimiento, fecha_union, castrado, estado_reproductivo, alergias, color, microchip, peso_actual, alimentacion_tipo, alimentacion_marca, veterinaria, tamano_esperado')
           .eq('id', m.id)
           .single()
         if (data) perfilM = data
@@ -404,6 +404,12 @@ export default function ChiquiFlotante() {
         respiracion: resp && resp.length > 0 ? { valor: resp[0].respiraciones, fecha: fmt(resp[0].fecha) } : null,
         ultimaRevision: revis && revis.length > 0 ? fmt(revis[0].fecha) : null,
         momentos: (momentos || []).map((x: any) => ({ titulo: x.titulo || 'Momento', fecha: fmt(x.fecha) })),
+        // Las notas de los registros diarios. Son lo más rico que hay:
+        // cuentan el contexto que ningún campo estructurado captura.
+        notas: (regs || [])
+          .filter((r: any) => r.nota && String(r.nota).trim())
+          .map((r: any) => ({ fecha: fmt(r.fecha), texto: String(r.nota).trim() })),
+        fechaUnion: perfilM.fecha_union || null,
         observaciones: (obs || []).map((x: any) => ({
           titulo: x.titulo || 'Observación',
           desde: fmt(x.fecha_inicio),
