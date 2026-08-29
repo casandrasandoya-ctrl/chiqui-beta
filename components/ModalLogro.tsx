@@ -56,7 +56,10 @@ export default function ModalLogro({
   // sistemas que se desincronizan.
   const cargando = racha === null
   const hito = editando
-    ? { img: '/chiqui/chiqui_amor.png', mensaje: `Actualizaste el registro de ${nombre}. Los datos al día valen más que los datos a medias.` }
+    // 'Chiqui_amor.png' va con C MAYUSCULA: así se llama el archivo.
+    // En Windows da igual, pero Vercel corre en Linux y ahí las
+    // mayúsculas importan — por eso salía rota solo en producción.
+    ? { img: '/chiqui/Chiqui_amor.png', mensaje: `Actualizaste el registro de ${nombre}. Los datos al día valen más que los datos a medias.` }
     // Mientras carga se muestra la imagen de inicio: es la única que
     // sirve para cualquier racha, así no hay salto visual cuando llega
     // el número real.
@@ -87,6 +90,17 @@ export default function ModalLogro({
         src={imagen}
         alt=""
         className="w-32 h-32 object-contain"
+        onError={e => {
+          // Si una imagen falta, se cae a la de inicio en vez de dejar
+          // el ícono de imagen rota, que se ve peor que nada.
+          const img = e.currentTarget
+          if (!img.dataset.reintento) {
+            img.dataset.reintento = '1'
+            img.src = '/chiqui/chiqui_racha_inicio.png'
+          } else {
+            img.style.visibility = 'hidden'
+          }
+        }}
         style={{
           transform: entrando ? 'scale(.7)' : 'scale(1)',
           transition: 'transform .45s cubic-bezier(.34,1.56,.64,1) .1s',
