@@ -338,13 +338,30 @@ export default async function Dashboard({ searchParams }: Props) {
   // Misma lógica: si hoy no registró aún, no se rompe — se cuenta desde ayer
   let rachaRegistros = 0
   {
+    // created_at ademas de fecha: un dia solo cuenta para la racha si se
+    // registro ESE MISMO DIA. Rellenar el lunes desde el martes deja el
+    // dato guardado —sirve igual para el historial— pero no recupera la
+    // racha: la racha mide constancia, no completitud.
+    //
+    // Sin esto, Novedades mostraba 79 dias cuando la racha real era 49:
+    // contaba dias rellenados despues como si hubieran sido puntuales.
     const { data: ultimosRegistros } = await supabase
       .from('registros_diarios')
-      .select('fecha')
+      .select('fecha, created_at')
       .eq('mascota_id', m.id)
       .order('fecha', { ascending: false })
       .limit(2000)
-    const fechasRegistro = new Set((ultimosRegistros || []).map((r: any) => r.fecha as string))
+    const enChileFecha = (d: Date) =>
+      new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d)
+    const fechasRegistro = new Set(
+      (ultimosRegistros || [])
+        .filter((r: any) => {
+          if (!r.created_at) return true
+          // created_at viene en UTC; se compara en hora de Chile.
+          return enChileFecha(new Date(r.created_at)) === String(r.fecha).slice(0, 10)
+        })
+        .map((r: any) => r.fecha as string)
+    )
     // Igual que la de paseos: si hoy aun no registra, se cuenta desde
     // ayer y la racha no se pierde hasta que pase el dia.
     const tieneHoy = fechasRegistro.has(hoy)
