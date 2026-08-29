@@ -540,7 +540,7 @@ function RegistroContenido() {
   // seguir editando (algunas usuarias creían que marcar ya guardaba).
   const [confirmarGuardado, setConfirmarGuardado] = useState(false)
   // La racha que se muestra al guardar. null mientras no se ha guardado.
-  const [logro, setLogro] = useState<{ racha: number; mejorRacha: number; ultimos7: { letra: string; hecho: boolean }[]; diasDelMes: number; diasMesPasado: number } | null>(null)
+  const [logro, setLogro] = useState<{ racha: number | null; mejorRacha: number | null; ultimos7: { letra: string; hecho: boolean }[] | null; diasDelMes: number | null; diasMesPasado: number | null } | null>(null)
   // Aviso de salida con cambios sin guardar. Guarda a dónde quería
   // ir la persona, para llevarla ahí después de decidir.
   // '__atras__' es el botón de volver, que no tiene URL.
@@ -1327,9 +1327,20 @@ function RegistroContenido() {
     // La racha, al guardar. Este es el momento en que la persona ya hizo
     // el esfuerzo: reconocerlo acá es lo que hace que vuelva mañana.
     try {
+      // EL MODAL APARECE PRIMERO, sin esperar nada.
+      //
+      // Antes se calculaba la racha y recién después se mostraba: la
+      // persona miraba una pantalla congelada hasta un segundo entero,
+      // sumando el guardado más la consulta. Ahora ve la carita de
+      // inmediato y el número llega solo.
+      setLogro({ racha: null, mejorRacha: null, ultimos7: null, diasDelMes: null, diasMesPasado: null })
+      setLoading(false)
+
       const hoyL = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
       const atras = new Date(hoyL + 'T12:00:00')
-      atras.setDate(atras.getDate() - 400)
+      // 120 días bastan: una racha más larga que eso es rarísima, y
+      // traer 400 costaba el triple para el mismo resultado.
+      atras.setDate(atras.getDate() - 120)
       const desdeL = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(atras)
 
       // Se pide created_at además de fecha: sin saber CUÁNDO se anotó
@@ -1409,11 +1420,13 @@ function RegistroContenido() {
       const delAnterior = Array.from(todasLasFechas).filter(f => f.startsWith(mesAnterior)).length
 
       setLogro({ racha: r, mejorRacha: mejor, ultimos7: ult7, diasDelMes: delMes, diasMesPasado: delAnterior })
-      setLoading(false)
       return
     } catch {
-      // Si el cálculo falla, se vuelve al dashboard como siempre: el
-      // registro ya se guardó, que es lo que importa.
+      // El modal YA está en pantalla, así que no se puede volver al
+      // dashboard sin más: se completa con lo mínimo para que la
+      // persona pueda cerrarlo.
+      setLogro({ racha: 1, mejorRacha: 1, ultimos7: null, diasDelMes: null, diasMesPasado: null })
+      return
     }
 
     router.push('/dashboard')

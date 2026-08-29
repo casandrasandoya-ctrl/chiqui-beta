@@ -23,15 +23,18 @@ import { hitoRacha } from '@/components/Novedades'
 
 interface Props {
   nombre: string
-  racha: number
+  // null = todavía calculándose. El modal aparece igual y el número
+  // llega después: es preferible ver algo en 100ms y que el número
+  // aparezca, a mirar una pantalla en blanco un segundo entero.
+  racha: number | null
   // La mejor racha histórica. Ver cuánto le falta para superarla es más
   // motivador que el número actual solo.
-  mejorRacha: number
-  diasDelMes: number
-  diasMesPasado: number
+  mejorRacha: number | null
+  diasDelMes: number | null
+  diasMesPasado: number | null
   // Los últimos 7 días TERMINANDO HOY, con su nombre real. Empezar en
   // domingo dejaba la mayoría de los checks fuera de vista los lunes.
-  ultimos7: { letra: string; hecho: boolean }[]
+  ultimos7: { letra: string; hecho: boolean }[] | null
   editando: boolean
   onCerrar: () => void
 }
@@ -51,9 +54,13 @@ export default function ModalLogro({
   // usa Novedades. Hay 15 niveles ya diseñados —inicio, 7, 15, 30, 45,
   // 100, corona, superhéroe— y duplicarlos acá habría significado dos
   // sistemas que se desincronizan.
+  const cargando = racha === null
   const hito = editando
     ? { img: '/chiqui/chiqui_amor.png', mensaje: `Actualizaste el registro de ${nombre}. Los datos al día valen más que los datos a medias.` }
-    : hitoRacha(racha)
+    // Mientras carga se muestra la imagen de inicio: es la única que
+    // sirve para cualquier racha, así no hay salto visual cuando llega
+    // el número real.
+    : hitoRacha(racha ?? 1)
   const imagen = hito.img
   // El mensaje de hitoRacha ya trae el número de días adelante; acá el
   // número va aparte y en grande, así que se recorta esa parte.
@@ -62,8 +69,8 @@ export default function ModalLogro({
   // La comparación con el mes pasado solo se muestra si es favorable y
   // si hay con qué comparar. Recordarle a alguien que va peor que el mes
   // pasado justo cuando acaba de registrar es contraproducente.
-  const mejorQueAntes = diasMesPasado > 0 && diasDelMes > diasMesPasado
-  const diferencia = diasDelMes - diasMesPasado
+  const mejorQueAntes = diasMesPasado !== null && diasDelMes !== null && diasMesPasado > 0 && diasDelMes > diasMesPasado
+  const diferencia = (diasDelMes ?? 0) - (diasMesPasado ?? 0)
 
   return (
     <div
@@ -86,23 +93,26 @@ export default function ModalLogro({
         }}
       />
 
-      <p className="font-heading text-6xl font-extrabold text-[#CD7421] mt-6 leading-none">
-        {racha}
+      <p
+        className="font-heading text-6xl font-extrabold text-[#CD7421] mt-6 leading-none"
+        style={{ opacity: cargando ? 0.25 : 1, transition: 'opacity .25s ease' }}
+      >
+        {cargando ? '·' : racha}
       </p>
       <p className="font-heading text-xl font-extrabold text-[#CD7421] mt-1">
-        {racha === 1 ? 'día seguido' : 'días seguidos'}
+        {cargando ? 'contando...' : racha === 1 ? 'día seguido' : 'días seguidos'}
       </p>
 
       {/* La mejor racha: ver cuánto falta para superarla motiva más que
           el número actual solo. Solo se muestra si ya hubo una mejor. */}
-      {mejorRacha > racha && (
+      {!cargando && mejorRacha !== null && racha !== null && mejorRacha > racha && (
         <div className="bg-[#FFFCF8] rounded-full px-5 py-2 mt-3">
           <p className="text-[13px] font-semibold text-[#8A7560]">
             Tu mejor racha: <strong className="text-[#3D2B1F]">{mejorRacha}</strong>
           </p>
         </div>
       )}
-      {racha > 0 && racha === mejorRacha && racha > 1 && (
+      {!cargando && racha !== null && racha > 1 && racha === mejorRacha && (
         <div className="rounded-full px-5 py-2 mt-3" style={{ background: '#4CAF7D' }}>
           <p className="text-[13px] font-bold text-white">Es tu mejor racha</p>
         </div>
@@ -112,8 +122,8 @@ export default function ModalLogro({
           es más fácil reconocer "ayer no registré" que contar posiciones
           en una semana que empieza el domingo. */}
       <div className="flex gap-2 mt-7">
-        {ultimos7.map((d, i) => {
-          const esHoy = i === ultimos7.length - 1
+        {(ultimos7 || Array.from({ length: 7 }, () => ({ letra: '·', hecho: false }))).map((d, i) => {
+          const esHoy = i === 6
           return (
             <div key={i} className="flex flex-col items-center gap-2">
               <span className={`text-[10px] font-bold uppercase ${esHoy ? 'text-[#CD7421]' : 'text-[#B5A38F]'}`}>
@@ -132,8 +142,11 @@ export default function ModalLogro({
         })}
       </div>
 
-      <p className="text-[14px] text-[#8A7560] text-center leading-relaxed mt-7 max-w-xs">
-        {mensaje}
+      <p
+        className="text-[14px] text-[#8A7560] text-center leading-relaxed mt-7 max-w-xs"
+        style={{ opacity: cargando ? 0 : 1, transition: 'opacity .3s ease' }}
+      >
+        {cargando ? '\u00A0' : mensaje}
       </p>
 
       {mejorQueAntes && (
