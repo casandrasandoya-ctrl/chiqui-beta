@@ -40,7 +40,10 @@ export interface DatosChat {
   antiparasitarios?: { nombre: string; proxima: string | null; dias: number | null }[]
   // fecha es para mostrar ("26 jul") y fechaISO para comparar contra
   // las visitas al veterinario.
-  senales?: { campo: string; etiqueta: string; fecha: string; fechaISO?: string; nota: string }[]
+  // 'detalle' es lo que se marcó dentro de la señal: si el vómito fue
+  // bilis o pasto, cuántas veces, de qué color las heces. Es lo que
+  // vuelve útil el registro para el veterinario.
+  senales?: { campo: string; etiqueta: string; detalle?: string; fecha: string; fechaISO?: string; nota: string }[]
   cuidados?: { label: string; palabras: string[]; diasDesde: number; cadaCuantos: number | null }[]
   examenes?: { nombre: string; fecha: string }[]
   visitasVet?: string[]
@@ -583,8 +586,12 @@ const PERIODOS: { frases: string[]; dias: number; texto: string }[] = [
              'semana pasada'], dias: 7, texto: 'la última semana' },
   { frases: ['ultimos 14 dias', 'ultimas dos semanas', 'ultimas 2 semanas'], dias: 14, texto: 'las últimas dos semanas' },
   { frases: ['este mes', 'ultimo mes', 'ultimos 30 dias', 'ultimos treinta dias'], dias: 30, texto: 'este mes' },
-  { frases: ['ultimos 3 meses', 'ultimos tres meses'], dias: 90, texto: 'los últimos 3 meses' },
-  { frases: ['este año', 'ultimo año', 'ultimos 12 meses'], dias: 365, texto: 'el último año' },
+  { frases: ['ultimos 2 meses', 'ultimos dos meses', 'ultimo bimestre'], dias: 60, texto: 'los últimos 2 meses' },
+  { frases: ['ultimos 3 meses', 'ultimos tres meses', 'trimestre', 'ultimo trimestre'], dias: 90, texto: 'los últimos 3 meses' },
+  { frases: ['ultimos 6 meses', 'ultimo semestre', 'medio ano'], dias: 180, texto: 'los últimos 6 meses' },
+  // SIN ñ: se comparan contra texto ya normalizado, donde "año" quedó
+  // como "ano". Con la ñ nunca calzaban.
+  { frases: ['este ano', 'ultimo ano', 'ultimos 12 meses', 'todo el ano', 'en el ano'], dias: 365, texto: 'el último año' },
   // "recientemente" y "ultimamente" son vagos a propósito: una semana
   // es lo que la gente suele tener en mente al decirlo.
   { frases: ['recientemente', 'ultimamente', 'estos dias'], dias: 7, texto: 'los últimos días' },
@@ -1024,8 +1031,11 @@ function responder(
   // vuelve a desambiguarse. Alguien que tocó el botón ya eligió.
   const yaEligio = AMBIGUAS.some(a => a.opciones.some(o => normalizar(o).replace(/[¿?¡!.,;:]/g, ' ').trim() === q))
 
+  // Si la pregunta trae un PERÍODO, ya no es ambigua: "vomitó este año"
+  // dice claramente que quiere los registros, no la explicación de
+  // cuándo preocupa un vómito.
   const palabrasQ = q.split(/\s+/).filter(Boolean)
-  if (!yaEligio && palabrasQ.length <= 4) {
+  if (!yaEligio && !periodo && palabrasQ.length <= 4) {
     const amb = AMBIGUAS.find(a => a.palabras.some(p => palabrasQ.includes(p) || q === p))
     if (amb) return { texto: amb.pregunta, tema: null, opciones: amb.opciones }
   }
@@ -1286,10 +1296,22 @@ function responder(
       // El período que pidió la persona manda. Sin esto, preguntar por
       // "la última semana" respondía con 30 días y encima lo decía.
       const todas = (d.senales || []).filter(s => s.campo === mejor.campo)
+      // Sin período pedido se muestran TODAS las que hay, pero entonces
+      // el texto no puede decir "los últimos 30 días": sería mentira si
+      // alguna es más vieja.
       const suyas = periodo && d.hoyISO
         ? filtrarPorPeriodo(todas, periodo.dias, d.hoyISO)
         : todas
-      const cuando = periodo ? periodo.texto : d.textoPeriodo
+      const masVieja = !periodo && d.hoyISO && todas.length > 0
+        ? Math.max(...todas.map(x => x.fechaISO
+            ? Math.round((new Date(d.hoyISO + 'T12:00:00').getTime() - new Date(x.fechaISO + 'T12:00:00').getTime()) / 86400000)
+            : 0))
+        : 0
+      const cuando = periodo ? periodo.texto
+        : masVieja > 300 ? 'el último año'
+        : masVieja > 90 ? 'los últimos meses'
+        : masVieja > 30 ? 'los últimos 3 meses'
+        : d.textoPeriodo
 
       if (suyas.length === 0) {
         // Si en el período pedido no hay nada pero SÍ hay antes, se
@@ -1303,10 +1325,30 @@ function responder(
         }
         return { texto: `No registraste nada fuera de lo normal en ${mejor.nombre} durante ${cuando}.`, tema: 'senal' }
       }
-      const lineas = suyas.slice(0, 6).map(s => `· ${s.fecha} — ${s.etiqueta}${s.nota ? ` 💬 "${s.nota}"` : ''}`)
+      // El DETALLE es lo que vuelve útil el registro: no es lo mismo
+      // "vomitó" que "vomitó bilis, 2 veces". Eso es lo que el
+      // veterinario necesita oír.
+      const lineas = suyas.slice(0, 8).map(s => {
+        const det = s.detalle ? ` (${s.detalle})` : ''
+        const nota = s.nota ? `\n   💬 "${s.nota}"` : ''
+        return `· ${s.fecha} — ${s.etiqueta}${det}${nota}`
+      })
       const cabecera = suyas.length === 1 ? `Una vez en ${cuando}:` : `${suyas.length} veces en ${cuando}:`
-      const cola = suyas.length > 6 ? `\n\n(te muestro las 6 más recientes)` : ''
-      return { texto: `${cabecera}\n${lineas.join('\n')}${cola}`, tema: 'senal' }
+      const cola = suyas.length > 8 ? `\n\n(te muestro las 8 más recientes de ${suyas.length})` : ''
+
+      // Se ofrece ampliar el período. Quien pregunta por vómitos suele
+      // querer saber si es algo nuevo o si viene de antes.
+      const masAmplio = !periodo || periodo.dias <= 30
+        ? [`${mejor.nombre} en los últimos 3 meses`, `${mejor.nombre} en el último año`]
+        : periodo.dias <= 90
+        ? [`${mejor.nombre} en el último año`]
+        : undefined
+
+      return {
+        texto: `${cabecera}\n${lineas.join('\n')}${cola}`,
+        tema: 'senal',
+        opciones: masAmplio,
+      }
     }
 
     case 'cuidado': {
@@ -1367,7 +1409,13 @@ function responder(
 
     case 'vet': {
       const partes = [`Esto es lo que llevaría de ${d.nombre}:`]
-      if (d.episodios.length > 0) partes.push(d.episodios.map(e => `· ${e}`).join('\n'))
+      // Con los detalles: "vomitó bilis 2 veces" le sirve al veterinario
+      // mucho más que "vomitó".
+      if (d.senales && d.senales.length > 0) {
+        const conDetalle = d.senales.slice(0, 10).map(s =>
+          `· ${s.fecha} — ${s.etiqueta}${s.detalle ? ` (${s.detalle})` : ''}`)
+        partes.push(conDetalle.join('\n'))
+      } else if (d.episodios.length > 0) partes.push(d.episodios.map(e => `· ${e}`).join('\n'))
       else partes.push(`· Sin episodios destacables en ${d.textoPeriodo}.`)
       if (d.peso) partes.push(`· Peso: ${d.peso.actual} kg (${d.peso.fecha})`)
       if (d.medicamentos && d.medicamentos.length > 0) partes.push(`· En tratamiento: ${d.medicamentos.map(m => m.nombre).join(', ')}`)

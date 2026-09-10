@@ -38,6 +38,22 @@ const NORMALES: Record<string, string[]> = {
   movilidad: ['normal'], pelaje: ['brillante', 'normal'], conducta: ['sociable', 'normal'],
   arenero: ['normal'],
 }
+// Los detalles que la persona marcó dentro de cada señal: si vomitó
+// bilis o pasto, cuántas veces, de qué color fueron las heces. Están en
+// columnas *_detalle como texto separado por comas.
+const DETALLE: Record<string, string> = {
+  espuma: 'espuma', bilis: 'bilis', comida: 'comida', pasto: 'pasto',
+  bola_pelo: 'bola de pelo', sangre_vomito: 'con sangre', otro_vomito: 'otro',
+  '1_vez': '1 vez', '2_veces': '2 veces', '3_mas_veces': '3 o más veces',
+  hoy_solo: 'solo hoy', varios_dias: 'varios días', semanas: 'hace semanas',
+  liquidas: 'líquidas', muy_seguido: 'muy seguido',
+  '1_dia': '1 día sin defecar', '2_dias': '2 días sin defecar', '3_mas': '3 o más días',
+  una: 'saltó una comida', dos: 'saltó dos comidas', todo: 'no comió en todo el día',
+  hoy: 'solo hoy', varios: 'varios días',
+  amarillo: 'amarillas', negro: 'negras', rojo: 'rojas',
+  verde: 'verdes', blanco: 'blancas', gris: 'grises',
+}
+
 const ETQ: Record<string, string> = {
   'digestion:vomito': 'vomitó', 'digestion:diarrea': 'diarrea', 'digestion:nauseas': 'náuseas',
   'digestion:gases': 'gases', 'digestion:mal_aliento': 'mal aliento',
@@ -144,7 +160,9 @@ export default function ChiquiFlotante() {
       // Mediodía: restar días sobre medianoche falla en los cambios de
       // horario de verano.
       const d30 = new Date(hoy + 'T12:00:00')
-      d30.setDate(d30.getDate() - 30)
+      // 365 días: sin esto no se puede responder "¿cuántas veces vomitó
+      // este año?". Son pocas filas por mascota, no pesa.
+      d30.setDate(d30.getDate() - 365)
       const desde = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d30)
       const inicioMes = hoy.slice(0, 7) + '-01'
 
@@ -225,9 +243,15 @@ export default function ChiquiFlotante() {
         for (const [campo, normales] of Object.entries(NORMALES)) {
           const v = (r as any)[campo]
           if (v && !normales.includes(v)) {
+            // El detalle de esa señal, si lo hay: "bilis, 2 veces".
+            const bruto = (r as any)[`${campo}_detalle`]
+            const detalle = bruto
+              ? String(bruto).split(',').map(x => DETALLE[x.trim()] || x.trim().replace(/_/g, ' ')).filter(Boolean).join(', ')
+              : ''
             senales!.push({
               campo,
               etiqueta: ETQ[`${campo}:${v}`] || String(v).replace(/_/g, ' '),
+              detalle,
               fecha: fmt(r.fecha),
               fechaISO: String(r.fecha).slice(0, 10),
               nota: (r.nota || '').trim(),
