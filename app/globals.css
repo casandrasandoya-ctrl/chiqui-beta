@@ -88,6 +88,31 @@ body {
   padding-bottom: 80px;
 }
 
+/* El body limita toda la app a 420px, que es lo correcto: CHIQUI es una
+   app de telefono. Pero la vista del veterinario se abre desde un
+   computador, y ahi ese limite desperdicia casi toda la pantalla.
+
+   :has() mira si el body contiene la vista del vet. Asi no hay que leer
+   la ruta en el servidor ni tocar el layout.
+
+   En el telefono no cambia nada: la pantalla ya es mas angosta que
+   estos limites. */
+body:has(.vista-vet) {
+  max-width: 100%;
+  padding-bottom: 24px;
+}
+@media (min-width: 1024px) {
+  body:has(.vista-vet) .vista-vet {
+    max-width: 1024px;
+    margin: 0 auto;
+  }
+}
+@media (min-width: 1280px) {
+  body:has(.vista-vet) .vista-vet {
+    max-width: 1280px;
+  }
+}
+
 .font-heading {
   font-family: var(--font-nunito), sans-serif;
 }

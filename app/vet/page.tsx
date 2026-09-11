@@ -684,7 +684,7 @@ export default async function VetPage({ searchParams }: Props) {
   )
 
   return (
-    <div className="min-h-screen bg-[#F5EDE3] text-[#3D2B1F] pb-12 max-w-lg lg:max-w-5xl xl:max-w-7xl mx-auto">
+    <div className="vista-vet min-h-screen bg-[#F5EDE3] text-[#3D2B1F] pb-12">
 
       {/* Header */}
       <div className="bg-[#6B4423] text-white px-5 pt-8 pb-6">
