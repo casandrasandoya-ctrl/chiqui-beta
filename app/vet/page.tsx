@@ -74,21 +74,46 @@ const CATEGORIAS_EXAMEN: Record<string,{icon:string,label:string}> = {
   otro: { icon:'📄', label:'Otro examen' },
 }
 
+// Los detalles que se marcaron dentro de cada senal, en palabras.
+const DETALLE_VET: Record<string, string> = {
+  espuma: 'espuma', bilis: 'bilis', comida: 'comida', pasto: 'pasto',
+  bola_pelo: 'bola de pelo', sangre_vomito: 'con sangre', otro_vomito: 'otro tipo',
+  '1_vez': '1 vez', '2_veces': '2 veces', '3_mas_veces': '3 o mas veces',
+  hoy_solo: 'solo hoy', varios_dias: 'varios dias', semanas: 'hace semanas',
+  liquidas: 'liquidas', muy_seguido: 'muy seguido',
+  '1_dia': '1 dia sin defecar', '2_dias': '2 dias sin defecar', '3_mas': '3 o mas dias',
+  una: 'salto una comida', dos: 'salto dos comidas', todo: 'no comio en todo el dia',
+  hoy: 'solo hoy', varios: 'varios dias',
+  amarillo: 'amarillas', negro: 'negras', rojo: 'rojas',
+  verde: 'verdes', blanco: 'blancas', gris: 'grises',
+}
+
 function detectarMotivosConsulta(registros: any[]): string[] {
   const hace7 = new Date()
   hace7.setDate(hace7.getDate() - 7)
   const recientes = registros.filter(r => new Date(r.fecha + 'T00:00:00') >= hace7)
   const senales: Set<string> = new Set()
+  // Los valores tienen que coincidir EXACTAMENTE con los que guarda el
+  // registro diario. Antes no coincidian: la vista buscaba
+  // 'diarrea_con_sangre' y 'estreñimiento' con tilde, cuando el
+  // registro guarda 'con_sangre' y 'estrenimiento'. Resultado: las
+  // heces blandas, el estreñimiento y el color raro NUNCA aparecian
+  // como motivo de consulta, aunque estuvieran registrados.
   const CAMPOS_LABEL: Record<string,Record<string,string>> = {
     energia: { baja:'Energía baja', muy_baja:'Energía muy baja' },
-    animo: { triste:'Ánimo decaído', ansioso:'Ansiedad', agresivo:'Agresividad' },
-    apetito: { poco:'Poco apetito', nada:'Sin apetito', excesivo:'Apetito excesivo' },
-    agua: { poco:'Poca ingesta de agua', mucho:'Ingesta excesiva de agua', nada:'Sin ingesta de agua' },
-    digestion: { vomito:'Vómito', diarrea:'Diarrea', constipacion:'Constipación', gases:'Gases' },
-    heces: { diarrea:'Diarrea', diarrea_con_sangre:'Diarrea con sangre', estreñimiento:'Estreñimiento' },
-    pelaje: { caida_excesiva:'Caída excesiva de pelo', rasca:'Se rasca', lame_exceso:'Se lame en exceso', opaco:'Pelaje opaco' },
-    conducta: { agresivo:'Cambios de conducta (agresivo)', ansioso:'Ansiedad', escondite:'Se esconde', letargico:'Letárgico' },
-    movilidad: { cojera:'Cojera', rigidez:'Rigidez', dolor_aparente:'Dolor aparente', no_salta:'Dificultad para saltar' },
+    animo: { triste:'Ánimo decaído', decaido:'Ánimo decaído', ansioso:'Ansiedad', irritable:'Irritabilidad', agresivo:'Agresividad' },
+    apetito: { poco:'Poco apetito', menos:'Comió menos', nada:'Sin apetito', mas:'Apetito aumentado', excesivo:'Apetito excesivo' },
+    agua: { poco:'Poca ingesta de agua', menos:'Tomó menos agua', mucho:'Ingesta excesiva de agua', mas:'Tomó más agua', nada:'Sin ingesta de agua' },
+    digestion: { vomito:'Vómito', nauseas:'Náuseas', gases:'Gases', mal_aliento:'Mal aliento' },
+    heces: {
+      blandas:'Heces blandas', diarrea:'Diarrea', con_sangre:'Heces con sangre',
+      estrenimiento:'Estreñimiento', mucosidad:'Heces con mucosidad',
+      color_raro:'Heces de color anormal', no_hizo:'No defecó',
+    },
+    arenero: { sangre:'Sangre en la orina', dificultad:'Dificultad al orinar', mucho:'Orina aumentada', poco:'Orina disminuida' },
+    pelaje: { caida_excesiva:'Caída excesiva de pelo', caida:'Caída de pelo', rasca:'Se rasca', lame_exceso:'Se lame en exceso', opaco:'Pelaje opaco' },
+    conducta: { agresivo:'Cambios de conducta (agresivo)', ansioso:'Ansiedad', esconde:'Se esconde', escondite:'Se esconde', letargico:'Letárgico' },
+    movilidad: { cojera:'Cojera', rigidez:'Rigidez', dificultad:'Dificultad al moverse', dolor_aparente:'Dolor aparente', no_salta:'Dificultad para saltar' },
   }
   // En qué FECHAS apareció cada señal. Antes se usaba un Set, que
   // descarta los repetidos: tres días de vómito quedaban como una
@@ -98,7 +123,14 @@ function detectarMotivosConsulta(registros: any[]): string[] {
     for (const [campo, valoresLabel] of Object.entries(CAMPOS_LABEL)) {
       const val = r[campo]
       if (val && valoresLabel[val]) {
-        const etiqueta = valoresLabel[val]
+        // Con el detalle: "Vómito · bilis, 2 veces" le dice al
+        // veterinario mucho mas que "Vomito" a secas, en el mismo
+        // espacio. Es justo lo que decide si pregunta mas o no.
+        const bruto = r[`${campo}_detalle`]
+        const det = bruto
+          ? String(bruto).split(',').map((x: string) => DETALLE_VET[x.trim()] || x.trim().replace(/_/g, ' ')).filter(Boolean).join(', ')
+          : ''
+        const etiqueta = det ? `${valoresLabel[val]} · ${det}` : valoresLabel[val]
         const lista = fechasPorSenal.get(etiqueta) || []
         if (!lista.includes(r.fecha)) lista.push(r.fecha)
         fechasPorSenal.set(etiqueta, lista)
@@ -592,8 +624,15 @@ export default async function VetPage({ searchParams }: Props) {
     recuperacion: 'Dieta de recuperación',
     otro: 'Dieta especial',
   }
+  // Solo la dieta de los ultimos 14 dias: antes se mostraba la ultima
+  // aunque fuera de hace meses, dentro de un bloque titulado "ultimos 7
+  // dias". Se usan 14 y no 7 porque una dieta blanda suele durar mas de
+  // una semana y sigue siendo relevante para la consulta.
+  const hace14 = new Date()
+  hace14.setDate(hace14.getDate() - 14)
+  const limite14 = hace14.toISOString().slice(0, 10)
   const registrosConDieta = registros
-    .filter((r: any) => r.alimentacion_especial)
+    .filter((r: any) => r.alimentacion_especial && (r.fecha || '') >= limite14)
     .sort((a: any, b: any) => (b.fecha || '').localeCompare(a.fecha || ''))
   const dietaEspecialReciente = registrosConDieta[0] || null
   // Cuántos de los últimos registros la traen (señal de continuidad).
