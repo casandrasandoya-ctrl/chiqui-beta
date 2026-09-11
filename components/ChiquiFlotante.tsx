@@ -373,6 +373,13 @@ export default function ChiquiFlotante() {
           ? Math.round(((regs || []).length - porDia.size) / (regs || []).length * 100)
           : 0,
         textoPeriodo: 'los últimos 30 días',
+        // SIN ESTO EL CHAT NO PUEDE FILTRAR NADA.
+        //
+        // El filtro es `periodo && d.hoyISO ? filtrar : todas`, así que
+        // sin la fecha devolvía TODAS las señales sin importar el
+        // período pedido: "los últimos 30 días" y "el último año"
+        // respondían exactamente lo mismo, y el texto mentía.
+        hoyISO: hoy,
         paseosMes: m.especie === 'Perro'
           ? { cantidad: paseosMes.length, minutos: minutosMes, nombreMes: MESES_LARGO[Number(hoy.slice(5, 7)) - 1] }
           : null,
@@ -460,6 +467,13 @@ export default function ChiquiFlotante() {
             totalRegistros: 0,
             pctBien: 0,
             textoPeriodo: 'los últimos 30 días',
+        // SIN ESTO EL CHAT NO PUEDE FILTRAR NADA.
+        //
+        // El filtro es `periodo && d.hoyISO ? filtrar : todas`, así que
+        // sin la fecha devolvía TODAS las señales sin importar el
+        // período pedido: "los últimos 30 días" y "el último año"
+        // respondían exactamente lo mismo, y el texto mentía.
+        hoyISO: hoy,
           })
         }
       }
