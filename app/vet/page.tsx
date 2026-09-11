@@ -684,7 +684,7 @@ export default async function VetPage({ searchParams }: Props) {
   )
 
   return (
-    <div className="min-h-screen bg-[#F5EDE3] text-[#3D2B1F] pb-12 max-w-lg lg:max-w-6xl mx-auto">
+    <div className="min-h-screen bg-[#F5EDE3] text-[#3D2B1F] pb-12 max-w-lg lg:max-w-[1280px] mx-auto">
 
       {/* Header */}
       <div className="bg-[#6B4423] text-white px-5 pt-8 pb-6">
@@ -720,7 +720,7 @@ export default async function VetPage({ searchParams }: Props) {
         )}
       </div>
 
-      <div className="px-5 py-5 space-y-3 lg:columns-2 lg:gap-4 lg:space-y-0">
+      <div className="px-5 py-5 space-y-3 lg:columns-2 lg:gap-8 lg:space-y-0 lg:px-8">
 
         {/* 1. Ficha del paciente -- prácticamente igual, se agrega Estado
             reproductivo explícito (antes solo aparecía implícito como
