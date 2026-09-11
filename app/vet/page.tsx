@@ -684,7 +684,7 @@ export default async function VetPage({ searchParams }: Props) {
   )
 
   return (
-    <div className="min-h-screen bg-[#F5EDE3] text-[#3D2B1F] pb-12 max-w-lg lg:max-w-[1280px] mx-auto">
+    <div className="min-h-screen bg-[#F5EDE3] text-[#3D2B1F] pb-12 max-w-lg lg:max-w-5xl xl:max-w-7xl mx-auto">
 
       {/* Header */}
       <div className="bg-[#6B4423] text-white px-5 pt-8 pb-6">
@@ -720,12 +720,12 @@ export default async function VetPage({ searchParams }: Props) {
         )}
       </div>
 
-      <div className="px-5 py-5 space-y-3 lg:columns-2 lg:gap-8 lg:space-y-0 lg:px-8">
+      <div className="px-5 py-5 space-y-3 lg:columns-2 lg:gap-6 lg:space-y-0 lg:px-6">
 
         {/* 1. Ficha del paciente -- prácticamente igual, se agrega Estado
             reproductivo explícito (antes solo aparecía implícito como
             "Esterilizado/a" en el header). */}
-        <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4]">
+        <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4] break-inside-avoid lg:mb-4">
           <div className="flex items-center gap-2 mb-3">
             <img src="/chiqui/chiqui_registro.png" alt="" className="w-6 h-6 object-contain" />
             <h2 className="font-bold text-xs text-[#8A7560] uppercase tracking-wider">Ficha del paciente</h2>
@@ -751,7 +751,7 @@ export default async function VetPage({ searchParams }: Props) {
             diagnosticar. No compite con "Posible motivo de consulta"
             (esa se basa solo en los últimos 7 días de registro diario). */}
         {resumenClinico.length > 0 && (
-          <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4]">
+          <div className="bg-[#FFFCF8] rounded-2xl p-4 border border-[#EEE2D4] break-inside-avoid lg:mb-4">
             <h2 className="font-extrabold text-sm text-[#3D2B1F] mb-3">📋 Resumen clínico</h2>
             {(['rojo', 'amarillo', 'verde'] as const).map(nivel => {
               const items = resumenClinico.filter(r => r.nivel === nivel)
