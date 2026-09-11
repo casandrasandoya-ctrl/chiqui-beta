@@ -146,3 +146,33 @@ input, select, textarea {
   border-radius: 0 0 4px 4px;
   clip-path: polygon(0 0, 100% 0, 85% 100%, 50% 70%, 15% 100%);
 }
+
+
+/* ============================================================
+   CHIQUI EN ESCRITORIO
+   ============================================================
+   En el telefono la app se ve igual que siempre: 420px, que es el ancho
+   comodo para el pulgar.
+
+   Desde 1024px el body crece a 900px. No mas: por encima de eso las
+   lineas de texto se hacen largas y cuesta seguir el renglon.
+
+   Todas las pantallas se amplian con esto, sin tocar ninguna.
+   Para volver atras, basta con borrar este bloque. */
+@media (min-width: 1024px) {
+  body:not(:has(.vista-vet)) {
+    max-width: 900px;
+  }
+
+  /* El menu de abajo y el boton flotante usan position fixed, que se
+     ancla a la VENTANA y no al contenido. Sin esto quedarian pegados a
+     los bordes de la pantalla, lejos de donde esta mirando la persona. */
+  body:not(:has(.vista-vet)) nav[class*="fixed"],
+  body:not(:has(.vista-vet)) div[class*="fixed bottom"],
+  body:not(:has(.vista-vet)) [class*="fixed"][class*="bottom-0"] {
+    max-width: 900px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}
