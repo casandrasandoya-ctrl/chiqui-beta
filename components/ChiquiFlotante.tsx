@@ -467,13 +467,10 @@ export default function ChiquiFlotante() {
             totalRegistros: 0,
             pctBien: 0,
             textoPeriodo: 'los últimos 30 días',
-        // SIN ESTO EL CHAT NO PUEDE FILTRAR NADA.
-        //
-        // El filtro es `periodo && d.hoyISO ? filtrar : todas`, así que
-        // sin la fecha devolvía TODAS las señales sin importar el
-        // período pedido: "los últimos 30 días" y "el último año"
-        // respondían exactamente lo mismo, y el texto mentía.
-        hoyISO: hoy,
+            // Acá NO va hoyISO: este es el bloque de respaldo para
+            // cuando la carga falló, y 'hoy' solo existe dentro del
+            // bloque que sí llegó a calcularla. Sin señales que
+            // filtrar, tampoco hace falta.
           })
         }
       }
