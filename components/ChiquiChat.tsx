@@ -1328,13 +1328,20 @@ function responder(
       // El DETALLE es lo que vuelve útil el registro: no es lo mismo
       // "vomitó" que "vomitó bilis, 2 veces". Eso es lo que el
       // veterinario necesita oír.
-      const lineas = suyas.slice(0, 8).map(s => {
+      // El límite se adapta al período: quien pregunta por el año quiere
+      // ver el año, no los 8 últimos. Cortar ahí vaciaba de sentido la
+      // pregunta.
+      const tope = !periodo ? 8 : periodo.dias >= 180 ? 40 : periodo.dias >= 60 ? 25 : 12
+      // Con muchos registros la nota de cada uno satura: se muestran
+      // solo en listas cortas.
+      const conNotas = suyas.length <= 10
+      const lineas = suyas.slice(0, tope).map(s => {
         const det = s.detalle ? ` (${s.detalle})` : ''
-        const nota = s.nota ? `\n   💬 "${s.nota}"` : ''
+        const nota = conNotas && s.nota ? `\n   💬 "${s.nota}"` : ''
         return `· ${s.fecha} — ${s.etiqueta}${det}${nota}`
       })
       const cabecera = suyas.length === 1 ? `Una vez en ${cuando}:` : `${suyas.length} veces en ${cuando}:`
-      const cola = suyas.length > 8 ? `\n\n(te muestro las 8 más recientes de ${suyas.length})` : ''
+      const cola = suyas.length > tope ? `\n\n(te muestro las ${tope} más recientes de ${suyas.length})` : ''
 
       // Se ofrece ampliar el período. Quien pregunta por vómitos suele
       // querer saber si es algo nuevo o si viene de antes.
@@ -1703,13 +1710,62 @@ function responder(
     case 'resumen': {
       // Con período pedido se responde desde las señales, que sí se
       // pueden recortar. Los episodios vienen ya agrupados por mes.
-      if (periodo && d.hoyISO && d.senales && d.senales.length > 0) {
-        const enRango = filtrarPorPeriodo(d.senales, periodo.dias, d.hoyISO)
+      // El resumen también respeta el período pedido, y ofrece ampliarlo.
+      if (d.senales && d.senales.length > 0) {
+        const enRango = periodo && d.hoyISO
+          ? filtrarPorPeriodo(d.senales, periodo.dias, d.hoyISO)
+          : d.senales
+        // Sin período pedido no se puede decir "los últimos 30 días": sería
+        // mentira si hay registros más viejos incluidos.
+        const masViejaR = !periodo && d.hoyISO && d.senales.length > 0
+          ? Math.max(...d.senales.map(x => x.fechaISO
+              ? Math.round((new Date(d.hoyISO + 'T12:00:00').getTime() - new Date(x.fechaISO + 'T12:00:00').getTime()) / 86400000)
+              : 0))
+          : 0
+        const cuandoR = periodo ? periodo.texto
+          : masViejaR > 300 ? 'el último año'
+          : masViejaR > 90 ? 'los últimos meses'
+          : masViejaR > 30 ? 'los últimos 3 meses'
+          : d.textoPeriodo
+
+        // Los períodos que todavía no se han pedido, para ofrecerlos.
+        const ampliar = !periodo || periodo.dias <= 30
+          ? ['¿Cómo ha estado en los últimos 3 meses?', '¿Cómo ha estado este año?']
+          : periodo.dias <= 90
+          ? ['¿Cómo ha estado este año?']
+          : undefined
+
         if (enRango.length === 0) {
-          return { texto: `En ${periodo.texto} no registraste nada fuera de lo normal en ${d.nombre}.`, tema: 'resumen' }
+          return {
+            texto: `En ${cuandoR} no registraste nada fuera de lo normal en ${d.nombre}.${d.senales.length > 0 ? `\n\nSí hay ${d.senales.length} registros más atrás.` : ''}`,
+            tema: 'resumen',
+            opciones: ampliar,
+          }
         }
-        const lineas = enRango.slice(0, 8).map(x => `· ${x.fecha} — ${x.etiqueta}${x.nota ? ` 💬 "${x.nota}"` : ''}`)
-        return { texto: `Esto registraste en ${periodo.texto}:\n${lineas.join('\n')}`, tema: 'resumen' }
+
+        // Agrupado por tipo: en un año, una lista de 60 líneas no se
+        // lee. Cuántas veces pasó cada cosa dice más.
+        if (enRango.length > 12) {
+          const porTipo = new Map<string, number>()
+          for (const x of enRango) porTipo.set(x.etiqueta, (porTipo.get(x.etiqueta) || 0) + 1)
+          const resumenTipos = Array.from(porTipo.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([et, n]) => `· ${et} — ${n} ${n === 1 ? 'vez' : 'veces'}`)
+          return {
+            texto: `En ${cuandoR} registraste ${enRango.length} señales:\n${resumenTipos.join('\n')}\n\nPregúntame por una en particular y te doy las fechas.`,
+            tema: 'resumen',
+            opciones: ampliar,
+          }
+        }
+
+        const lineas = enRango.slice(0, 12).map(x =>
+          `· ${x.fecha} — ${x.etiqueta}${x.detalle ? ` (${x.detalle})` : ''}${x.nota ? `\n   💬 "${x.nota}"` : ''}`)
+        return {
+          texto: `Esto registraste en ${cuandoR}:\n${lineas.join('\n')}`,
+          tema: 'resumen',
+          opciones: ampliar,
+        }
       }
       if (d.episodios.length === 0) return { texto: `En ${d.textoPeriodo} no registraste episodios destacables en ${d.nombre}. Energía y ánimo normales o mejores en el ${d.pctBien}% de los días.`, tema: 'resumen' }
       return { texto: `Esto registraste en ${d.textoPeriodo}:\n\n${d.episodios.map(e => `· ${e}`).join('\n\n')}`, tema: 'resumen' }
