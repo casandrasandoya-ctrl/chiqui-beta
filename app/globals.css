@@ -299,9 +299,36 @@ input, select, textarea {
      tarjetas vecinas de la misma fila. */
   body:has(.panel-escritorio) .area-analisis {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* DOS columnas, no tres. Con tres, las tarjetas de Analisis quedan
+       demasiado angostas para lo que llevan dentro: barras, porcentajes
+       y graficos que necesitan ancho para leerse. */
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     align-items: start;
+  }
+
+  /* ---- El orden dentro de un area ---------------------------------
+     La barra de los ultimos 7 dias es un resumen de todo el mes, no una
+     tarjeta mas: va sola arriba, cruzando el area entera, y debajo
+     quedan las dos columnas de detalle.
+
+     Se hace con order y no moviendo el JSX porque en el telefono el
+     orden actual es el correcto: ahi todo va apilado y la barra tiene
+     sentido despues del detalle. Estas reglas viven dentro del media
+     query de escritorio, asi que el movil no las ve.
+
+       order 0 — el titulo del area
+       order 1 — la barra de los 7 dias
+       order 2 — todo lo demas, en el orden en que esta escrito */
+  body:has(.panel-escritorio) .area-analisis > * {
+    order: 2;
+  }
+  body:has(.panel-escritorio) .area-analisis > .px-2 {
+    order: 0;
+  }
+  body:has(.panel-escritorio) .area-analisis > .ultimos-7 {
+    order: 1;
+    grid-column: 1 / -1;
   }
 
   /* Dentro de un area hay dos cosas que NO son tarjetas y tienen que

@@ -1649,8 +1649,10 @@ export default function AnalisisPage() {
             )}
           </div>
         )}
-        {/* Últimos 7 días visual — parte de la sección Estado de salud */}
-        <div className="mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
+        {/* Últimos 7 días visual — parte de la sección Estado de salud.
+            La clase ultimos-7 la usa globals.css para subirla a su
+            propia fila en escritorio. */}
+        <div className="ultimos-7 mb-2 bg-[#FFFCF8] rounded-2xl border border-[#EEE2D4] p-4">
           <p className="text-[10px] font-semibold text-[#8A7560] mb-2">Últimos 7 días</p>
           <div className="flex items-end justify-between gap-1 h-16">
             {Array(7).fill(null).map((_, i) => {
