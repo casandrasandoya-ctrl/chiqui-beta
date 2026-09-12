@@ -98,7 +98,7 @@ export default function DashboardContenido({
   }
 
   return (
-    <div className="min-h-screen pb-24 fade-in bg-[#F5EDE3] text-[#3D2B1F]">
+    <div className="min-h-screen pb-24 fade-in bg-[#F5EDE3] text-[#3D2B1F] dash-escritorio">
 
       {/* TOP BAR - Marca */}
       <div className="flex items-center justify-between px-5 pt-5 pb-1">
@@ -191,6 +191,7 @@ export default function DashboardContenido({
 
       {/* HERO — invita a registrar. Los datos de la mascota viven en
           el perfil; la pantalla de entrada pregunta. */}
+      <div className="dash-hero">
       <Link href="/registro-diario" className="relative mx-4 mb-3 rounded-3xl p-5 overflow-hidden block" style={{ background: '#8C572F', boxShadow: '0 3px 12px rgba(140,87,47,.22)' }}>
         <div className="flex items-center gap-3.5">
           {m.foto_url ? (
@@ -255,6 +256,7 @@ export default function DashboardContenido({
           <span className="text-sm font-bold text-[#8C572F]">Ver Perfil</span>
         </Link>
         <BotonLinkVet mascotaId={m.id} mascotaNombre={m.nombre} />
+      </div>
       </div>
 
       {/* PRÓXIMOS — grid 2x2 */}

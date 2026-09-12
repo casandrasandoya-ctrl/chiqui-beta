@@ -251,6 +251,44 @@ input, select, textarea {
     grid-column: 1 / -1;
   }
 
+  /* ---- El dashboard en escritorio ---------------------------------
+     El dashboard NO usa grilla-secciones. Sus secciones ya son grillas
+     por dentro (Proximos, Cuidados recientes), asi que meterlas en una
+     columna de un tercio las dejaria peor que apiladas. Aca se ensancha
+     lo que ya existe en vez de reagrupar.
+
+     El hero y los dos botones: en el telefono van uno debajo del otro,
+     porque a lo ancho no caben. En escritorio el hero se queda con dos
+     tercios y los botones se apilan en el tercio restante. */
+  body:has(.panel-escritorio) .dash-hero {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    align-items: start;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  /* El hero y la fila de botones traen su propio mx-4 y mb del movil.
+     Dentro de la grilla esos margenes descuadran las dos columnas: el
+     espaciado ya lo pone el gap del contenedor. */
+  body:has(.panel-escritorio) .dash-hero > .mx-4 {
+    margin-left: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+  }
+  /* Los botones dejan de ir lado a lado y se apilan: en un tercio de
+     ancho, dos botones juntos quedan ilegibles. */
+  body:has(.panel-escritorio) .dash-hero > .flex {
+    flex-direction: column;
+  }
+
+  /* Proximos pasa de dos a tres por fila. Se identifica por sus propias
+     clases (es la unica grilla del dashboard con gap-2.5) para no tener
+     que tocar el JSX. Cuidados recientes ya va de a tres y no se toca. */
+  body:has(.panel-escritorio) .dash-escritorio .grid-cols-2.gap-2\.5 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
   /* Los graficos son SVG que se estiran al ancho que les den. Aunque el
      contenido ya este topado, varios siguen quedando demasiado anchos
      para su alto y se ven aplastados. Este tope solo afecta a los SVG
