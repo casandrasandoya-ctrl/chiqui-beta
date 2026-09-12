@@ -233,7 +233,7 @@ export default function PerfilPage() {
   ]
 
   return (
-    <div className="min-h-screen pb-24 fade-in">
+    <div className="min-h-screen pb-24 fade-in perfil-escritorio">
 
       {/* HERO — fondo crema con huellitas en vez del degradado café. El
           patrón va incrustado en el CSS como SVG: no depende de subir
