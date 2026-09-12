@@ -311,32 +311,61 @@ input, select, textarea {
    La vista del veterinario queda fuera: ya tiene su propio tamaño. */
 @media (min-width: 1024px) {
   body:not(:has(.vista-vet)) {
-    font-size: 15px;
+    font-size: 16px;
   }
 
-  /* El texto de contenido. Los tamaños de Tailwind están en rem, pero
-     las clases los fijan en px, así que hay que subirlos uno a uno. */
-  body:not(:has(.vista-vet)) .text-xs { font-size: 13px; line-height: 1.5; }
-  body:not(:has(.vista-vet)) .text-sm { font-size: 15px; line-height: 1.55; }
-  body:not(:has(.vista-vet)) .text-base { font-size: 16px; }
-  body:not(:has(.vista-vet)) .text-lg { font-size: 19px; }
-  body:not(:has(.vista-vet)) .text-xl { font-size: 22px; }
-  body:not(:has(.vista-vet)) .text-2xl { font-size: 26px; }
+  /* ---- LA TABLA DE TAMANOS ----------------------------------------
+     ESTE ES EL UNICO LUGAR DONDE SE AJUSTA EL TAMANO DE LETRA EN
+     ESCRITORIO. Si algo se ve chico o grande, se cambia aca y en
+     ningun otro lado.
 
-  /* Los textos diminutos de etiqueta suben menos: siguen siendo
-     secundarios, solo dejan de ser ilegibles. */
-  body:not(:has(.vista-vet)) .text-\[10px\] { font-size: 12px; }
-  body:not(:has(.vista-vet)) .text-\[11px\] { font-size: 13px; }
+     Por que hay que listarlas una por una: las clases de Tailwind
+     fijan el tamano en px, no en rem, asi que subir el font-size del
+     body no arrastra nada. Cada clase que la app use tiene que estar
+     en esta lista o se queda en su tamano de telefono.
 
-  /* Más aire: en pantalla grande, el espaciado de móvil se ve
+     Primero las clases estandar. */
+  body:not(:has(.vista-vet)) .text-xs { font-size: 14px; line-height: 1.5; }
+  body:not(:has(.vista-vet)) .text-sm { font-size: 16px; line-height: 1.55; }
+  body:not(:has(.vista-vet)) .text-base { font-size: 17px; }
+  body:not(:has(.vista-vet)) .text-lg { font-size: 20px; }
+  body:not(:has(.vista-vet)) .text-xl { font-size: 24px; }
+  body:not(:has(.vista-vet)) .text-2xl { font-size: 28px; }
+  body:not(:has(.vista-vet)) .text-3xl { font-size: 32px; }
+
+  /* Y ahora las que la app escribe en pixeles a mano. Son la mayoria
+     del texto de las tarjetas — Proximos, los cubos de Cuidados, las
+     pildoras de estado — y por eso, cubriendo solo las estandar, la
+     pantalla seguia viendose chica. */
+  body:not(:has(.vista-vet)) .text-\[9px\] { font-size: 12px; }
+  body:not(:has(.vista-vet)) .text-\[10px\] { font-size: 13px; }
+  body:not(:has(.vista-vet)) .text-\[10\.5px\] { font-size: 13px; }
+  body:not(:has(.vista-vet)) .text-\[11px\] { font-size: 14px; }
+  body:not(:has(.vista-vet)) .text-\[11\.5px\] { font-size: 14px; }
+  body:not(:has(.vista-vet)) .text-\[12px\] { font-size: 14px; }
+  body:not(:has(.vista-vet)) .text-\[12\.5px\] { font-size: 15px; }
+  body:not(:has(.vista-vet)) .text-\[13px\] { font-size: 15px; }
+  body:not(:has(.vista-vet)) .text-\[13\.5px\] { font-size: 16px; }
+  body:not(:has(.vista-vet)) .text-\[14px\] { font-size: 16px; }
+  body:not(:has(.vista-vet)) .text-\[15px\] { font-size: 17px; }
+  body:not(:has(.vista-vet)) .text-\[16px\] { font-size: 18px; }
+  body:not(:has(.vista-vet)) .text-\[17px\] { font-size: 19px; }
+  body:not(:has(.vista-vet)) .text-\[18px\] { font-size: 20px; }
+  body:not(:has(.vista-vet)) .text-\[20px\] { font-size: 22px; }
+  body:not(:has(.vista-vet)) .text-\[22px\] { font-size: 24px; }
+  body:not(:has(.vista-vet)) .text-\[26px\] { font-size: 28px; }
+
+  /* Mas aire: en pantalla grande, el espaciado de movil se ve
      apretado. */
   body:not(:has(.vista-vet)) .mx-4 { margin-left: 24px; margin-right: 24px; }
   body:not(:has(.vista-vet)) .px-4 { padding-left: 24px; padding-right: 24px; }
   body:not(:has(.vista-vet)) .px-5 { padding-left: 28px; padding-right: 28px; }
 
-  /* El panel tiene su propio espaciado: no debe heredar el de la app. */
+  /* El panel tiene su propio espaciado y su propia escala: es
+     navegacion, no contenido, y no debe competir con lo que se lee. */
   .panel-escritorio .px-5 { padding-left: 20px; padding-right: 20px; }
-  .panel-escritorio .text-\[11px\] { font-size: 11px; }
+  .panel-escritorio .text-sm { font-size: 15px; }
+  .panel-escritorio .text-\[11px\] { font-size: 12px; }
 }
 
 /* NOTA — lo que se quitó en el script 502 y por qué:
