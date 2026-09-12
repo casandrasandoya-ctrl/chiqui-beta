@@ -151,29 +151,25 @@ input, select, textarea {
 /* ============================================================
    CHIQUI EN ESCRITORIO
    ============================================================
-   En el telefono la app se ve igual que siempre: 420px, que es el ancho
-   comodo para el pulgar.
+   En el teléfono no cambia nada: PanelEscritorio está en `hidden` y
+   estas reglas viven dentro de un media query de 1024px.
 
-   Desde 1024px el body crece a 900px. No mas: por encima de eso las
-   lineas de texto se hacen largas y cuesta seguir el renglon.
+   Desde ahí el panel se dibuja fijo a la izquierda. Al ser `fixed` NO
+   ocupa lugar en el flujo, así que es el padding-left del body el que
+   le reserva el sitio: 240px del panel + 24px de aire.
 
-   Todas las pantallas se amplian con esto, sin tocar ninguna.
-   Para volver atras, basta con borrar este bloque. */
+   Se engancha con :has(.panel-escritorio) y no con una regla fija
+   porque el panel no aparece en login, registro ni en la vista del
+   veterinario. En esas pantallas el body debe seguir centrado en 420px
+   como siempre.
+
+   Antes acá había un tope fijo de ancho. Se quitó a propósito: con el
+   panel, la app usa la pantalla completa. */
 @media (min-width: 1024px) {
-  body:not(:has(.vista-vet)) {
-    max-width: 900px;
-  }
-
-  /* El menu de abajo y el boton flotante usan position fixed, que se
-     ancla a la VENTANA y no al contenido. Sin esto quedarian pegados a
-     los bordes de la pantalla, lejos de donde esta mirando la persona. */
-  body:not(:has(.vista-vet)) nav[class*="fixed"],
-  body:not(:has(.vista-vet)) div[class*="fixed bottom"],
-  body:not(:has(.vista-vet)) [class*="fixed"][class*="bottom-0"] {
-    max-width: 900px;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
+  body:has(.panel-escritorio) {
+    max-width: 100%;
+    padding-left: 264px;
+    padding-right: 24px;
   }
 }
 
@@ -181,8 +177,8 @@ input, select, textarea {
 /* ============================================================
    TIPOGRAFIA DE ESCRITORIO
    ============================================================
-   Sin esto, ampliar el ancho solo produce un telefono ancho: la letra
-   de 12px pensada para leer a 30cm queda incomoda en un monitor a 60.
+   Sin esto, ampliar el ancho solo produce un teléfono ancho: la letra
+   de 12px pensada para leer a 30cm queda incómoda en un monitor a 60.
 
    Solo se toca el tamaño, no las familias ni los colores: la app se
    sigue viendo igual, pero legible.
@@ -193,8 +189,8 @@ input, select, textarea {
     font-size: 15px;
   }
 
-  /* El texto de contenido. Los tamaños de Tailwind estan en rem, pero
-     las clases los fijan en px, asi que hay que subirlos uno a uno. */
+  /* El texto de contenido. Los tamaños de Tailwind están en rem, pero
+     las clases los fijan en px, así que hay que subirlos uno a uno. */
   body:not(:has(.vista-vet)) .text-xs { font-size: 13px; line-height: 1.5; }
   body:not(:has(.vista-vet)) .text-sm { font-size: 15px; line-height: 1.55; }
   body:not(:has(.vista-vet)) .text-base { font-size: 16px; }
@@ -207,26 +203,30 @@ input, select, textarea {
   body:not(:has(.vista-vet)) .text-\[10px\] { font-size: 12px; }
   body:not(:has(.vista-vet)) .text-\[11px\] { font-size: 13px; }
 
-  /* Mas aire: en pantalla grande, el espaciado de movil se ve
+  /* Más aire: en pantalla grande, el espaciado de móvil se ve
      apretado. */
   body:not(:has(.vista-vet)) .mx-4 { margin-left: 24px; margin-right: 24px; }
   body:not(:has(.vista-vet)) .px-4 { padding-left: 24px; padding-right: 24px; }
   body:not(:has(.vista-vet)) .px-5 { padding-left: 28px; padding-right: 28px; }
+
+  /* El panel tiene su propio espaciado: no debe heredar el de la app. */
+  .panel-escritorio .px-5 { padding-left: 20px; padding-right: 20px; }
+  .panel-escritorio .text-\[11px\] { font-size: 11px; }
 }
 
-/* ============================================================
-   DASHBOARD EN DOS COLUMNAS
-   ============================================================
-   El contenido se reparte solo, sin tocar el orden ni el JSX. Cada
-   bloque lleva break-inside: avoid para no partirse entre columnas. */
-@media (min-width: 1024px) {
-  body:not(:has(.vista-vet)) main.dashboard-web,
-  body:not(:has(.vista-vet)) .dashboard-web {
-    columns: 2;
-    column-gap: 24px;
-  }
-  body:not(:has(.vista-vet)) .dashboard-web > * {
-    break-inside: avoid;
-    margin-bottom: 16px;
-  }
-}
+/* NOTA — lo que se quitó en el script 502 y por qué:
+
+   1) El tope fijo de ancho del body en escritorio. Era un parche:
+      ensanchaba la app, pero seguía viéndose como un teléfono ancho.
+      Lo reemplaza el panel lateral.
+
+   2) El recentrado de los elementos `position: fixed` con selectores
+      del tipo [class*="fixed"]. Servía para que el menú de abajo
+      acompañara al body cuando este tenía un tope. Sin ese tope, ya no
+      hace falta.
+
+   3) La regla multi-columna sobre .dashboard-web. Ese modo de CSS
+      reparte el contenido como las columnas de un diario, no como una
+      grilla: el orden de lectura queda raro y las tarjetas saltan de
+      lado al cambiar de alto. El dashboard pasa a grilla real en un
+      script aparte. */

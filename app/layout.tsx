@@ -7,6 +7,7 @@ import InstalarAutomatico from '@/components/InstalarAutomatico'
 import ClientWrapper from '@/components/ClientWrapper'
 import MenuFlotante from '@/components/MenuFlotante'
 import ChiquiFlotante from '@/components/ChiquiFlotante'
+import PanelEscritorio from '@/components/PanelEscritorio'
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -52,6 +53,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Menu de cuenta, presente en todas las pantallas salvo las
             que no tienen sesion. Ver components/MenuFlotante.tsx. */}
         <MenuFlotante />
+        {/* Navegacion lateral. Solo se dibuja desde 1024px; el
+            telefono no la ve. Ver components/PanelEscritorio.tsx. */}
+        <PanelEscritorio />
         <RegistrarServiceWorker />
         <Suspense fallback={null}>
           <InstalarAutomatico />
