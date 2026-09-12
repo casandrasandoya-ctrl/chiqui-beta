@@ -176,3 +176,57 @@ input, select, textarea {
     transform: translateX(-50%);
   }
 }
+
+
+/* ============================================================
+   TIPOGRAFIA DE ESCRITORIO
+   ============================================================
+   Sin esto, ampliar el ancho solo produce un telefono ancho: la letra
+   de 12px pensada para leer a 30cm queda incomoda en un monitor a 60.
+
+   Solo se toca el tamaño, no las familias ni los colores: la app se
+   sigue viendo igual, pero legible.
+
+   La vista del veterinario queda fuera: ya tiene su propio tamaño. */
+@media (min-width: 1024px) {
+  body:not(:has(.vista-vet)) {
+    font-size: 15px;
+  }
+
+  /* El texto de contenido. Los tamaños de Tailwind estan en rem, pero
+     las clases los fijan en px, asi que hay que subirlos uno a uno. */
+  body:not(:has(.vista-vet)) .text-xs { font-size: 13px; line-height: 1.5; }
+  body:not(:has(.vista-vet)) .text-sm { font-size: 15px; line-height: 1.55; }
+  body:not(:has(.vista-vet)) .text-base { font-size: 16px; }
+  body:not(:has(.vista-vet)) .text-lg { font-size: 19px; }
+  body:not(:has(.vista-vet)) .text-xl { font-size: 22px; }
+  body:not(:has(.vista-vet)) .text-2xl { font-size: 26px; }
+
+  /* Los textos diminutos de etiqueta suben menos: siguen siendo
+     secundarios, solo dejan de ser ilegibles. */
+  body:not(:has(.vista-vet)) .text-\[10px\] { font-size: 12px; }
+  body:not(:has(.vista-vet)) .text-\[11px\] { font-size: 13px; }
+
+  /* Mas aire: en pantalla grande, el espaciado de movil se ve
+     apretado. */
+  body:not(:has(.vista-vet)) .mx-4 { margin-left: 24px; margin-right: 24px; }
+  body:not(:has(.vista-vet)) .px-4 { padding-left: 24px; padding-right: 24px; }
+  body:not(:has(.vista-vet)) .px-5 { padding-left: 28px; padding-right: 28px; }
+}
+
+/* ============================================================
+   DASHBOARD EN DOS COLUMNAS
+   ============================================================
+   El contenido se reparte solo, sin tocar el orden ni el JSX. Cada
+   bloque lleva break-inside: avoid para no partirse entre columnas. */
+@media (min-width: 1024px) {
+  body:not(:has(.vista-vet)) main.dashboard-web,
+  body:not(:has(.vista-vet)) .dashboard-web {
+    columns: 2;
+    column-gap: 24px;
+  }
+  body:not(:has(.vista-vet)) .dashboard-web > * {
+    break-inside: avoid;
+    margin-bottom: 16px;
+  }
+}
