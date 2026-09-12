@@ -15,7 +15,7 @@ export default function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 w-full max-w-[420px]">
+    <nav className="menu-inferior fixed bottom-0 left-1/2 -translate-x-1/2 z-50 w-full max-w-[420px]">
       <div className="bg-[#FFFCF8] border-t border-[#EEE2D4] flex items-center justify-around px-0 pt-2.5 pb-4">
         {navItems.map(item => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')

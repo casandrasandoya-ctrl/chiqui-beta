@@ -170,6 +170,22 @@ input, select, textarea {
     max-width: 100%;
     padding-left: 264px;
     padding-right: 24px;
+    /* En el telefono el body reserva 80px abajo para que el menu
+       inferior no tape la ultima tarjeta. Sin ese menu, ese hueco es
+       solo espacio muerto al final de la pagina. */
+    padding-bottom: 24px;
+  }
+
+  /* ---- El menu de abajo en escritorio -----------------------------
+     El panel lateral tiene los mismos destinos, asi que el menu
+     inferior queda duplicando la navegacion.
+
+     Se esconde cuando HAY PANEL, no simplemente cuando la pantalla es
+     ancha. Es la diferencia entre quedarse sin un menu repetido y
+     quedarse sin navegacion: si algun dia el panel deja de dibujarse en
+     alguna pantalla, el menu inferior reaparece solo. */
+  body:has(.panel-escritorio) .menu-inferior {
+    display: none;
   }
 
   /* ---- El ancho de lectura ----------------------------------------
