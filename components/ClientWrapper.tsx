@@ -38,5 +38,5 @@ export default function ClientWrapper({ children }: { children: React.ReactNode 
 
   if (cargando) return <SplashScreen />
 
-  return <div className="fade-in">{children}</div>
+  return <div className="fade-in contenido-app">{children}</div>
 }

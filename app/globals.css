@@ -171,6 +171,31 @@ input, select, textarea {
     padding-left: 264px;
     padding-right: 24px;
   }
+
+  /* ---- El ancho de lectura ----------------------------------------
+     Quitar el tope del body fue lo correcto para el fondo y el panel,
+     pero dejo el CONTENIDO sin limite, y eso rompio los graficos: las
+     barras de Analisis quedaron de 1600px de ancho por 12 de alto, y
+     el grafico de peso estiro hasta las etiquetas.
+
+     .contenido-app es el div que ya envolvia todo en ClientWrapper.
+     Topandolo aca, el fondo y el panel siguen usando la pantalla
+     completa y solo el contenido se mantiene legible.
+
+     SI ALGUN DIA SE QUIERE MAS ANCHO O MAS ANGOSTO, ES ESTE NUMERO Y
+     NINGUN OTRO. */
+  body:has(.panel-escritorio) .contenido-app {
+    max-width: 1240px;
+    margin: 0 auto;
+  }
+
+  /* Los graficos son SVG que se estiran al ancho que les den. Aunque el
+     contenido ya este topado, varios siguen quedando demasiado anchos
+     para su alto y se ven aplastados. Este tope solo afecta a los SVG
+     grandes: los iconos miden 16 o 24px y no los toca. */
+  body:has(.panel-escritorio) .contenido-app svg {
+    max-width: 720px;
+  }
 }
 
 
