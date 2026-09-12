@@ -289,6 +289,38 @@ input, select, textarea {
     grid-template-columns: repeat(3, 1fr);
   }
 
+  /* ---- Analisis en escritorio -------------------------------------
+     Analisis no se parece ni a Prevencion ni al dashboard: sus tarjetas
+     viven DENTRO de contenedores de area con fondo propio (Estado de
+     salud, Actividad fisica). La grilla va en cada area, no en la raiz:
+     poner las areas mismas en columnas las partiria por la mitad.
+
+     align-items: start para que abrir un desplegable no estire a las
+     tarjetas vecinas de la misma fila. */
+  body:has(.panel-escritorio) .area-analisis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    align-items: start;
+  }
+
+  /* Dentro de un area hay dos cosas que NO son tarjetas y tienen que
+     cruzar la fila entera:
+     - .px-2  es el envoltorio del titulo del area.
+     - .grid  son las minigrillas internas (los cubos de racha y paseo
+       del mes). Meter una grilla de dos columnas dentro de una columna
+       de un tercio deja los numeros ilegibles. */
+  body:has(.panel-escritorio) .area-analisis > .px-2,
+  body:has(.panel-escritorio) .area-analisis > .grid {
+    grid-column: 1 / -1;
+  }
+
+  /* Las tarjetas traen mb-2 del movil; dentro de la grilla ese margen
+     se suma al gap y descuadra las filas. */
+  body:has(.panel-escritorio) .area-analisis > .mb-2 {
+    margin-bottom: 0;
+  }
+
   /* Los graficos son SVG que se estiran al ancho que les den. Aunque el
      contenido ya este topado, varios siguen quedando demasiado anchos
      para su alto y se ven aplastados. Este tope solo afecta a los SVG

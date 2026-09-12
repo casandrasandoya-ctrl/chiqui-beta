@@ -1490,7 +1490,7 @@ export default function AnalisisPage() {
       )}
       {/* SECCIÓN ESTADO DE SALUD — contenedor con fondo */}
       {total > 0 && (
-      <div className="mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#F0E2CE' }}>
+      <div className="area-analisis mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#F0E2CE' }}>
         <div className="px-2 mb-2 pt-1">
           <div className="flex items-center gap-2">
             <img src="/chiqui/chiqui_vet.png" alt="" className="w-7 h-7 object-contain" />
@@ -1720,7 +1720,7 @@ export default function AnalisisPage() {
         const cazoEstaSemana = enriqRegistros.some(e => e.actividad === 'caza' && e.fecha >= desde7)
         const fmtMinG = (m: number) => m >= 60 ? `${Math.floor(m / 60)}h ${m % 60 > 0 ? (m % 60) + 'm' : ''}`.trim() : `${m} min`
         return (
-          <div className="mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#FBEEDD' }}>
+          <div className="area-analisis mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#FBEEDD' }}>
             <div className="px-2 mb-2 pt-1">
               <div className="flex items-center gap-2">
                 <img src="/chiqui/chiqui_paseo.png" alt="" className="w-7 h-7 object-contain" />
@@ -1797,7 +1797,7 @@ export default function AnalisisPage() {
       })()}
       {/* ACTIVIDAD FÍSICA (solo perros) — contenedor con fondo */}
         {esPerro && (
-          <div className="mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#FBEEDD' }}>
+          <div className="area-analisis mx-4 mb-5 rounded-3xl px-3 pt-2 pb-3" style={{ background: '#FBEEDD' }}>
             <div className="px-2 mb-2 pt-1">
               <div className="flex items-center gap-2">
                 <img src="/chiqui/chiqui_paseo.png" alt="" className="w-7 h-7 object-contain" />
