@@ -185,8 +185,54 @@ input, select, textarea {
      SI ALGUN DIA SE QUIERE MAS ANCHO O MAS ANGOSTO, ES ESTE NUMERO Y
      NINGUN OTRO. */
   body:has(.panel-escritorio) .contenido-app {
-    max-width: 1240px;
+    max-width: 1600px;
     margin: 0 auto;
+  }
+
+  /* ---- Secciones en tres columnas ---------------------------------
+     El ancho no sobraba: lo que sobraba era que cada tarjeta ocupara
+     una fila entera. Con tres columnas las tarjetas dejan de estirarse
+     y crecen hacia abajo, cada una en su columna.
+
+     align-items: start es lo que hace que abrir un acordeon NO estire a
+     las tarjetas vecinas. Sin eso, las tres de la fila crecerian al
+     alto de la mas alta.
+
+     Una pagina entra en este modo poniendole la clase grilla-secciones
+     a su contenedor, siempre que sus tarjetas sean hijas directas.
+
+     Todo esto vive dentro del media query de escritorio: en el telefono
+     las tarjetas siguen apiladas exactamente igual que antes. */
+  body:has(.panel-escritorio) .grilla-secciones {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    align-items: start;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  /* Las tarjetas traen mx-4 y mb-2 del movil. Dentro de la grilla esos
+     margenes se suman al gap y descuadran las columnas. */
+  body:has(.panel-escritorio) .grilla-secciones > .mx-4 {
+    margin-left: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+  }
+
+  /* Lo que no es una tarjeta ocupa la fila entera:
+     - .fila-completa: lo marcado a mano (el selector de mascota).
+     - div.justify-between: el encabezado de la pagina.
+     - div.items-center.gap-2: los titulos de area (Signos vitales,
+       Prevencion, Historial medico). Las tarjetas no llevan
+       items-center, asi que no las toca.
+     Se hace por clases y no marcando cada titulo para no tener que
+     editar seis puntos del JSX. Si algun dia un titulo de area cambia
+     sus clases de Tailwind, es ACA donde hay que mirar. */
+  body:has(.panel-escritorio) .grilla-secciones > .fila-completa,
+  body:has(.panel-escritorio) .grilla-secciones > div.justify-between,
+  body:has(.panel-escritorio) .grilla-secciones > div.items-center.gap-2 {
+    grid-column: 1 / -1;
   }
 
   /* Los graficos son SVG que se estiran al ancho que les den. Aunque el

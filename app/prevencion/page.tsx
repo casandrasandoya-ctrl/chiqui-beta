@@ -623,7 +623,7 @@ export default function PrevencionPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-[#8A7560]">Cargando...</div>
 
   return (
-    <div className="min-h-screen pb-24 fade-in">
+    <div className="min-h-screen pb-24 fade-in grilla-secciones">
 
       {/* Header */}
       <div className="px-5 pt-6 pb-3 flex items-center justify-between">
@@ -636,7 +636,7 @@ export default function PrevencionPage() {
         </div>
       </div>
 
-      {mascota && <SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} />}
+      {mascota && <div className="fila-completa"><SelectorMascota mascotas={mascotas} mascotaActiva={mascota} onCambiar={cambiarMascota} /></div>}
 
       {/* ÁREA 1: Signos vitales */}
       <div className="mx-4 mb-2 mt-1 flex items-center gap-2">
