@@ -338,39 +338,52 @@ input, select, textarea {
 
      align-items: start para que una tarjeta alta no estire a las de su
      fila. Caen en el orden en que estan escritas. */
+  /* ---- El perfil en escritorio ------------------------------------
+     PRIMERO SE INTENTO CON GRILLA Y NO SIRVIO. En una grilla cada fila
+     toma la altura de su tarjeta mas alta, asi que una tarjeta corta al
+     lado de una larga deja un hueco visible. El perfil tiene tarjetas
+     de alturas muy distintas — el selector de mascotas mide 60px y la
+     de etapa de vida 200 — y el resultado quedaba lleno de espacios.
+
+     Con columnas (column-count) cada tarjeta cae donde hay lugar y las
+     columnas se empaquetan solas, sin huecos.
+
+     EL PRECIO: el orden pasa a ser POR COLUMNA. Se llena la primera de
+     arriba a abajo, despues la segunda. No es el orden por filas del
+     diseno original; se eligio asi porque sin huecos se ve ordenado, y
+     conseguir las dos cosas obligaria a reagrupar el JSX en tres
+     bloques, lo que cambiaria tambien el telefono. */
   body:has(.panel-escritorio) .perfil-escritorio {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    align-items: start;
+    column-count: 3;
+    column-gap: 16px;
     padding-left: 24px;
     padding-right: 24px;
   }
 
-  /* Las tarjetas traen mx-4 y mb-4 del movil; dentro de la grilla esos
-     margenes se suman al gap y descuadran las columnas. */
-  body:has(.panel-escritorio) .perfil-escritorio > .mx-4 {
+  /* break-inside evita que una tarjeta se corte por la mitad entre el
+     final de una columna y el comienzo de la siguiente. Sin esto, una
+     tarjeta larga aparece partida en dos. */
+  body:has(.panel-escritorio) .perfil-escritorio > * {
+    break-inside: avoid;
     margin-left: 0;
     margin-right: 0;
-    margin-bottom: 0;
+    margin-bottom: 16px;
   }
 
-  /* El hero (foto, nombre, edad) cruza el ancho completo: es la
+  /* El hero (foto, nombre, edad) cruza las tres columnas: es la
      cabecera de la pagina, no una tarjeta mas. */
   body:has(.panel-escritorio) .perfil-escritorio > .text-center {
-    grid-column: 1 / -1;
+    column-span: all;
+    margin-bottom: 16px;
   }
 
-  /* Link del vet y Co-tutor vienen envueltos en su propia grilla de dos
-     columnas, pensada para el ancho del telefono. Dentro de un tercio
-     de pantalla quedarian apretadisimos.
-
-     display: contents DISUELVE ese envoltorio: no dibuja nada, y sus
-     dos tarjetas pasan a ser hijas directas de la grilla del perfil,
-     cada una con su propia columna. El div sigue en el DOM, asi que las
-     clases que neutralizan sus margenes siguen aplicandose. */
+  /* Link del vet y Co-tutor vienen en su propia grilla de dos columnas,
+     pensada para el ancho del telefono. Dentro de una columna de un
+     tercio quedarian apretadisimos, asi que se apilan: la grilla pasa a
+     una sola columna y las dos tarjetas quedan una sobre otra. */
   body:has(.panel-escritorio) .perfil-escritorio > .items-stretch {
-    display: contents;
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   /* Dentro de un area hay dos cosas que NO son tarjetas y tienen que
