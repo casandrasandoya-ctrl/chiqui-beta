@@ -377,13 +377,25 @@ input, select, textarea {
     margin-bottom: 16px;
   }
 
-  /* Link del vet y Co-tutor vienen en su propia grilla de dos columnas,
-     pensada para el ancho del telefono. Dentro de una columna de un
-     tercio quedarian apretadisimos, asi que se apilan: la grilla pasa a
-     una sola columna y las dos tarjetas quedan una sobre otra. */
+  /* Link del vet y Co-tutor vienen envueltos en una grilla de dos
+     columnas pensada para el ancho del telefono. Apilarlos dentro de
+     ese envoltorio no bastaba: el envoltorio seguia ocupando un lugar
+     en la columna, y las dos tarjetas quedaban con distinto ancho y
+     distinto margen que todas las demas.
+
+     display: contents lo DISUELVE: el div deja de dibujarse y sus dos
+     tarjetas pasan a flotar en las columnas como cualquier otra.
+
+     OJO CON EL SELECTOR: ">" mira el DOM, no lo que se dibuja. Aunque
+     el envoltorio no se pinte, sigue siendo el hijo directo, asi que
+     las reglas de las tarjetas hay que escribirlas un nivel mas
+     adentro o no les llegan. */
   body:has(.panel-escritorio) .perfil-escritorio > .items-stretch {
-    grid-template-columns: 1fr;
-    gap: 16px;
+    display: contents;
+  }
+  body:has(.panel-escritorio) .perfil-escritorio > .items-stretch > * {
+    break-inside: avoid;
+    margin-bottom: 16px;
   }
 
   /* Dentro de un area hay dos cosas que NO son tarjetas y tienen que
