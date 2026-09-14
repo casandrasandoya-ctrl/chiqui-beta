@@ -377,6 +377,24 @@ input, select, textarea {
     margin-bottom: 16px;
   }
 
+  /* La fila de mascotas tambien cruza las tres columnas. No es por
+     estetica: es el control que decide QUE mascota se esta mirando, y
+     todo lo que viene despues depende de esa eleccion. Con una tarjeta
+     al lado a la misma altura, se lee como si fueran dos cosas del
+     mismo nivel.
+
+     column-span: all ademas CORTA la fila: lo que viene despues
+     empieza columnas nuevas debajo. Por eso nada puede quedar a su
+     altura, no solo a su lado.
+
+     El selector es components/SelectorMascota.tsx y su raiz es
+     px-4 pb-3. Si esas clases cambian, esta regla deja de encontrarlo
+     y el selector vuelve a compartir fila sin avisar. */
+  body:has(.panel-escritorio) .perfil-escritorio > .px-4.pb-3 {
+    column-span: all;
+    margin-bottom: 16px;
+  }
+
   /* Link del vet y Co-tutor vienen envueltos en una grilla de dos
      columnas pensada para el ancho del telefono. Apilarlos dentro de
      ese envoltorio no bastaba: el envoltorio seguia ocupando un lugar
